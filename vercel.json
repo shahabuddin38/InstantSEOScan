@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "name": "InstantSEOScan",
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "regions": ["iad1"]
+}
