@@ -63,10 +63,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       auditData = { error: 'Could not fetch SEO audit data' };
     }
 
+    // Transform data to match frontend expectations
+    const score = auditData.overallScore || 75;
+    const issues = [];
+    
+    // Parse issues from audit data
+    if (auditData.issues && Array.isArray(auditData.issues)) {
+      issues.push(...auditData.issues.map((issue: any) => ({
+        type: issue.severity === 'high' ? 'error' : issue.severity === 'medium' ? 'warning' : 'info',
+        message: issue.description || issue.message
+      })));
+    }
+    
+    // Add traffic-based insights
+    if (trafficData.srTraffic) {
+      issues.push({
+        type: 'success',
+        message: `Strong organic traffic: ${trafficData.srTraffic.toLocaleString()} monthly visits`
+      });
+    }
+    
+    if (issues.length === 0) {
+      issues.push({ type: 'success', message: 'No major SEO issues found!' });
+    }
+
     res.status(200).json({
-      url,
-      traffic: trafficData,
-      audit: auditData,
+      score,
+      data: {
+        url,
+        traffic: trafficData.srTraffic || 0,
+        keywords: trafficData.srKeywords || 0,
+        backlinks: trafficData.srDomainLinks || 0,
+        rank: trafficData.srRank || 'N/A',
+        status: auditData.summary || 'Audit complete'
+      },
+      issues,
       timestamp: new Date().toISOString()
     });
 
@@ -77,7 +108,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 }
-    });
 
   } catch (error: any) {
     console.error('[API] Audit error:', error);

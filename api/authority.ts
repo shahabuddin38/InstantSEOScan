@@ -42,9 +42,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { headers: getApiHeaders('moz-da-pa1.p.rapidapi.com'), timeout: 10000 }
     );
 
+    // Transform data to match frontend expectations for single domain
+    const daData = response.data || {};
+    
     res.status(200).json({
       domain,
-      data: response.data,
+      da: daData.domain_authority || 0,
+      pa: daData.page_authority || 0,
+      backlinks: daData.external_urls_to_url || 0,
+      spam: daData.spam_score || 0,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
