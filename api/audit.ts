@@ -1,10 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import cors from 'cors';
 import axios from 'axios';
-import * as cheerio from 'cheerio';
 
 const corsMiddleware = cors({ origin: '*' });
-const RAPIDAPI_KEY = 'ddcc181474msh9f948f7f9a00791p1bdcc6jsn6e1484faee71';
 
 function runMiddleware(req: VercelRequest, res: VercelResponse, fn: any): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -13,14 +11,6 @@ function runMiddleware(req: VercelRequest, res: VercelResponse, fn: any): Promis
       else resolve();
     });
   });
-}
-
-function getApiHeaders(host: string) {
-  return {
-    'x-rapidapi-host': host,
-    'x-rapidapi-key': RAPIDAPI_KEY,
-    'Content-Type': 'application/json'
-  };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -39,42 +29,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Fetch the website HTML for analysis
     let html = '';
+    let statusCode = 0;
     try {
       const response = await axios.get(url, { timeout: 5000 });
       html = response.data;
-    } catch (e) {
-      console.warn(`Failed to fetch ${url}, using mock data.`);
-      html = `
-        <html>
-          <head>
-            <title>Mock Title for ${url}</title>
-            <meta name="description" content="This is a mock description for testing purposes.">
-            <link rel="canonical" href="${url}">
-          </head>
-          <body>
-            <h1>Main Heading</h1>
-            <h2>Subheading 1</h2>
-            <h2>Subheading 2</h2>
-            <img src="image1.jpg" alt="Image 1">
-            <img src="image2.jpg">
-            <a href="/internal">Internal Link</a>
-            <a href="https://external.com">External Link</a>
-          </body>
-        </html>
-      `;
+      statusCode = response.status;
+    } catch (e: any) {
+      console.warn(`Failed to fetch ${url}:`, e.message);
+      html = '';
+      statusCode = e.response?.status || 0;
     }
 
-    const $ = cheerio.load(html);
-
-    const metaTitle = $('title').text();
-    const metaDescription = $('meta[name="description"]').attr('content') || '';
-    const h1Count = $('h1').length;
-    const h2Count = $('h2').length;
-    const canonical = $('link[rel="canonical"]').attr('href') || '';
-    const images = $('img').length;
-    const imagesWithoutAlt = $('img:not([alt])').length;
-    const internalLinks = $('a[href^="/"], a[href^="' + url + '"]').length;
-    const externalLinks = $('a[href^="http"]').length - internalLinks;
+    // Parse basic SEO metrics without cheerio
+    const metaTitle = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] || '';
+    const metaDescription = html.match(/<meta\s+name="description"\s+content="([^"]*)"/i)?.[1] || '';
+    const h1Count = (html.match(/<h1[^>]*>/gi) || []).length;
+    const h2Count = (html.match(/<h2[^>]*>/gi) || []).length;
+    const canonical = html.match(/<link\s+rel="canonical"\s+href="([^"]*)"/i)?.[1] || '';
+    const images = (html.match(/<img[^>]*>/gi) || []).length;
+    const imagesWithoutAlt = (html.match(/<img[^>]*?(?<!alt\s*=)>/gi) || []).length;
+    const internalLinks = (html.match(/href="\/[^"]*"/gi) || []).length;
+    const externalLinks = (html.match(/href="https?:\/\/[^"]*"/gi) || []).length - internalLinks;
 
     const ssl = url.startsWith('https');
     const pageSpeed = Math.floor(Math.random() * 40) + 60; // Mock 60-100
@@ -117,12 +92,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).json({
       score: Math.max(0, score),
       data: {
+        url,
         metaTitle,
         metaDescription,
         h1Count,
         h2Count,
         canonical,
         ssl,
+        statusCode,
         pageSpeed,
         images,
         imagesWithoutAlt,
