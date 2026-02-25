@@ -27,15 +27,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { email, password } = req.body;
+    console.log('[Login] Request for email:', email);
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
     const users = queryUsers({ email } as any);
+    console.log('[Login] Users found:', users.length);
     const user = users.find((u: any) => u.email === email);
+    console.log('[Login] User found:', !!user, user?.email);
     
-    if (!user || !comparePassword(password, user.password)) {
+    if (!user) {
+      console.log('[Login] User not found for email:', email);
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const passwordMatch = comparePassword(password, user.password);
+    console.log('[Login] Password match:', passwordMatch);
+    
+    if (!passwordMatch) {
+      console.log('[Login] Password mismatch');
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
@@ -45,6 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const isAdmin = email === 'shahabjan38@gmail.com';
     const token = generateToken(user.id, user.email, isAdmin);
+    console.log('[Login] Token generated for:', email);
 
     return res.status(200).json({
       token,
