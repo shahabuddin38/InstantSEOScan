@@ -1,17 +1,12 @@
 {
   "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
   "installCommand": "npm install",
   "name": "InstantSEOScan",
   "regions": ["iad1"],
-  "functions": {
-    "api/[...route].ts": {
-      "maxDuration": 60
-    }
-  },
+  "public": true,
   "rewrites": [
     {
-      "source": "/((?!api).*)",
+      "source": "/((?!api|_next|static).*)",
       "destination": "/index.html"
     }
   ]
