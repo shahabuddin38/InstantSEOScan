@@ -16,19 +16,15 @@ import Keyword from './pages/Keyword';
 import Authority from './pages/Authority';
 import Pricing from './pages/Pricing';
 import Admin from './pages/Admin';
-import ProtectedRoute from './components/ProtectedRoute';
 
-function Sidebar() {
+// App Layout Component  
+function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
-    setIsLoggedIn(!!token);
-    
     if (user) {
       try {
         const userData = JSON.parse(user);
@@ -37,7 +33,7 @@ function Sidebar() {
         console.error('Error parsing user data:', e);
       }
     }
-  }, [location.pathname]);
+  }, []);
 
   const navItems = [
     { name: 'Dashboard', path: '/app', icon: LayoutDashboard },
@@ -48,14 +44,8 @@ function Sidebar() {
     ...(isAdmin ? [{ name: 'Admin', path: '/app/admin', icon: Settings }] : []),
   ];
 
-  const isAppRoute = location.pathname.startsWith('/app');
-
-  if (!isLoggedIn || !isAppRoute) {
-    return null;
-  }
-
   return (
-    <>
+    <div className="flex min-h-screen bg-slate-50">
       {/* Mobile menu button */}
       <button
         className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md"
@@ -97,7 +87,12 @@ function Sidebar() {
           })}
         </nav>
       </div>
-    </>
+
+      {/* Main Content */}
+      <main className="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto w-full bg-slate-50 min-h-screen">
+        {children}
+      </main>
+    </div>
   );
 }
 
@@ -115,26 +110,77 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/pricing" element={<Pricing />} />
 
-        {/* Protected App Pages with Sidebar */}
+        {/* Protected App Pages */}
         <Route
-          path="/app/*"
+          path="/app"
           element={
-            <ProtectedRoute>
-              <div className="flex min-h-screen bg-slate-50 font-sans">
-                <Sidebar />
-                <main className="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto w-full bg-slate-50 min-h-screen">
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/audit" element={<Audit />} />
-                    <Route path="/keyword" element={<Keyword />} />
-                    <Route path="/authority" element={<Authority />} />
-                    <Route path="/pricing" element={<Pricing />} />
-                    <Route path="/admin" element={<Admin />} />
-                    <Route path="*" element={<Navigate to="/app" replace />} />
-                  </Routes>
-                </main>
-              </div>
-            </ProtectedRoute>
+            localStorage.getItem('token') ? (
+              <AppLayout>
+                <Dashboard />
+              </AppLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/app/audit"
+          element={
+            localStorage.getItem('token') ? (
+              <AppLayout>
+                <Audit />
+              </AppLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/app/keyword"
+          element={
+            localStorage.getItem('token') ? (
+              <AppLayout>
+                <Keyword />
+              </AppLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/app/authority"
+          element={
+            localStorage.getItem('token') ? (
+              <AppLayout>
+                <Authority />
+              </AppLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/app/pricing"
+          element={
+            localStorage.getItem('token') ? (
+              <AppLayout>
+                <Pricing />
+              </AppLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/app/admin"
+          element={
+            localStorage.getItem('token') ? (
+              <AppLayout>
+                <Admin />
+              </AppLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
         />
 
