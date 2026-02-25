@@ -4,9 +4,14 @@
   "installCommand": "npm install",
   "name": "InstantSEOScan",
   "regions": ["iad1"],
+  "functions": {
+    "api/[...route].ts": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     {
-      "source": "/(?!api)(.*)",
+      "source": "/((?!api).*)",
       "destination": "/index.html"
     }
   ]
