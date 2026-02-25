@@ -17,6 +17,17 @@ import Authority from './pages/Authority';
 import Pricing from './pages/Pricing';
 import Admin from './pages/Admin';
 
+// Protected Route Component  
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <AppLayout>{children}</AppLayout>;
+}
+
 // App Layout Component  
 function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -114,73 +125,49 @@ export default function App() {
         <Route
           path="/app"
           element={
-            localStorage.getItem('token') ? (
-              <AppLayout>
-                <Dashboard />
-              </AppLayout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/app/audit"
           element={
-            localStorage.getItem('token') ? (
-              <AppLayout>
-                <Audit />
-              </AppLayout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            <ProtectedRoute>
+              <Audit />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/app/keyword"
           element={
-            localStorage.getItem('token') ? (
-              <AppLayout>
-                <Keyword />
-              </AppLayout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            <ProtectedRoute>
+              <Keyword />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/app/authority"
           element={
-            localStorage.getItem('token') ? (
-              <AppLayout>
-                <Authority />
-              </AppLayout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            <ProtectedRoute>
+              <Authority />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/app/pricing"
           element={
-            localStorage.getItem('token') ? (
-              <AppLayout>
-                <Pricing />
-              </AppLayout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            <ProtectedRoute>
+              <Pricing />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/app/admin"
           element={
-            localStorage.getItem('token') ? (
-              <AppLayout>
-                <Admin />
-              </AppLayout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            <ProtectedRoute>
+              <Admin />
+            </ProtectedRoute>
           }
         />
 
