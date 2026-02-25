@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import cors from 'cors';
-import { queryPlans } from '../server/lib/db.js';
+import { queryPlans, initializeDatabase } from '../server/lib/db.js';
 
 const corsMiddleware = cors({ origin: '*' });
 
@@ -15,6 +15,9 @@ function runMiddleware(req: VercelRequest, res: VercelResponse, fn: any): Promis
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   await runMiddleware(req, res, corsMiddleware);
+  
+  // Initialize database on first request
+  initializeDatabase();
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
