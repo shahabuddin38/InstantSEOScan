@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Search, Link as LinkIcon, BarChart, CreditCard, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Search, Link as LinkIcon, BarChart, CreditCard, Menu, X, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import clsx from 'clsx';
 
@@ -21,11 +21,22 @@ function Sidebar() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
     setIsLoggedIn(!!token);
-  }, []);
+    
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        setIsAdmin(userData.isAdmin || false);
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, [location.pathname]);
 
   const navItems = [
     { name: 'Dashboard', path: '/app', icon: LayoutDashboard },
@@ -33,6 +44,7 @@ function Sidebar() {
     { name: 'Keyword Research', path: '/app/keyword', icon: BarChart },
     { name: 'Authority Checker', path: '/app/authority', icon: LinkIcon },
     { name: 'Pricing', path: '/app/pricing', icon: CreditCard },
+    ...(isAdmin ? [{ name: 'Admin', path: '/app/admin', icon: Settings }] : []),
   ];
 
   const isAppRoute = location.pathname.startsWith('/app');
@@ -101,7 +113,6 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/pricing" element={<Pricing />} />
-        <Route path="/admin" element={<Admin />} />
 
         {/* App Pages with Sidebar */}
         <Route
@@ -116,6 +127,7 @@ export default function App() {
                   <Route path="/keyword" element={<Keyword />} />
                   <Route path="/authority" element={<Authority />} />
                   <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/admin" element={<Admin />} />
                 </Routes>
               </main>
             </div>

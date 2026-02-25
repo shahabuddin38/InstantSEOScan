@@ -22,8 +22,8 @@ export default function Login() {
       const response = await axios.post('/api/auth/login', { email, password });
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
-      setSuccess('Login successful! Redirecting...');
-      setTimeout(() => navigate('/'), 1500);
+      setSuccess('Login successful! Redirecting to dashboard...');
+      setTimeout(() => navigate('/app'), 1500);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed');
     } finally {

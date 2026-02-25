@@ -1,7 +1,35 @@
-import { Link } from 'react-router-dom';
-import { Search, Zap, BarChart3, CheckCircle2, ArrowRight, Star } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Search, Zap, BarChart3, CheckCircle2, ArrowRight, Star, LogOut } from 'lucide-react';
 
 export default function Home() {
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    if (token && user) {
+      setIsLoggedIn(true);
+      try {
+        const userData = JSON.parse(user);
+        setUserName(userData.name || userData.email);
+        setIsAdmin(userData.isAdmin || false);
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    window.location.href = '/';
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -21,12 +49,39 @@ export default function Home() {
             <Link to="/pricing" className="hover:text-emerald-400 transition">
               Pricing
             </Link>
-            <Link
-              to="/login"
-              className="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded-lg transition"
-            >
-              Sign In
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <span className="text-slate-300 text-sm">Welcome, {userName}!</span>
+                <Link
+                  to="/app"
+                  className="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded-lg transition font-semibold"
+                >
+                  Dashboard
+                </Link>
+                {isAdmin && (
+                  <Link
+                    to="/app/admin"
+                    className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition text-sm"
+                  >
+                    Admin
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-slate-300 hover:text-red-400 transition text-sm"
+                >
+                  <LogOut size={18} />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded-lg transition"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       </nav>
