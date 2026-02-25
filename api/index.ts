@@ -32,28 +32,28 @@ app.use(express.urlencoded({ extended: true }));
 initializeDatabase();
 
 // Authentication Routes
-app.post('/api/auth/register', registerHandler);
-app.post('/api/auth/login', loginHandler);
-app.get('/api/auth/me', authMiddleware, meHandler);
+app.post('/auth/register', registerHandler);
+app.post('/auth/login', loginHandler);
+app.get('/auth/me', authMiddleware, meHandler);
 
 // SEO Tools Routes (protected)
-app.post('/api/audit', authMiddleware, auditHandler);
-app.post('/api/keyword', authMiddleware, keywordHandler);
-app.post('/api/dapachecker', authMiddleware, daPaCheckerHandler);
-app.post('/api/bulkAuthority', authMiddleware, bulkAuthorityHandler);
-app.post('/api/geo', authMiddleware, geoHandler);
-app.post('/api/aiOverview', authMiddleware, aiOverviewHandler);
+app.post('/audit', authMiddleware, auditHandler);
+app.post('/keyword', authMiddleware, keywordHandler);
+app.post('/dapachecker', authMiddleware, daPaCheckerHandler);
+app.post('/bulkAuthority', authMiddleware, bulkAuthorityHandler);
+app.post('/geo', authMiddleware, geoHandler);
+app.post('/aiOverview', authMiddleware, aiOverviewHandler);
 
 // Pricing Routes (public)
-app.get('/api/pricing', getPricingPlansHandler);
+app.get('/pricing', getPricingPlansHandler);
 
 // Admin Routes (protected)
-app.get('/api/admin/pending-users', authMiddleware, adminMiddleware, getPendingUsersHandler);
-app.post('/api/admin/approve-user', authMiddleware, adminMiddleware, approveUserHandler);
-app.post('/api/admin/reject-user', authMiddleware, adminMiddleware, rejectUserHandler);
-app.get('/api/admin/users', authMiddleware, adminMiddleware, getAllUsersHandler);
-app.post('/api/admin/update-subscription', authMiddleware, adminMiddleware, updateSubscriptionHandler);
-app.get('/api/admin/stats', authMiddleware, adminMiddleware, getSubscriptionStatsHandler);
+app.get('/admin/pending-users', authMiddleware, adminMiddleware, getPendingUsersHandler);
+app.post('/admin/approve-user', authMiddleware, adminMiddleware, approveUserHandler);
+app.post('/admin/reject-user', authMiddleware, adminMiddleware, rejectUserHandler);
+app.get('/admin/users', authMiddleware, adminMiddleware, getAllUsersHandler);
+app.post('/admin/update-subscription', authMiddleware, adminMiddleware, updateSubscriptionHandler);
+app.get('/admin/stats', authMiddleware, adminMiddleware, getSubscriptionStatsHandler);
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   return app(req, res);
