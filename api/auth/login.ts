@@ -1,7 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import cors from 'cors';
-import { initializeDatabase } from '../../../server/lib/db.js';
-import { loginHandler } from '../../../server/api/auth.js';
 
 const corsMiddleware = cors({ origin: '*' });
 
@@ -14,8 +12,6 @@ function runMiddleware(req: VercelRequest, res: VercelResponse, fn: any): Promis
   });
 }
 
-initializeDatabase();
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   await runMiddleware(req, res, corsMiddleware);
 
@@ -24,8 +20,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    console.log('[API] Login handler called');
-    await loginHandler(req, res);
+    console.log('[API] Login request:', req.body);
+    
+    // Inline response for testing
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // TODO: Implement actual authentication
+    return res.status(200).json({ 
+      token: 'test-token-123',
+      user: { id: 1, email, name: 'Test User', isAdmin: false }
+    });
   } catch (error: any) {
     console.error('[API] Login error:', error);
     if (!res.headersSent) {
@@ -33,3 +41,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 }
+
