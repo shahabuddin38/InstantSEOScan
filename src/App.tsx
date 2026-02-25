@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { LayoutDashboard, Search, Link as LinkIcon, BarChart, CreditCard, Menu, X, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import clsx from 'clsx';
@@ -16,6 +16,7 @@ import Keyword from './pages/Keyword';
 import Authority from './pages/Authority';
 import Pricing from './pages/Pricing';
 import Admin from './pages/Admin';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function Sidebar() {
   const location = useLocation();
@@ -114,25 +115,31 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/pricing" element={<Pricing />} />
 
-        {/* App Pages with Sidebar */}
+        {/* Protected App Pages with Sidebar */}
         <Route
           path="/app/*"
           element={
-            <div className="flex min-h-screen bg-slate-50 font-sans">
-              <Sidebar />
-              <main className="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto w-full">
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/audit" element={<Audit />} />
-                  <Route path="/keyword" element={<Keyword />} />
-                  <Route path="/authority" element={<Authority />} />
-                  <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/admin" element={<Admin />} />
-                </Routes>
-              </main>
-            </div>
+            <ProtectedRoute>
+              <div className="flex min-h-screen bg-slate-50 font-sans">
+                <Sidebar />
+                <main className="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto w-full bg-slate-50 min-h-screen">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/audit" element={<Audit />} />
+                    <Route path="/keyword" element={<Keyword />} />
+                    <Route path="/authority" element={<Authority />} />
+                    <Route path="/pricing" element={<Pricing />} />
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="*" element={<Navigate to="/app" replace />} />
+                  </Routes>
+                </main>
+              </div>
+            </ProtectedRoute>
           }
         />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
