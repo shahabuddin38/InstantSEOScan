@@ -1,5 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import cors from 'cors';
+import { queryPlans } from '../server/lib/db.js';
 
 const corsMiddleware = cors({ origin: '*' });
 
@@ -20,31 +21,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    console.log('[API] Pricing request');
-    
-    // TODO: Fetch actual pricing plans from database
-    return res.status(200).json({
-      plans: [
-        {
-          id: 1,
-          name: 'Starter',
-          price: 29,
-          features: ['5 audits/month', 'Keyword research', 'Basic support']
-        },
-        {
-          id: 2,
-          name: 'Pro',
-          price: 79,
-          features: ['50 audits/month', 'Advanced analytics', 'Priority support']
-        },
-        {
-          id: 3,
-          name: 'Enterprise',
-          price: 199,
-          features: ['Unlimited audits', 'Dedicated account', '24/7 support']
-        }
-      ]
-    });
+    const plans = queryPlans();
+    return res.status(200).json({ plans });
   } catch (error: any) {
     console.error('[API] Pricing error:', error);
     if (!res.headersSent) {

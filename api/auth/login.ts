@@ -1,5 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import cors from 'cors';
+import type { Request, Response } from 'express';
+import { queryUsers } from '../../server/lib/db.js';
+import { comparePassword, generateToken } from '../../server/lib/auth.js';
 
 const corsMiddleware = cors({ origin: '*' });
 
@@ -20,19 +23,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    console.log('[API] Login request:', req.body);
-    
-    // Inline response for testing
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // TODO: Implement actual authentication
-    return res.status(200).json({ 
-      token: 'test-token-123',
-      user: { id: 1, email, name: 'Test User', isAdmin: false }
+    const users = queryUsers({ email } as any);
+    const user = users.find((u: any) => u.email === email);
+    
+    if (!user || !comparePassword(password, user.password)) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    if (!user.approved) {
+      return res.status(403).json({ error: 'Your account is pending admin approval' });
+    }
+
+    const isAdmin = email === 'shahabjan38@gmail.com';
+    const token = generateToken(user.id, user.email, isAdmin);
+
+    return res.status(200).json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        isAdmin
+      }
     });
   } catch (error: any) {
     console.error('[API] Login error:', error);

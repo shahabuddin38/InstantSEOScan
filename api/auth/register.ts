@@ -1,5 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import cors from 'cors';
+import { addUser, queryUsers } from '../../server/lib/db.js';
+import { hashPassword, isValidEmail, isStrongPassword } from '../../server/lib/auth.js';
 
 const corsMiddleware = cors({ origin: '*' });
 
@@ -20,18 +22,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    console.log('[API] Register request:', req.body);
-    
     const { email, password, name, phone } = req.body;
-    
+
     if (!email || !password || !name) {
       return res.status(400).json({ error: 'Email, password, and name are required' });
     }
 
-    // TODO: Implement actual registration
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ 
+        error: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character' 
+      });
+    }
+
+    const existingUser = queryUsers({ email } as any).find((u: any) => u.email === email);
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    const hashedPassword = hashPassword(password);
+    const newUser = addUser({
+      email,
+      password: hashedPassword,
+      name,
+      phone: phone || undefined,
+      approved: 0,
+    });
+
     return res.status(201).json({ 
       message: 'Registration successful. Please wait for admin approval.',
-      userId: 1
+      userId: newUser.id 
     });
   } catch (error: any) {
     console.error('[API] Register error:', error);
