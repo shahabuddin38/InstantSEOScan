@@ -25,6 +25,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check for token on component mount
     const token = localStorage.getItem('token');
+    console.log('[ProtectedRoute] Token check:', !!token);
     setIsAuthenticated(!!token);
     setIsLoading(false);
   }, []);
@@ -41,9 +42,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
+    console.log('[ProtectedRoute] Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
+  console.log('[ProtectedRoute] Authenticated, rendering AppLayout');
   return <AppLayout>{children}</AppLayout>;
 }
 
@@ -59,6 +62,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       try {
         const userData = JSON.parse(user);
         setIsAdmin(userData.isAdmin || false);
+        console.log('[AppLayout] User data loaded:', userData);
       } catch (e) {
         console.error('Error parsing user data:', e);
       }
@@ -73,6 +77,8 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     { name: 'Pricing', path: '/app/pricing', icon: CreditCard },
     ...(isAdmin ? [{ name: 'Admin', path: '/app/admin', icon: Settings }] : []),
   ];
+
+  console.log('[AppLayout] Rendering layout with content');
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -121,7 +127,9 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto w-full p-4 md:p-8 bg-slate-50">
-        {children}
+        <div className="relative z-10">
+          {children}
+        </div>
       </main>
 
       {/* Mobile overlay */}
