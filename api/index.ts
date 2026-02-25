@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { initializeDatabase } from '../server/lib/db.js';
@@ -24,12 +24,26 @@ import {
 
 const app = express();
 
-app.use(cors());
+// Middleware
+app.use(cors({
+  origin: '*',
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize database
-initializeDatabase();
+// Initialize database once
+try {
+  initializeDatabase();
+  console.log('[API] Database initialized');
+} catch (error) {
+  console.error('[API] Database initialization error:', error);
+}
+
+// Health check
+app.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'ok' });
+});
 
 // Authentication Routes
 app.post('/auth/register', registerHandler);
@@ -54,6 +68,20 @@ app.post('/admin/reject-user', authMiddleware, adminMiddleware, rejectUserHandle
 app.get('/admin/users', authMiddleware, adminMiddleware, getAllUsersHandler);
 app.post('/admin/update-subscription', authMiddleware, adminMiddleware, updateSubscriptionHandler);
 app.get('/admin/stats', authMiddleware, adminMiddleware, getSubscriptionStatsHandler);
+
+// Error handling middleware
+app.use((err: any, req: Request, res: Response) => {
+  console.error('[API] Error:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error'
+  });
+});
+
+// 404 handler
+app.use((req: Request, res: Response) => {
+  console.log('[API] 404 - Route not found:', req.method, req.path);
+  res.status(404).json({ error: 'Not Found' });
+});
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   return app(req, res);

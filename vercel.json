@@ -6,11 +6,7 @@
   "regions": ["iad1"],
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    },
-    {
-      "source": "/:path((?!api).*)*",
+      "source": "/(?!api)(.*)",
       "destination": "/index.html"
     }
   ]
