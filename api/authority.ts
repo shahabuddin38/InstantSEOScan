@@ -5,13 +5,6 @@ import axios from 'axios';
 const corsMiddleware = cors({ origin: '*' });
 const RAPIDAPI_KEY = 'ddcc181474msh9f948f7f9a00791p1bdcc6jsn6e1484faee71';
 
-const RAPIDAPI_ENDPOINTS = {
-  getDaPa: {
-    host: 'moz-da-pa1.p.rapidapi.com',
-    url: 'https://moz-da-pa1.p.rapidapi.com/v1/getDaPa'
-  }
-};
-
 function runMiddleware(req: VercelRequest, res: VercelResponse, fn: any): Promise<void> {
   return new Promise((resolve, reject) => {
     fn(req, res, (result: any) => {
@@ -44,9 +37,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const response = await axios.post(
-      RAPIDAPI_ENDPOINTS.getDaPa.url,
+      'https://moz-da-pa1.p.rapidapi.com/v1/getDaPa',
       { q: domain },
-      { headers: getApiHeaders(RAPIDAPI_ENDPOINTS.getDaPa.host), timeout: 10000 }
+      { headers: getApiHeaders('moz-da-pa1.p.rapidapi.com'), timeout: 10000 }
     );
 
     res.status(200).json({

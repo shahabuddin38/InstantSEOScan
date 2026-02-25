@@ -3,6 +3,7 @@ import cors from 'cors';
 import axios from 'axios';
 
 const corsMiddleware = cors({ origin: '*' });
+const RAPIDAPI_KEY = 'ddcc181474msh9f948f7f9a00791p1bdcc6jsn6e1484faee71';
 
 function runMiddleware(req: VercelRequest, res: VercelResponse, fn: any): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -11,6 +12,14 @@ function runMiddleware(req: VercelRequest, res: VercelResponse, fn: any): Promis
       else resolve();
     });
   });
+}
+
+function getApiHeaders(host: string) {
+  return {
+    'x-rapidapi-host': host,
+    'x-rapidapi-key': RAPIDAPI_KEY,
+    'Content-Type': 'application/json'
+  };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -27,86 +36,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'URL is required' });
     }
 
-    // Fetch the website HTML for analysis
-    let html = '';
-    let statusCode = 0;
+    // Get traffic data from Semrush
+    let trafficData = {};
     try {
-      const response = await axios.get(url, { timeout: 5000 });
-      html = response.data;
-      statusCode = response.status;
-    } catch (e: any) {
-      console.warn(`Failed to fetch ${url}:`, e.message);
-      html = '';
-      statusCode = e.response?.status || 0;
+      const trafficResponse = await axios.get(
+        `https://semrush8.p.rapidapi.com/url_traffic?url=${encodeURIComponent(url)}`,
+        { headers: getApiHeaders('semrush8.p.rapidapi.com'), timeout: 10000 }
+      );
+      trafficData = trafficResponse.data || {};
+    } catch (e) {
+      console.warn('Traffic API failed:', e);
+      trafficData = { error: 'Could not fetch traffic data' };
     }
 
-    // Parse basic SEO metrics without cheerio
-    const metaTitle = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] || '';
-    const metaDescription = html.match(/<meta\s+name="description"\s+content="([^"]*)"/i)?.[1] || '';
-    const h1Count = (html.match(/<h1[^>]*>/gi) || []).length;
-    const h2Count = (html.match(/<h2[^>]*>/gi) || []).length;
-    const canonical = html.match(/<link\s+rel="canonical"\s+href="([^"]*)"/i)?.[1] || '';
-    const images = (html.match(/<img[^>]*>/gi) || []).length;
-    const imagesWithoutAlt = (html.match(/<img[^>]*?(?<!alt\s*=)>/gi) || []).length;
-    const internalLinks = (html.match(/href="\/[^"]*"/gi) || []).length;
-    const externalLinks = (html.match(/href="https?:\/\/[^"]*"/gi) || []).length - internalLinks;
-
-    const ssl = url.startsWith('https');
-    const pageSpeed = Math.floor(Math.random() * 40) + 60; // Mock 60-100
-    
-    let score = 100;
-    const issues = [];
-
-    if (!metaTitle || metaTitle.length < 10 || metaTitle.length > 60) {
-      score -= 10;
-      issues.push({ type: 'error', message: 'Meta title length should be between 10 and 60 characters.' });
-    }
-    if (!metaDescription || metaDescription.length < 50 || metaDescription.length > 160) {
-      score -= 10;
-      issues.push({ type: 'error', message: 'Meta description length should be between 50 and 160 characters.' });
-    }
-    if (h1Count === 0) {
-      score -= 10;
-      issues.push({ type: 'error', message: 'Page is missing an H1 tag.' });
-    } else if (h1Count > 1) {
-      score -= 5;
-      issues.push({ type: 'warning', message: 'Multiple H1 tags found. Consider using only one.' });
-    }
-    if (!ssl) {
-      score -= 20;
-      issues.push({ type: 'error', message: 'Site is not using HTTPS.' });
-    }
-    if (imagesWithoutAlt > 0) {
-      score -= Math.min(imagesWithoutAlt * 2, 10);
-      issues.push({ type: 'warning', message: `${imagesWithoutAlt} images are missing alt attributes.` });
-    }
-    if (pageSpeed < 80) {
-      score -= 10;
-      issues.push({ type: 'warning', message: `Page speed is low (${pageSpeed}/100).` });
-    }
-
-    if (issues.length === 0) {
-      issues.push({ type: 'success', message: 'No major SEO issues found!' });
+    // Get SEO audit report
+    let auditData = {};
+    try {
+      const auditResponse = await axios.post(
+        'https://technical-seo-audit.p.rapidapi.com/api/complete-seo-report',
+        { url },
+        { headers: getApiHeaders('technical-seo-audit.p.rapidapi.com'), timeout: 15000 }
+      );
+      auditData = auditResponse.data || {};
+    } catch (e) {
+      console.warn('SEO audit API failed:', e);
+      auditData = { error: 'Could not fetch SEO audit data' };
     }
 
     res.status(200).json({
-      score: Math.max(0, score),
-      data: {
-        url,
-        metaTitle,
-        metaDescription,
-        h1Count,
-        h2Count,
-        canonical,
-        ssl,
-        statusCode,
-        pageSpeed,
-        images,
-        imagesWithoutAlt,
-        internalLinks,
-        externalLinks,
-      },
-      issues
+      url,
+      traffic: trafficData,
+      audit: auditData,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error: any) {
+    console.error('[API] Audit error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || 'Audit failed' });
+    }
+  }
+}
     });
 
   } catch (error: any) {
