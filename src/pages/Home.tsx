@@ -1,12 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Search, Zap, BarChart3, CheckCircle2, ArrowRight, Star, LogOut } from 'lucide-react';
+import { Search, Zap, BarChart3, CheckCircle2, ArrowRight, Star, LogOut, Menu, X } from 'lucide-react';
 
 export default function Home() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -33,10 +34,12 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="bg-slate-900 text-white py-4 px-6 sticky top-0 z-40 shadow-lg">
+      <nav className="bg-slate-900 text-white py-4 px-4 sm:px-6 sticky top-0 z-40 shadow-lg">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-emerald-400">InstantSEOScan</h1>
-          <div className="flex gap-6 items-center">
+          <h1 className="text-xl sm:text-2xl font-bold text-emerald-400">InstantSEOScan</h1>
+          
+          {/* Desktop Menu */}
+          <div className="hidden md:flex gap-6 items-center">
             <Link to="/" className="hover:text-emerald-400 transition">
               Home
             </Link>
@@ -83,29 +86,88 @@ export default function Home() {
               </Link>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden p-2"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden mt-4 space-y-3 pb-4">
+            <Link to="/" className="block px-4 py-2 hover:bg-slate-800 rounded-lg transition">
+              Home
+            </Link>
+            <Link to="/about" className="block px-4 py-2 hover:bg-slate-800 rounded-lg transition">
+              About
+            </Link>
+            <Link to="/contact" className="block px-4 py-2 hover:bg-slate-800 rounded-lg transition">
+              Contact
+            </Link>
+            <Link to="/pricing" className="block px-4 py-2 hover:bg-slate-800 rounded-lg transition">
+              Pricing
+            </Link>
+            {isLoggedIn ? (
+              <>
+                <div className="px-4 py-2 text-slate-300 text-sm">Welcome, {userName}!</div>
+                <Link
+                  to="/app"
+                  className="block bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg transition font-semibold text-center"
+                >
+                  Dashboard
+                </Link>
+                {isAdmin && (
+                  <Link
+                    to="/app/admin"
+                    className="block bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition text-sm text-center"
+                  >
+                    Admin
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 text-slate-300 hover:text-red-400 transition text-sm px-4 py-2"
+                >
+                  <LogOut size={18} />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="block bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg transition text-center"
+              >
+                Sign In
+              </Link>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-20 px-6">
+      <section className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-20 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-5xl font-bold mb-6">
+          <h2 className="text-4xl sm:text-5xl font-bold mb-6">
             Comprehensive SEO Tools for Your Website
           </h2>
-          <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
             Analyze, optimize, and rank better with our advanced SEO platform. Get real-time insights,
             keyword research, technical audits, and authority metrics.
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/register"
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-lg font-semibold flex items-center gap-2 transition"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition"
             >
               Get Started <ArrowRight size={20} />
             </Link>
             <Link
               to="/pricing"
-              className="border-2 border-emerald-400 hover:bg-emerald-400/10 text-emerald-400 px-8 py-3 rounded-lg font-semibold transition"
+              className="border-2 border-emerald-400 hover:bg-emerald-400/10 text-emerald-400 px-8 py-3 rounded-lg font-semibold transition text-center"
             >
               View Pricing
             </Link>
@@ -114,31 +176,31 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="py-20 px-6 bg-slate-50">
+      <section className="py-20 px-4 sm:px-6 bg-slate-50">
         <div className="max-w-6xl mx-auto">
-          <h3 className="text-4xl font-bold text-center mb-16">Powerful Features</h3>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition">
+          <h3 className="text-3xl sm:text-4xl font-bold text-center mb-12 sm:mb-16">Powerful Features</h3>
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
+            <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg hover:shadow-xl transition">
               <Search className="text-emerald-500 mb-4" size={40} />
-              <h4 className="text-xl font-bold mb-3">Keyword Research</h4>
-              <p className="text-slate-600">
-                Find high-value keywords with search volume, difficulty, and CPC data powered by Semrush API.
+              <h4 className="text-lg sm:text-xl font-bold mb-3">Keyword Research</h4>
+              <p className="text-slate-600 text-sm sm:text-base">
+                Find high-value keywords with search volume, difficulty, and CPC data.
               </p>
             </div>
 
-            <div className="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition">
+            <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg hover:shadow-xl transition">
               <BarChart3 className="text-emerald-500 mb-4" size={40} />
-              <h4 className="text-xl font-bold mb-3">Site Audit</h4>
-              <p className="text-slate-600">
+              <h4 className="text-lg sm:text-xl font-bold mb-3">Site Audit</h4>
+              <p className="text-slate-600 text-sm sm:text-base">
                 Comprehensive technical SEO audits to identify and fix issues affecting your rankings.
               </p>
             </div>
 
-            <div className="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition">
+            <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg hover:shadow-xl transition">
               <Zap className="text-emerald-500 mb-4" size={40} />
-              <h4 className="text-xl font-bold mb-3">Authority Checker</h4>
-              <p className="text-slate-600">
-                Check Domain Authority, Page Authority, backlinks, and more using Moz and Ahrefs data.
+              <h4 className="text-lg sm:text-xl font-bold mb-3">Authority Checker</h4>
+              <p className="text-slate-600 text-sm sm:text-base">
+                Check Domain Authority, Page Authority and backlinks data.
               </p>
             </div>
           </div>
@@ -146,10 +208,10 @@ export default function Home() {
       </section>
 
       {/* Why Choose Us */}
-      <section className="py-20 px-6">
+      <section className="py-20 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
-          <h3 className="text-4xl font-bold text-center mb-16">Why Choose InstantSEOScan?</h3>
-          <div className="grid md:grid-cols-2 gap-8">
+          <h3 className="text-3xl sm:text-4xl font-bold text-center mb-12 sm:mb-16">Why Choose InstantSEOScan?</h3>
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
             {[
               'Real-time SEO data from industry-leading APIs',
               'Easy-to-use interface for all skill levels',
@@ -160,7 +222,7 @@ export default function Home() {
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-4">
                 <CheckCircle2 className="text-emerald-500 flex-shrink-0" size={24} />
-                <p className="text-lg">{item}</p>
+                <p className="text-base sm:text-lg">{item}</p>
               </div>
             ))}
           </div>
@@ -168,10 +230,10 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-emerald-500 text-white py-16 px-6">
+      <section className="bg-emerald-500 text-white py-16 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-4xl font-bold mb-6">Ready to Improve Your SEO?</h3>
-          <p className="text-xl mb-8">
+          <h3 className="text-3xl sm:text-4xl font-bold mb-6">Ready to Improve Your SEO?</h3>
+          <p className="text-lg sm:text-xl mb-8">
             Start with our free trial and see the difference professional SEO tools can make.
           </p>
           <Link
@@ -184,8 +246,8 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300 py-12 px-6">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-8 mb-8">
+      <footer className="bg-slate-900 text-slate-300 py-12 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div>
             <h4 className="text-white font-bold mb-4">InstantSEOScan</h4>
             <p className="text-sm">Professional SEO tools for modern marketers and agencies.</p>
