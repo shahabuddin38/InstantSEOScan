@@ -75,7 +75,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50">
       {/* Mobile menu button */}
       <button
         className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md"
@@ -85,10 +85,11 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       </button>
 
       {/* Sidebar */}
-      <div
+      <aside
         className={clsx(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white transition-transform duration-300 ease-in-out md:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white transition-transform duration-300 ease-in-out",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+          "md:relative md:translate-x-0"
         )}
       >
         <div className="flex items-center justify-center h-16 border-b border-slate-800">
@@ -116,12 +117,20 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-      </div>
+      </aside>
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto w-full bg-slate-50 min-h-screen">
+      <main className="flex-1 overflow-y-auto w-full p-4 md:p-8 bg-slate-50">
         {children}
       </main>
+
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 md:hidden" 
+          onClick={() => setIsOpen(false)} 
+        />
+      )}
     </div>
   );
 }
