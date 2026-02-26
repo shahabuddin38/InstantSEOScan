@@ -1,0 +1,7 @@
+{
+  "name": "instant-seo",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs"
+}
+
