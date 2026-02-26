@@ -1,24 +1,22 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Navbar from '@/src/components/Navbar';
 import Footer from '@/src/components/Footer';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -46,7 +44,10 @@ export default function RegisterPage() {
       if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        router.push('/dashboard');
+        setSuccess('Registration successful! Redirecting...');
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1000);
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
@@ -68,6 +69,12 @@ export default function RegisterPage() {
             {error && (
               <div className="rounded-md bg-red-50 p-4">
                 <p className="text-sm text-red-800">{error}</p>
+              </div>
+            )}
+
+            {success && (
+              <div className="rounded-md bg-green-50 p-4">
+                <p className="text-sm text-green-800">{success}</p>
               </div>
             )}
 
@@ -115,15 +122,6 @@ export default function RegisterPage() {
               >
                 {loading ? 'Creating account...' : 'Sign up'}
               </button>
-            </div>
-
-            <div className="text-center">
-              <p className="text-sm text-gray-300">
-                Already have an account?{' '}
-                <Link href="/login" className="font-medium text-blue-400 hover:text-blue-300">
-                  Sign in
-                </Link>
-              </p>
             </div>
           </form>
         </div>

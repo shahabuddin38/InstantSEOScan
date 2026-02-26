@@ -1,20 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 
 export default function Login() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -33,13 +32,13 @@ export default function Login() {
         return;
       }
 
-      // Save token to localStorage
       if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // Redirect to dashboard
-        router.push('/dashboard');
+        setSuccess('Login successful! Redirecting...');
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1000);
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
@@ -61,12 +60,15 @@ export default function Login() {
               <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
+          
+          {success && (
+            <div className="rounded-md bg-green-50 p-4">
+              <p className="text-sm text-green-800">{success}</p>
+            </div>
+          )}
 
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
               <input
                 id="email"
                 name="email"
@@ -80,9 +82,6 @@ export default function Login() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
               <input
                 id="password"
                 name="password"
@@ -105,15 +104,6 @@ export default function Login() {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-300">
-              Don't have an account?{' '}
-              <Link href="/register" className="font-medium text-blue-400 hover:text-blue-300">
-                Sign up
-              </Link>
-            </p>
           </div>
         </form>
       </div>
