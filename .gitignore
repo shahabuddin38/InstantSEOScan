@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+/.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+.vercel/
+
+# Production
+dist/
+build/
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# Database
+database.sqlite
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs
+*.log
