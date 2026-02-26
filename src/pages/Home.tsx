@@ -1,307 +1,165 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { Search, Zap, BarChart3, CheckCircle2, ArrowRight, Star, LogOut, Menu, X } from 'lucide-react';
+import { Search, Shield, Zap, Globe, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react";
+import { motion } from "motion/react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
+  const [url, setUrl] = useState("");
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    if (token && user) {
-      setIsLoggedIn(true);
-      try {
-        const userData = JSON.parse(user);
-        setUserName(userData.name || userData.email);
-        setIsAdmin(userData.isAdmin || false);
-      } catch (e) {
-        console.error('Error parsing user data:', e);
-      }
+  const handleScan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (url) {
+      navigate(`/dashboard?scan=${encodeURIComponent(url)}`);
     }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setIsLoggedIn(false);
-    window.location.href = '/';
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="bg-slate-900 text-white py-4 px-4 sm:px-6 sticky top-0 z-40 shadow-lg">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-emerald-400">InstantSEOScan</h1>
-          
-          {/* Desktop Menu */}
-          <div className="hidden md:flex gap-6 items-center">
-            <Link to="/" className="hover:text-emerald-400 transition">
-              Home
-            </Link>
-            <Link to="/about" className="hover:text-emerald-400 transition">
-              About
-            </Link>
-            <Link to="/contact" className="hover:text-emerald-400 transition">
-              Contact
-            </Link>
-            <Link to="/pricing" className="hover:text-emerald-400 transition">
-              Pricing
-            </Link>
-            {isLoggedIn ? (
-              <>
-                <span className="text-slate-300 text-sm">Welcome, {userName}!</span>
-                <Link
-                  to="/app"
-                  className="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded-lg transition font-semibold"
-                >
-                  Dashboard
-                </Link>
-                {isAdmin && (
-                  <Link
-                    to="/app/admin"
-                    className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition text-sm"
-                  >
-                    Admin
-                  </Link>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 text-slate-300 hover:text-red-400 transition text-sm"
-                >
-                  <LogOut size={18} />
-                  Logout
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/login"
-                className="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 rounded-lg transition"
-              >
-                Sign In
-              </Link>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden mt-4 space-y-3 pb-4">
-            <Link to="/" className="block px-4 py-2 hover:bg-slate-800 rounded-lg transition">
-              Home
-            </Link>
-            <Link to="/about" className="block px-4 py-2 hover:bg-slate-800 rounded-lg transition">
-              About
-            </Link>
-            <Link to="/contact" className="block px-4 py-2 hover:bg-slate-800 rounded-lg transition">
-              Contact
-            </Link>
-            <Link to="/pricing" className="block px-4 py-2 hover:bg-slate-800 rounded-lg transition">
-              Pricing
-            </Link>
-            {isLoggedIn ? (
-              <>
-                <div className="px-4 py-2 text-slate-300 text-sm">Welcome, {userName}!</div>
-                <Link
-                  to="/app"
-                  className="block bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg transition font-semibold text-center"
-                >
-                  Dashboard
-                </Link>
-                {isAdmin && (
-                  <Link
-                    to="/app/admin"
-                    className="block bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition text-sm text-center"
-                  >
-                    Admin
-                  </Link>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 text-slate-300 hover:text-red-400 transition text-sm px-4 py-2"
-                >
-                  <LogOut size={18} />
-                  Logout
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/login"
-                className="block bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg transition text-center"
-              >
-                Sign In
-              </Link>
-            )}
-          </div>
-        )}
-      </nav>
-
+    <div className="overflow-hidden">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-20 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-            Comprehensive SEO Tools for Your Website
-          </h2>
-          <p className="text-lg sm:text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-            Analyze, optimize, and rank better with our advanced SEO platform. Get real-time insights,
-            keyword research, technical audits, and authority metrics.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/register"
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition"
-            >
-              Get Started <ArrowRight size={20} />
-            </Link>
-            <Link
-              to="/pricing"
-              className="border-2 border-emerald-400 hover:bg-emerald-400/10 text-emerald-400 px-8 py-3 rounded-lg font-semibold transition text-center"
-            >
-              View Pricing
-            </Link>
-          </div>
+      <section className="relative pt-20 pb-32 lg:pt-32 lg:pb-48">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full opacity-20 bg-[radial-gradient(circle_at_50%_50%,#10b981_0,transparent_50%)]" />
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-neutral-200" />
         </div>
-      </section>
 
-      {/* Features */}
-      <section className="py-20 px-4 sm:px-6 bg-slate-50">
-        <div className="max-w-6xl mx-auto">
-          <h3 className="text-3xl sm:text-4xl font-bold text-center mb-12 sm:mb-16">Powerful Features</h3>
-          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
-            <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg hover:shadow-xl transition">
-              <Search className="text-emerald-500 mb-4" size={40} />
-              <h4 className="text-lg sm:text-xl font-bold mb-3">Keyword Research</h4>
-              <p className="text-slate-600 text-sm sm:text-base">
-                Find high-value keywords with search volume, difficulty, and CPC data.
-              </p>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-6 border border-emerald-100">
+              <Zap size={14} />
+              Next-Gen SEO Audit Engine
+            </span>
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-neutral-900 mb-8 leading-[1.1]">
+              Audit Your Website <br />
+              <span className="text-emerald-600">In Seconds, Not Hours.</span>
+            </h1>
+            <p className="max-w-2xl mx-auto text-lg text-neutral-600 mb-12 leading-relaxed">
+              InstantSEOScan provides deep technical audits, AI-powered content optimization, and authority tracking to help you dominate search results.
+            </p>
 
-            <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg hover:shadow-xl transition">
-              <BarChart3 className="text-emerald-500 mb-4" size={40} />
-              <h4 className="text-lg sm:text-xl font-bold mb-3">Site Audit</h4>
-              <p className="text-slate-600 text-sm sm:text-base">
-                Comprehensive technical SEO audits to identify and fix issues affecting your rankings.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg hover:shadow-xl transition">
-              <Zap className="text-emerald-500 mb-4" size={40} />
-              <h4 className="text-lg sm:text-xl font-bold mb-3">Authority Checker</h4>
-              <p className="text-slate-600 text-sm sm:text-base">
-                Check Domain Authority, Page Authority and backlinks data.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Why Choose Us */}
-      <section className="py-20 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <h3 className="text-3xl sm:text-4xl font-bold text-center mb-12 sm:mb-16">Why Choose InstantSEOScan?</h3>
-          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
-            {[
-              'Real-time SEO data from industry-leading APIs',
-              'Easy-to-use interface for all skill levels',
-              'Comprehensive technical SEO audit reports',
-              'Bulk domain authority checking',
-              'Detailed keyword research insights',
-              'Admin panel for team management'
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-4">
-                <CheckCircle2 className="text-emerald-500 flex-shrink-0" size={24} />
-                <p className="text-base sm:text-lg">{item}</p>
+            <form onSubmit={handleScan} className="max-w-2xl mx-auto relative group">
+              <div className="absolute -inset-1 bg-emerald-600/20 rounded-2xl blur opacity-0 group-focus-within:opacity-100 transition-opacity" />
+              <div className="relative flex flex-col sm:flex-row gap-3 p-2 bg-white rounded-2xl border border-neutral-200 shadow-xl shadow-neutral-200/50">
+                <div className="flex-1 flex items-center px-4">
+                  <Globe className="text-neutral-400 mr-3" size={20} />
+                  <input 
+                    type="url" 
+                    placeholder="https://yourwebsite.com" 
+                    className="w-full py-3 bg-transparent outline-none text-neutral-900 placeholder:text-neutral-400"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    required
+                  />
+                </div>
+                <button className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
+                  Analyze Now
+                  <ArrowRight size={18} />
+                </button>
               </div>
+            </form>
+
+            <div className="mt-12 flex flex-wrap justify-center gap-8 text-neutral-400">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={18} className="text-emerald-500" />
+                <span className="text-sm font-medium">Technical Audit</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={18} className="text-emerald-500" />
+                <span className="text-sm font-medium">AI Content Analysis</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={18} className="text-emerald-500" />
+                <span className="text-sm font-medium">Backlink Radar</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-20">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything You Need to Rank</h2>
+            <p className="text-neutral-600 max-w-2xl mx-auto">Our modular SEO engine covers every aspect of search engine optimization, from server speed to semantic intent.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { icon: <Zap />, title: "CoreScan Engine", desc: "Deep technical analysis of meta tags, headers, and site structure." },
+              { icon: <Shield />, title: "InfraSEO Analysis", desc: "Server-side performance and security signals that impact rankings." },
+              { icon: <BarChart3 />, title: "Authority Radar", desc: "Track your domain authority and backlink profile in real-time." },
+              { icon: <Globe />, title: "GeoRank System", desc: "Local SEO signals and map pack optimization tracking." },
+              { icon: <Search />, title: "Keyword Matrix", desc: "Advanced keyword research with difficulty and intent mapping." },
+              { icon: <CheckCircle2 />, title: "SmartSchema Builder", desc: "Generate perfect structured data for rich search results." },
+            ].map((feature, i) => (
+              <motion.div 
+                key={i}
+                whileHover={{ y: -5 }}
+                className="p-8 rounded-3xl border border-neutral-100 bg-neutral-50/50 hover:bg-white hover:shadow-xl hover:shadow-neutral-200/50 transition-all"
+              >
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                <p className="text-neutral-600 leading-relaxed">{feature.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="bg-emerald-500 text-white py-16 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-3xl sm:text-4xl font-bold mb-6">Ready to Improve Your SEO?</h3>
-          <p className="text-lg sm:text-xl mb-8">
-            Start with our free trial and see the difference professional SEO tools can make.
+      {/* SEO Content Section (1500 words placeholder/summary) */}
+      <section className="py-24 bg-neutral-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 prose prose-neutral prose-emerald">
+          <h2 className="text-4xl font-bold mb-8">Why SEO Auditing is Critical for Modern SaaS Growth</h2>
+          <p className="text-lg leading-relaxed mb-6">
+            In the hyper-competitive landscape of digital marketing, having a website is not enough. You need a website that search engines can understand, index, and rank. This is where <strong>InstantSEOScan</strong> comes in. Our platform is designed to be the ultimate companion for marketers, developers, and business owners who want to take their organic traffic to the next level.
           </p>
-          <Link
-            to="/register"
-            className="inline-block bg-white text-emerald-600 hover:bg-slate-100 px-8 py-3 rounded-lg font-semibold transition"
-          >
-            Start Free Trial
-          </Link>
+          
+          <h3 className="text-2xl font-bold mt-12 mb-4">Technical SEO: The Foundation of Success</h3>
+          <p className="mb-6">
+            Technical SEO refers to website and server optimizations that help search engine spiders crawl and index your site more effectively. Without a solid technical foundation, even the best content will struggle to rank. Our <strong>CoreScan Engine</strong> analyzes over 50 technical signals, including:
+          </p>
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 list-none p-0">
+            <li className="flex items-center gap-2 bg-white p-4 rounded-xl border border-neutral-200">
+              <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+              <span>Crawlability & Indexing status</span>
+            </li>
+            <li className="flex items-center gap-2 bg-white p-4 rounded-xl border border-neutral-200">
+              <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+              <span>XML Sitemap & Robots.txt validation</span>
+            </li>
+            <li className="flex items-center gap-2 bg-white p-4 rounded-xl border border-neutral-200">
+              <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+              <span>Canonical tag implementation</span>
+            </li>
+            <li className="flex items-center gap-2 bg-white p-4 rounded-xl border border-neutral-200">
+              <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+              <span>SSL/HTTPS security signals</span>
+            </li>
+          </ul>
+
+          <h3 className="text-2xl font-bold mt-12 mb-4">AI-Powered Content Optimization</h3>
+          <p className="mb-6">
+            With the rise of semantic search, search engines like Google are getting better at understanding the <em>intent</em> behind a query. Our <strong>ContentBoost AI</strong> uses advanced LLMs to analyze your on-page content and suggest improvements that align with user intent and topical authority.
+          </p>
+          <div className="bg-emerald-900 text-white p-8 rounded-3xl my-12">
+            <h4 className="text-white text-xl font-bold mb-4">The Future of Search is Semantic</h4>
+            <p className="opacity-80 leading-relaxed">
+              We don't just look for keywords. We look for entities, relationships, and context. Our IntentMap AI helps you visualize how your content covers a topic, identifying "content gaps" that your competitors might be exploiting.
+            </p>
+          </div>
+
+          <p className="text-neutral-500 italic text-sm mt-12">
+            [SEO Optimized Content continues for 1500+ words covering Authority, Local SEO, and Schema...]
+          </p>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300 py-12 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <h4 className="text-white font-bold mb-4">InstantSEOScan</h4>
-            <p className="text-sm">Professional SEO tools for modern marketers and agencies.</p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-4">Product</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/pricing" className="hover:text-emerald-400 transition">
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link to="/about" className="hover:text-emerald-400 transition">
-                  Features
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-4">Company</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/about" className="hover:text-emerald-400 transition">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link to="/contact" className="hover:text-emerald-400 transition">
-                  Contact
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-4">Legal</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/terms" className="hover:text-emerald-400 transition">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy" className="hover:text-emerald-400 transition">
-                  Privacy Policy
-                </Link>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-slate-700 pt-8 text-center text-sm">
-          <p>&copy; 2026 InstantSEOScan. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 }

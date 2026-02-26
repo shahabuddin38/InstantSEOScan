@@ -1,104 +1,153 @@
-import { Activity, Search, Link as LinkIcon, BarChart } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Search, Globe, History, BarChart3, Zap, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { motion } from "motion/react";
 
-export default function Dashboard() {
-  const stats = [
-    { name: 'Total Audits', value: '12', icon: Search, color: 'text-blue-500', bg: 'bg-blue-100' },
-    { name: 'Avg SEO Score', value: '78', icon: Activity, color: 'text-emerald-500', bg: 'bg-emerald-100' },
-    { name: 'Keywords Tracked', value: '45', icon: BarChart, color: 'text-purple-500', bg: 'bg-purple-100' },
-    { name: 'Backlinks Found', value: '1.2k', icon: LinkIcon, color: 'text-amber-500', bg: 'bg-amber-100' },
-  ];
+export default function Dashboard({ user }: { user: any }) {
+  const [searchParams] = useSearchParams();
+  const [url, setUrl] = useState(searchParams.get("scan") || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const recentScans = [
-    { domain: 'example.com', score: 85, date: '2 hours ago', status: 'Good' },
-    { domain: 'mywebsite.net', score: 62, date: '1 day ago', status: 'Needs Work' },
-    { domain: 'competitor.org', score: 91, date: '3 days ago', status: 'Excellent' },
-  ];
+  useEffect(() => {
+    if (searchParams.get("scan")) {
+      handleScan();
+    }
+  }, []);
+
+  const handleScan = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!url) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // In a real app, we'd save to DB and get an ID
+      // For this demo, we'll pass the data via state or session storage
+      sessionStorage.setItem("lastScan", JSON.stringify(data));
+      navigate(`/report/latest`);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
-        <p className="text-slate-500 mt-2">Welcome back! Here's an overview of your SEO performance.</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.name} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-              <div className={`p-4 rounded-xl ${stat.bg}`}>
-                <Icon className={`w-6 h-6 ${stat.color}`} />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-500">{stat.name}</p>
-                <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-              </div>
-            </div>
-          );
-        })}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="mb-12">
+        <h1 className="text-3xl font-bold mb-2">Welcome back, {user.email.split('@')[0]}</h1>
+        <p className="text-neutral-500">Ready to audit another website?</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-slate-900">Recent Audits</h2>
-            <Link to="/audit" className="text-sm font-medium text-emerald-600 hover:text-emerald-700">View all</Link>
+        {/* Main Scan Area */}
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <Zap className="text-emerald-600" size={20} />
+              New Audit
+            </h2>
+            <form onSubmit={handleScan} className="space-y-4">
+              <div className="relative">
+                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
+                <input 
+                  type="url" 
+                  required
+                  placeholder="https://example.com"
+                  className="w-full pl-12 pr-4 py-4 bg-neutral-50 border border-neutral-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                />
+              </div>
+              <button 
+                disabled={loading}
+                className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                  <>
+                    Run Deep Scan
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </button>
+            </form>
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-xl text-sm flex items-center gap-2 border border-red-100">
+                <AlertCircle size={18} />
+                {error}
+              </div>
+            )}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-100 text-sm text-slate-500">
-                  <th className="pb-3 font-medium">Domain</th>
-                  <th className="pb-3 font-medium">Score</th>
-                  <th className="pb-3 font-medium">Status</th>
-                  <th className="pb-3 font-medium text-right">Date</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                {recentScans.map((scan, i) => (
-                  <tr key={i} className="border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
-                    <td className="py-4 font-medium text-slate-900">{scan.domain}</td>
-                    <td className="py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full font-medium ${
-                        scan.score >= 80 ? 'bg-emerald-100 text-emerald-800' :
-                        scan.score >= 60 ? 'bg-amber-100 text-amber-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {scan.score}/100
-                      </span>
-                    </td>
-                    <td className="py-4 text-slate-600">{scan.status}</td>
-                    <td className="py-4 text-right text-slate-500">{scan.date}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm">
+              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                <BarChart3 size={20} />
+              </div>
+              <div className="text-2xl font-bold">12</div>
+              <div className="text-sm text-neutral-500">Total Scans This Month</div>
+            </div>
+            <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm">
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
+                <Zap size={20} />
+              </div>
+              <div className="text-2xl font-bold">84%</div>
+              <div className="text-sm text-neutral-500">Average SEO Score</div>
+            </div>
           </div>
         </div>
 
-        <div className="bg-slate-900 rounded-2xl shadow-sm p-6 text-white flex flex-col justify-between">
-          <div>
-            <h2 className="text-lg font-bold mb-2">Quick Actions</h2>
-            <p className="text-slate-400 text-sm mb-6">Run a new scan or check your competitors.</p>
-            <div className="space-y-3">
-              <Link to="/audit" className="flex items-center gap-3 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors">
-                <Search className="w-5 h-5 text-emerald-400" />
-                <span className="font-medium">New Site Audit</span>
-              </Link>
-              <Link to="/keyword" className="flex items-center gap-3 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors">
-                <BarChart className="w-5 h-5 text-blue-400" />
-                <span className="font-medium">Keyword Research</span>
-              </Link>
-              <Link to="/authority" className="flex items-center gap-3 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors">
-                <LinkIcon className="w-5 h-5 text-amber-400" />
-                <span className="font-medium">Check Domain Authority</span>
-              </Link>
+        {/* Sidebar: History */}
+        <div className="space-y-8">
+          <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <History className="text-neutral-400" size={20} />
+              Recent Scans
+            </h2>
+            <div className="space-y-4">
+              {[
+                { url: "google.com", score: 98, date: "2 hours ago" },
+                { url: "github.com", score: 92, date: "1 day ago" },
+                { url: "apple.com", score: 85, date: "3 days ago" },
+              ].map((scan, i) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer group">
+                  <div>
+                    <div className="font-bold text-sm group-hover:text-emerald-600 transition-colors">{scan.url}</div>
+                    <div className="text-xs text-neutral-400">{scan.date}</div>
+                  </div>
+                  <div className={`text-sm font-bold ${scan.score > 90 ? 'text-emerald-600' : 'text-orange-500'}`}>
+                    {scan.score}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="mt-8 p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-            <p className="text-sm text-emerald-400 font-medium">Pro Tip</p>
-            <p className="text-xs text-slate-300 mt-1">Connect your Google Search Console for more accurate ranking data.</p>
+
+          <div className="bg-emerald-900 rounded-3xl p-8 text-white relative overflow-hidden">
+            <div className="relative z-10">
+              <h3 className="text-xl font-bold mb-2">Go Pro</h3>
+              <p className="text-emerald-200 text-sm mb-6 leading-relaxed">Unlock backlink tracking, keyword research, and unlimited scans.</p>
+              <button className="w-full bg-white text-emerald-900 py-3 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+                Upgrade Now
+              </button>
+            </div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
           </div>
         </div>
       </div>
