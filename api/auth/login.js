@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { getUserByEmail } from '../db.js';
+import { getUserByEmail, createUser, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD } from '../db.js';
 import { generateToken } from '../jwt-utils.js';
 
 export default async (req, res) => {
@@ -26,8 +26,21 @@ export default async (req, res) => {
     console.log(`[LOGIN] Attempting login for: ${email}`);
 
     // Get user from database
-    const user = await getUserByEmail(email);
+    let user = await getUserByEmail(email);
     
+    if (!user) {
+      const canAutoInitAdmin =
+        email === DEFAULT_ADMIN_EMAIL &&
+        password === DEFAULT_ADMIN_PASSWORD;
+
+      if (canAutoInitAdmin) {
+        console.log(`[LOGIN] Auto-initializing default admin user: ${email}`);
+        const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
+        await createUser(DEFAULT_ADMIN_EMAIL, hashedPassword, 'admin');
+        user = await getUserByEmail(email);
+      }
+    }
+
     if (!user) {
       console.log(`[LOGIN] User not found: ${email}`);
       return res.status(401).json({ error: 'Account not found. Please register first.' });
