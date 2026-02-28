@@ -1,11 +1,11 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import type { VercelResponse } from "@vercel/node";
 import { prisma } from "../../lib/prisma";
-import { requireAuth, requireAdmin } from "../../lib/auth";
+import { withAuth } from "../../middleware/withAuth";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const auth = requireAuth(req, res);
-  if (!auth) return;
-  if (!requireAdmin(auth, res)) return;
+export default withAuth(async function handler(req: any, res: VercelResponse) {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ error: "Admin access required" });
+  }
 
   if (req.method !== "GET") return res.status(405).end();
 
@@ -35,4 +35,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       usage_limit: u.usageLimit,
     }))
   );
-}
+});

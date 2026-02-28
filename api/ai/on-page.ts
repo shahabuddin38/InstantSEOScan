@@ -1,14 +1,22 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { requireAuth } from "../../lib/auth";
+import type { VercelResponse } from "@vercel/node";
+import { z } from "zod";
+import { withAuth } from "../../middleware/withAuth";
 import { generateAI } from "../../lib/gemini";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+const bodySchema = z.object({
+  task: z.enum(["meta", "content", "keywords", "technical"]),
+  data: z.record(z.any()).optional(),
+});
+
+export default withAuth(async function handler(req: any, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const auth = requireAuth(req, res);
-  if (!auth) return;
+  const parsed = bodySchema.safeParse(req.body || {});
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+  }
 
-  const { task, data } = req.body || {};
+  const { task, data } = parsed.data;
   let prompt = "";
 
   if (task === "meta") {
@@ -29,4 +37,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     return res.status(500).json({ error: error?.message || "AI request failed" });
   }
-}
+});

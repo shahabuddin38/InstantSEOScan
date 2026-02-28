@@ -1,26 +1,51 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import type { VercelResponse } from "@vercel/node";
 import axios from "axios";
+import { z } from "zod";
 import { prisma } from "../../lib/prisma";
-import { requireAuth } from "../../lib/auth";
-import { calculateScore, normalizedUrlKey } from "../../lib/utils";
+import { withAuth } from "../../middleware/withAuth";
+import { checkQuota } from "../../lib/quota";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+const cleanUrl = (url: string) =>
+  String(url || "")
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
+
+const normalizedUrlKey = (url: string) => cleanUrl(url).toLowerCase();
+
+const calculateScore = (technical: any) => {
+  let score = 100;
+  if (technical?.title === "Missing") score -= 20;
+  if (technical?.description === "Missing") score -= 20;
+  if ((technical?.h1Count || 0) === 0) score -= 10;
+  if ((technical?.imgAltMissing || 0) > 5) score -= 10;
+  return Math.max(0, score);
+};
+
+const bodySchema = z.object({
+  url: z.string().min(1),
+});
+
+export default withAuth(async function handler(req: any, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const auth = requireAuth(req, res);
-  if (!auth) return;
+  const parsed = bodySchema.safeParse(req.body || {});
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+  }
 
-  const { url } = req.body || {};
-  if (!url) return res.status(400).json({ error: "URL is required" });
+  const { url } = parsed.data;
+  const userId = req.user.id as string;
 
   const targetUrl = String(url).startsWith("http") ? String(url) : `https://${url}`;
   const urlKey = normalizedUrlKey(String(url));
 
   try {
+    await checkQuota(userId);
+
     const cacheWindow = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const cached = await prisma.scanReport.findFirst({
       where: {
-        userId: auth.id,
+        userId,
         normalizedUrl: urlKey,
         createdAt: { gte: cacheWindow },
       },
@@ -30,13 +55,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (cached) {
       const payload = typeof cached.results === "object" ? { ...(cached.results as any), score: cached.score } : { score: cached.score };
       return res.json({ ...payload, reportId: cached.id, cached: true });
-    }
-
-    const user = await prisma.user.findUnique({ where: { id: auth.id } });
-    if (!user) return res.status(401).json({ error: "User not found" });
-
-    if (user.role !== "admin" && user.usageCount >= user.usageLimit) {
-      return res.status(403).json({ error: "Usage limit reached. Please upgrade your plan." });
     }
 
     const response = await axios.get(targetUrl, {
@@ -71,11 +89,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       timestamp: new Date().toISOString(),
     };
 
-    await prisma.user.update({ where: { id: auth.id }, data: { usageCount: { increment: 1 } } });
-
     const created = await prisma.scanReport.create({
       data: {
-        userId: auth.id,
+        userId,
         url: targetUrl,
         normalizedUrl: urlKey,
         score,
@@ -87,4 +103,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     return res.status(500).json({ error: `Failed to scan site: ${error?.message || "unknown error"}` });
   }
-}
+});

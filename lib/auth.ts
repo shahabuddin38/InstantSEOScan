@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import jwt from "jsonwebtoken";
+import { prisma } from "./prisma";
 
 export type AuthUser = {
   id: string;
@@ -9,8 +10,35 @@ export type AuthUser = {
 
 const getToken = (req: VercelRequest) => {
   const authHeader = req.headers.authorization;
-  return authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (authHeader?.startsWith("Bearer ")) return authHeader.slice(7);
+
+  const cookieHeader = req.headers.cookie || "";
+  const tokenCookie = cookieHeader
+    .split(";")
+    .map((chunk) => chunk.trim())
+    .find((chunk) => chunk.startsWith("token="));
+
+  if (tokenCookie) return decodeURIComponent(tokenCookie.slice("token=".length));
+  return "";
 };
+
+export async function verifyToken(req: VercelRequest) {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT secret is not configured");
+
+  const token = getToken(req);
+  if (!token) throw new Error("No token provided");
+
+  const decoded = jwt.verify(token, secret) as { id?: string };
+  if (!decoded?.id) throw new Error("Invalid token payload");
+
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.id },
+  });
+
+  if (!user) throw new Error("User not found");
+  return user;
+}
 
 export const signToken = (user: AuthUser) => {
   const secret = process.env.JWT_SECRET;

@@ -1,12 +1,23 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { signToken } from "../../lib/auth";
+
+const bodySchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { email, password } = req.body || {};
+  const parsed = bodySchema.safeParse(req.body || {});
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+  }
+
+  const { email, password } = parsed.data;
   const user = await prisma.user.findUnique({ where: { email: String(email || "").toLowerCase() } });
 
   if (!user) return res.status(401).json({ error: "Account not found. Please create an account." });
@@ -27,8 +38,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const token = signToken({ id: user.id, email: user.email, role: user.role });
+  const isProd = process.env.NODE_ENV === "production";
+  res.setHeader(
+    "Set-Cookie",
+    `token=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60};${isProd ? " Secure;" : ""}`
+  );
+
   res.json({
-    token,
     user: {
       id: user.id,
       email: user.email,
