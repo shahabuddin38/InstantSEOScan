@@ -35,3 +35,29 @@ View your app in AI Studio: https://ai.studio/apps/ade58c6e-0e0b-48bc-883f-1c28b
 
 - Keep database URLs and API keys in local environment files only.
 - If credentials are ever shared publicly, rotate them immediately.
+
+## Vercel deployment (one command + GitHub auto deploy)
+
+This repo now includes a Vercel config file at [vercel.json](vercel.json) and deploy scripts in [package.json](package.json).
+
+### One-command deploy
+
+1. Install Vercel CLI once:
+   `npm i -g vercel`
+2. From repo root, deploy production:
+   `npm run deploy:vercel`
+
+### Required environment variables in Vercel
+
+- `VITE_API_BASE_URL` = your backend origin (example: `https://your-backend-domain.com`)
+- `GEMINI_API_KEY` (if used by your frontend build/runtime)
+
+Note: local `/api` proxy is for dev only. In production, frontend API calls use `VITE_API_BASE_URL` automatically when set.
+
+### Enable automatic deploys from GitHub pushes
+
+1. Import this GitHub repo into Vercel (one-time setup).
+2. Set Production branch to `main`.
+3. Add the environment variables above in Vercel project settings.
+
+After that, every push to `main` triggers automatic production deployment.

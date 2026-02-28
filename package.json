@@ -10,7 +10,9 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "deploy:vercel": "vercel --prod",
+    "deploy:vercel:preview": "vercel"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

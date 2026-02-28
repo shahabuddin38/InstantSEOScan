@@ -7,6 +7,21 @@ type ApiResult<T = any> = {
 
 export const NON_JSON_API_EVENT = "api:non-json-response";
 
+function resolveApiInput(input: RequestInfo | URL): RequestInfo | URL {
+  const baseUrl = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
+
+  if (!baseUrl || typeof input !== "string") {
+    return input;
+  }
+
+  if (!input.startsWith("/api")) {
+    return input;
+  }
+
+  const normalizedBase = baseUrl.replace(/\/$/, "");
+  return `${normalizedBase}${input}`;
+}
+
 function normalizeErrorMessage(payload: any, fallback: string): string {
   if (!payload) return fallback;
   if (typeof payload === "string") return payload;
@@ -19,8 +34,10 @@ export async function apiRequest<T = any>(
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<ApiResult<T>> {
+  const resolvedInput = resolveApiInput(input);
+
   try {
-    const res = await fetch(input, init);
+    const res = await fetch(resolvedInput, init);
     const contentType = res.headers.get("content-type") || "";
     const isJson = contentType.includes("application/json");
     const isNonJson = !isJson;
