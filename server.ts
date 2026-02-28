@@ -114,6 +114,18 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+  
+  // CORS Headers
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   console.log("Express middleware configured");
 
   // Health check for infrastructure
@@ -155,6 +167,7 @@ async function startServer() {
   // Auth
   app.post("/api/auth/register", async (req, res) => {
     try {
+      console.log("Register endpoint hit:", req.body);
       const { email, password } = req.body;
       
       if (!email || !password) {
@@ -183,6 +196,7 @@ async function startServer() {
 
   app.post("/api/auth/login", async (req, res) => {
     try {
+      console.log("Login endpoint hit:", { email: req.body.email, hasPassword: !!req.body.password });
       const { email, password } = req.body;
       
       if (!email || !password) {
@@ -909,6 +923,12 @@ async function startServer() {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }
+
+  // Global error handler
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error("Unhandled error:", err);
+    res.status(500).json({ error: "Internal server error", message: err.message });
+  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
