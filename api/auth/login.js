@@ -1,24 +1,33 @@
 module.exports = async (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
   try {
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    let body = req.body;
     
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
+    // If body is a string, parse it
+    if (typeof body === 'string') {
+      body = JSON.parse(body);
     }
 
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' });
-    }
-
-    const { email, password } = req.body || {};
+    const { email, password } = body || {};
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      res.status(400).json({ error: 'Email and password are required' });
+      return;
     }
 
     const isAdmin = email === 'shahabjan38@gmail.com';
-    
     const token = 'token_' + Math.random().toString(36).substr(2, 9);
 
     res.status(200).json({
@@ -33,9 +42,10 @@ module.exports = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('Error:', err);
     res.status(500).json({ 
       error: 'Internal server error',
-      message: err ? err.toString() : 'Unknown error'
+      details: err instanceof Error ? err.message : String(err)
     });
   }
 };
