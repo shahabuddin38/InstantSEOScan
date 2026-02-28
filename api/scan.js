@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getUserByEmail, canUserAccessAudit, createScan } from './db.js';
+import { getUserByEmail, getUserById, canUserAccessAudit, createScan } from './db.js';
 import { verifyToken, extractTokenFromHeader } from './jwt-utils.js';
 
 const normalizeUrl = (url) => {
@@ -33,7 +33,7 @@ export default async (req, res) => {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    const user = await getUserByEmail(userPayload.email);
+    const user = await getUserByEmail(userPayload.email) || await getUserById(userPayload.id);
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }

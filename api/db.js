@@ -223,6 +223,33 @@ export async function getUserByEmail(email) {
   return null;
 }
 
+export async function getUserById(userId) {
+  await initDatabase();
+
+  const numericId = Number(userId);
+  if (!Number.isFinite(numericId)) {
+    return null;
+  }
+
+  try {
+    if (usePostgres && pgPool) {
+      const result = await pgPool.query('SELECT * FROM users WHERE id = $1', [numericId]);
+      return result.rows[0] || null;
+    }
+
+    if (useSQLite && db) {
+      const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+      return stmt.get(numericId) || null;
+    }
+
+    return MODULE_STORE.users.get(numericId) || null;
+  } catch (error) {
+    console.error('Error fetching user by id:', error);
+  }
+
+  return null;
+}
+
 export async function createUser(email, hashedPassword, role = 'user') {
   await initDatabase();
   const normalizedEmail = normalizeEmail(email);

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Sidebar from "../../components/Sidebar";
 import { Zap, Globe, ArrowRight, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
 import { getAIInsights, calculateScore } from "../../services/geminiService";
@@ -85,9 +84,8 @@ export default function CoreScan() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-64px)]">
-      <Sidebar />
-      <main className="flex-1 p-8 bg-neutral-50">
+    <div className="min-h-[calc(100vh-64px)] bg-neutral-50">
+      <main className="p-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-12">
             <h1 className="text-3xl font-bold mb-2">CoreScan Engine</h1>
