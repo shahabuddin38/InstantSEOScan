@@ -49,10 +49,9 @@ This repo now includes a Vercel config file at [vercel.json](vercel.json) and de
 
 ### Required environment variables in Vercel
 
-- `VITE_API_BASE_URL` = your backend origin (example: `https://your-backend-domain.com`)
 - `GEMINI_API_KEY` (if used by your frontend build/runtime)
 
-Note: local `/api` proxy is for dev only. In production, frontend API calls use `VITE_API_BASE_URL` automatically when set.
+Note: local `/api` proxy is for dev only. In production, this repo uses `vercel.json` rewrites for `/api` so `VITE_API_BASE_URL` is not required.
 
 ### Enable automatic deploys from GitHub pushes
 

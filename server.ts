@@ -177,14 +177,21 @@ async function startServer() {
 
   // --- API Routes ---
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const aiFallback = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY_2 || 'AIzaSyCFtHcKQJkkcwUGCMbvqX_zSASGz7mzgPc' });
+  const primaryGeminiKey = process.env.GEMINI_API_KEY;
+  const fallbackGeminiKey = process.env.GEMINI_API_KEY_2;
+
+  const ai = primaryGeminiKey ? new GoogleGenAI({ apiKey: primaryGeminiKey }) : null;
+  const aiFallback = fallbackGeminiKey ? new GoogleGenAI({ apiKey: fallbackGeminiKey }) : null;
 
   const generateAIContent = async (params: any) => {
+    if (!ai) {
+      throw new Error("GEMINI_API_KEY is not configured on the server.");
+    }
+
     try {
       return await ai.models.generateContent(params);
     } catch (e: any) {
-      if (e.message?.includes('quota') || e.status === 429) {
+      if ((e.message?.includes('quota') || e.status === 429) && aiFallback) {
         console.log("Primary API quota exceeded, switching to fallback...");
         return await aiFallback.models.generateContent(params);
       }
