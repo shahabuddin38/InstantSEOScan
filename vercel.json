@@ -1,27 +1,36 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "env": {
+    "JWT_SECRET": "@jwt_secret",
+    "GEMINI_API_KEY": "@gemini_api_key",
+    "STRIPE_SECRET_KEY": "@stripe_secret_key",
+    "STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key"
+  },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "source": "/api/auth/register",
+      "destination": "/api/auth/register.ts"
+    },
+    {
+      "source": "/api/auth/login",
+      "destination": "/api/auth/login.ts"
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ],
-  "env": {
-    "GEMINI_API_KEY": "@gemini_api_key",
-    "JWT_SECRET": "@jwt_secret",
-    "STRIPE_SECRET_KEY": "@stripe_secret_key",
-    "STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key",
-    "SENDGRID_API_KEY": "@sendgrid_api_key",
-    "ADMIN_EMAIL": "@admin_email"
-  },
-  "functions": {
-    "server.ts": {
-      "runtime": "nodejs20.x"
+  "routes": [
+    {
+      "src": "/index.html",
+      "status": 404,
+      "continue": true
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/"
     }
-  }
+  ]
 }
