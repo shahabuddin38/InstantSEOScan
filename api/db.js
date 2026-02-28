@@ -314,25 +314,26 @@ export async function createUser(email, hashedPassword, role = 'user') {
 
 export async function updateUserStatus(userId, status) {
   await initDatabase();
+  const numericId = Number(userId);
 
   try {
     if (usePostgres && pgPool) {
       const result = await pgPool.query(
         'UPDATE users SET status = $1, verified = 1 WHERE id = $2 RETURNING id, email, status',
-        [status, userId]
+        [status, numericId]
       );
       return result.rows[0];
     }
 
     if (useSQLite && db) {
       const stmt = db.prepare('UPDATE users SET status = ?, verified = 1 WHERE id = ?');
-      stmt.run(status, userId);
-      const user = db.prepare('SELECT id, email, status FROM users WHERE id = ?').get(userId);
+      stmt.run(status, numericId);
+      const user = db.prepare('SELECT id, email, status FROM users WHERE id = ?').get(numericId);
       return user;
     }
 
     // Module store
-    const user = MODULE_STORE.users.get(userId);
+    const user = MODULE_STORE.users.get(numericId);
     if (user) {
       user.status = status;
       user.verified = 1;
@@ -340,6 +341,45 @@ export async function updateUserStatus(userId, status) {
     }
   } catch (error) {
     console.error('Error updating user:', error);
+    throw error;
+  }
+}
+
+export async function updateUserPlan(userId, plan, usageLimit, subscriptionEnd = null) {
+  await initDatabase();
+  const numericId = Number(userId);
+
+  try {
+    if (usePostgres && pgPool) {
+      const result = await pgPool.query(
+        'UPDATE users SET plan = $1, usage_limit = $2 WHERE id = $3 RETURNING id, email, plan, usage_limit',
+        [plan, usageLimit, numericId]
+      );
+      return result.rows[0] || null;
+    }
+
+    if (useSQLite && db) {
+      const hasSubscriptionEnd = db.prepare("PRAGMA table_info(users)").all().some((col) => col.name === 'subscription_end');
+      if (hasSubscriptionEnd) {
+        const stmt = db.prepare('UPDATE users SET plan = ?, usage_limit = ?, subscription_end = ? WHERE id = ?');
+        stmt.run(plan, usageLimit, subscriptionEnd, numericId);
+      } else {
+        const stmt = db.prepare('UPDATE users SET plan = ?, usage_limit = ? WHERE id = ?');
+        stmt.run(plan, usageLimit, numericId);
+      }
+      return db.prepare('SELECT id, email, plan, usage_limit FROM users WHERE id = ?').get(numericId) || null;
+    }
+
+    const user = MODULE_STORE.users.get(numericId);
+    if (!user) return null;
+    user.plan = plan;
+    user.usage_limit = usageLimit;
+    if (subscriptionEnd !== null) {
+      user.subscription_end = subscriptionEnd;
+    }
+    return { id: user.id, email: user.email, plan: user.plan, usage_limit: user.usage_limit };
+  } catch (error) {
+    console.error('Error updating user plan:', error);
     throw error;
   }
 }

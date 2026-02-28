@@ -1,4 +1,4 @@
-import { getUserByEmail, createScan, canUserAccessAudit } from '../db.js';
+import { getUserByEmail, getUserById, createScan, canUserAccessAudit } from '../db.js';
 import { verifyToken, extractTokenFromHeader } from '../jwt-utils.js';
 
 export default async (req, res) => {
@@ -24,7 +24,7 @@ export default async (req, res) => {
     }
 
     // Get full user data
-    const user = await getUserByEmail(userPayload.email);
+    const user = await getUserByEmail(userPayload.email) || await getUserById(userPayload.id);
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
