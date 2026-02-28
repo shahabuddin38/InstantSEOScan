@@ -18,8 +18,15 @@ function resolveApiInput(input: RequestInfo | URL): RequestInfo | URL {
     return input;
   }
 
-  const normalizedBase = baseUrl.replace(/\/$/, "");
-  return `${normalizedBase}${input}`;
+  const normalizedBase = baseUrl.replace(/\/+$/, "");
+  const inputPath = input.replace(/\/+$/, "");
+
+  if (/\/api$/i.test(normalizedBase)) {
+    const suffix = inputPath.replace(/^\/api/, "") || "";
+    return `${normalizedBase}${suffix}`;
+  }
+
+  return `${normalizedBase}${inputPath}`;
 }
 
 function normalizeErrorMessage(payload: any, fallback: string): string {
