@@ -1,5 +1,5 @@
-// Database module - supports Postgres, SQLite, and module-level fallback
-// For Vercel: uses module-level storage that persists during cold starts
+// Database module - supports PostgreSQL (via pg), SQLite, and module-level fallback
+// Supports DATABASE_URL for Prisma and standard PostgreSQL connections
 
 // Module-level store (persists for the lifetime of the function container)
 const MODULE_STORE = {
@@ -11,6 +11,15 @@ const MODULE_STORE = {
 let usePostgres = false;
 let useSQLite = false;
 let db = null;
+let pgPool = null;
+
+// PostgreSQL pool
+let Pool = null;
+try {
+  Pool = (await import('pg')).Pool;
+} catch (e) {
+  console.log('pg package not available in this environment');
+}
 
 // Try to use better-sqlite3 for local development
 let Database = null;
@@ -28,16 +37,29 @@ async function initDatabase() {
   MODULE_STORE.initialized = true;
 
   try {
-    // Try Postgres first
-    if (process.env.POSTGRES_URL) {
-      const { sql } = await import('@vercel/postgres');
-      await sql`SELECT 1`;
-      console.log('✓ Using Vercel Postgres');
+    // Try PostgreSQL first (DATABASE_URL for Prisma/standard or POSTGRES_URL for legacy)
+    const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+    if (dbUrl && Pool) {
+      pgPool = new Pool({ connectionString: dbUrl });
+      
+      // Test connection
+      const client = await pgPool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      
+      console.log('✓ Using PostgreSQL via pg package');
       usePostgres = true;
+      
+      // Initialize schema on first connection
+      await initPostgresSchema();
       return;
     }
   } catch (error) {
-    console.log('Postgres not available:', error.message);
+    console.log('PostgreSQL not available:', error.message);
+    if (pgPool) {
+      await pgPool.end();
+      pgPool = null;
+    }
   }
 
   // Try SQLite for local development
@@ -82,6 +104,42 @@ async function initDatabase() {
   console.log('✓ Using module-level memory store (persists during function container lifetime)');
 }
 
+// Initialize PostgreSQL schema
+async function initPostgresSchema() {
+  if (!pgPool) return;
+  
+  try {
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT DEFAULT 'user',
+        plan TEXT DEFAULT 'free',
+        status TEXT DEFAULT 'pending',
+        verified INTEGER DEFAULT 0,
+        usage_count INTEGER DEFAULT 0,
+        usage_limit INTEGER DEFAULT 5,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS scans (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        domain TEXT NOT NULL,
+        scan_type TEXT,
+        status TEXT DEFAULT 'completed',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+  } catch (error) {
+    // Tables might already exist
+  }
+}
+
 // Initialize on first import
 initDatabase().catch(console.error);
 
@@ -99,9 +157,8 @@ export async function getUserByEmail(email) {
   await initDatabase();
 
   try {
-    if (usePostgres) {
-      const { sql } = await import('@vercel/postgres');
-      const result = await sql`SELECT * FROM users WHERE email = ${email}`;
+    if (usePostgres && pgPool) {
+      const result = await pgPool.query('SELECT * FROM users WHERE email = $1', [email]);
       return result.rows[0] || null;
     }
 
@@ -132,14 +189,11 @@ export async function createUser(email, hashedPassword, role = 'user') {
     const userStatus = isAdmin ? 'approved' : 'pending';
     const userVerified = isAdmin ? 1 : 0;
 
-    if (usePostgres) {
-      const { sql } = await import('@vercel/postgres');
-      const result = await sql`
-        INSERT INTO users (email, password, role, status, verified, plan, usage_limit)
-        VALUES (${email}, ${hashedPassword}, ${userRole}, ${userStatus}, ${userVerified}, 
-                ${isAdmin ? 'agency' : 'free'}, ${isAdmin ? 999999 : 5})
-        RETURNING id, email, role, status, verified, plan
-      `;
+    if (usePostgres && pgPool) {
+      const result = await pgPool.query(
+        'INSERT INTO users (email, password, role, status, verified, plan, usage_limit) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, email, role, status, verified, plan',
+        [email, hashedPassword, userRole, userStatus, userVerified, isAdmin ? 'agency' : 'free', isAdmin ? 999999 : 5]
+      );
       return result.rows[0];
     }
 
@@ -187,13 +241,11 @@ export async function updateUserStatus(userId, status) {
   await initDatabase();
 
   try {
-    if (usePostgres) {
-      const { sql } = await import('@vercel/postgres');
-      const result = await sql`
-        UPDATE users SET status = ${status}, verified = 1
-        WHERE id = ${userId}
-        RETURNING id, email, status
-      `;
+    if (usePostgres && pgPool) {
+      const result = await pgPool.query(
+        'UPDATE users SET status = $1, verified = 1 WHERE id = $2 RETURNING id, email, status',
+        [status, userId]
+      );
       return result.rows[0];
     }
 
@@ -221,13 +273,10 @@ export async function getAllUsers() {
   await initDatabase();
 
   try {
-    if (usePostgres) {
-      const { sql } = await import('@vercel/postgres');
-      const result = await sql`
-        SELECT id, email, role, plan, status, verified, usage_count, usage_limit, created_at
-        FROM users
-        ORDER BY created_at DESC
-      `;
+    if (usePostgres && pgPool) {
+      const result = await pgPool.query(
+        'SELECT id, email, role, plan, status, verified, usage_count, usage_limit, created_at FROM users ORDER BY created_at DESC'
+      );
       return result.rows;
     }
 
@@ -250,14 +299,11 @@ export async function getPendingUsers() {
   await initDatabase();
 
   try {
-    if (usePostgres) {
-      const { sql } = await import('@vercel/postgres');
-      const result = await sql`
-        SELECT id, email, role, plan, status, verified, created_at
-        FROM users
-        WHERE status = 'pending'
-        ORDER BY created_at ASC
-      `;
+    if (usePostgres && pgPool) {
+      const result = await pgPool.query(
+        'SELECT id, email, role, plan, status, verified, created_at FROM users WHERE status = $1 ORDER BY created_at ASC',
+        ['pending']
+      );
       return result.rows;
     }
 
@@ -282,13 +328,11 @@ export async function createScan(userId, domain, scanType) {
   await initDatabase();
 
   try {
-    if (usePostgres) {
-      const { sql } = await import('@vercel/postgres');
-      const result = await sql`
-        INSERT INTO scans (user_id, domain, scan_type, status)
-        VALUES (${userId}, ${domain}, ${scanType}, 'completed')
-        RETURNING id, domain, scan_type, created_at
-      `;
+    if (usePostgres && pgPool) {
+      const result = await pgPool.query(
+        'INSERT INTO scans (user_id, domain, scan_type, status) VALUES ($1, $2, $3, $4) RETURNING id, domain, scan_type, created_at',
+        [userId, domain, scanType, 'completed']
+      );
       return result.rows[0];
     }
 
@@ -329,14 +373,11 @@ export async function getUserScans(userId) {
   await initDatabase();
 
   try {
-    if (usePostgres) {
-      const { sql } = await import('@vercel/postgres');
-      const result = await sql`
-        SELECT id, domain, scan_type, status, created_at
-        FROM scans
-        WHERE user_id = ${userId}
-        ORDER BY created_at DESC
-      `;
+    if (usePostgres && pgPool) {
+      const result = await pgPool.query(
+        'SELECT id, domain, scan_type, status, created_at FROM scans WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId]
+      );
       return result.rows;
     }
 
