@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>instantseoscan.com</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <div class="utility-row">
+      <span class="utility-pill">instantseoscan.com</span>
+      <span class="utility-pill muted">AI SEO Analyzer</span>
+    </div>
+
+    <header class="app-header">
+      <div class="brand-wrap">
+        <img src="assets/logo.svg" alt="instantseoscan.com logo" class="brand-logo" />
+        <div>
+          <p class="domain-chip">instantseoscan.com</p>
+          <h1>SEO Audit Dashboard</h1>
+        </div>
+      </div>
+      <p class="hero-copy">Analyze any page and get actionable SEO fixes in seconds with instantseoscan.com.</p>
+    </header>
+
+    <section class="scan-card">
+      <form id="scan-form" class="scan-form">
+        <label for="url">Website URL to scan on instantseoscan.com</label>
+        <div class="row">
+          <input id="url" name="url" type="url" placeholder="https://example.com" required />
+          <button id="scan-btn" type="submit">Scan Now</button>
+        </div>
+      </form>
+      <p class="hint">instantseoscan.com tip: Add your Gemini API key in <code>.env</code> for AI-enhanced recommendations.</p>
+    </section>
+
+    <section id="loading" class="loading hidden">Scanning… please wait.</section>
+    <section id="error" class="error hidden"></section>
+
+    <section id="results" class="results hidden">
+      <div class="grid top-grid">
+        <article class="metric-card">
+          <h3>SEO Score</h3>
+          <p id="seo-score" class="score">0</p>
+        </article>
+        <article class="metric-card">
+          <h3>Title Length</h3>
+          <p id="title-length">0</p>
+        </article>
+        <article class="metric-card">
+          <h3>Meta Description</h3>
+          <p id="meta-length">0</p>
+        </article>
+        <article class="metric-card">
+          <h3>Headings</h3>
+          <p id="heading-count">0</p>
+        </article>
+      </div>
+
+      <div class="grid bottom-grid">
+        <article class="panel">
+          <h3>Checklist</h3>
+          <ul id="checks"></ul>
+        </article>
+
+        <article class="panel">
+          <h3>Priority Fixes</h3>
+          <ul id="issues"></ul>
+        </article>
+
+        <article class="panel full">
+          <h3>AI Recommendations</h3>
+          <div id="ai-text" class="ai-text"></div>
+        </article>
+      </div>
+    </section>
+
+    <footer class="app-footer">Built for instantseoscan.com</footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
