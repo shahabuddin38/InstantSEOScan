@@ -259,6 +259,10 @@ app.post('/api/scan', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`instantseoscan.com running at http://localhost:${PORT}`);
-});
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  app.listen(PORT, () => {
+    console.log(`instantseoscan.com running at http://localhost:${PORT}`);
+  });
+}
