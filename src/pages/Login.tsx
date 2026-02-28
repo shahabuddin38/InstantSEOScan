@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
+import { apiRequest } from "../services/apiClient";
 
 export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
   const [searchParams] = useSearchParams();
@@ -28,14 +29,14 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
     const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
     
     try {
-      const res = await fetch(endpoint, {
+      const result = await apiRequest<{ token: string; user: any; message: string; error: string }>(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+
+      if (!result.ok || !result.data) throw new Error(result.error || "Authentication failed");
+      const data = result.data;
 
       if (isRegister) {
         setSuccess(data.message);

@@ -41,8 +41,17 @@ export default function Report() {
 
   useEffect(() => {
     const lastScan = sessionStorage.getItem("lastScan");
-    if (lastScan) {
-      setData(JSON.parse(lastScan));
+    if (!lastScan) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(lastScan);
+      if (parsed && parsed.technical) {
+        setData(parsed);
+      }
+    } catch {
+      sessionStorage.removeItem("lastScan");
     }
   }, [id]);
 
@@ -139,11 +148,14 @@ export default function Report() {
   const shareUrl = window.location.href;
   const shareTitle = `Check out my SEO Audit Report for ${data?.technical?.title || 'my website'}`;
 
-  if (!data) return (
+  if (!data || !data.technical) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-        <p className="text-neutral-500">Loading your SEO report...</p>
+        <p className="text-neutral-500">No report found. Start a new audit from your dashboard.</p>
+        <Link to="/dashboard" className="inline-block mt-4 text-sm font-bold text-emerald-600 hover:text-emerald-700">
+          Go to Dashboard
+        </Link>
       </div>
     </div>
   );

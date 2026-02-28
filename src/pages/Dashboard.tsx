@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, Globe, History, BarChart3, Zap, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { getAIInsights, calculateScore } from "../services/geminiService";
+import { apiRequest } from "../services/apiClient";
 
 export default function Dashboard({ user }: { user: any }) {
   const [searchParams] = useSearchParams();
@@ -25,7 +26,7 @@ export default function Dashboard({ user }: { user: any }) {
     setError("");
 
     try {
-      const res = await fetch("/api/scan", {
+      const result = await apiRequest<any>("/api/scan", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -34,8 +35,8 @@ export default function Dashboard({ user }: { user: any }) {
         body: JSON.stringify({ url }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!result.ok || !result.data) throw new Error(result.error || "Scan failed");
+      const data = result.data;
 
       // Perform AI Analysis on frontend
       const targetUrl = url.startsWith('http') ? url : `https://${url}`;

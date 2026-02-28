@@ -133,6 +133,34 @@ async function startServer() {
       next();
     });
   };
+
+  const requireAdmin = (req: any, res: any, next: any) => {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ error: "Admin access required." });
+    }
+    next();
+  };
+
+  const slugify = (text: string) =>
+    String(text || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
+  const getUniqueSlug = (title: string, ignoreId?: number) => {
+    const base = slugify(title) || `post-${Date.now()}`;
+    let candidate = base;
+    let counter = 1;
+
+    while (true) {
+      const row: any = db.prepare("SELECT id FROM blog_posts WHERE slug = ?").get(candidate);
+      if (!row || (ignoreId && row.id === ignoreId)) return candidate;
+      candidate = `${base}-${counter++}`;
+    }
+  };
   console.log("Auth middleware defined");
 
   // --- API Routes ---
@@ -204,26 +232,87 @@ async function startServer() {
   });
 
   // Admin: User Management
-  app.get("/api/admin/users", authenticateToken, (req: any, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: "Admin access required." });
+  app.get("/api/admin/users", authenticateToken, requireAdmin, (req: any, res) => {
     const users = db.prepare("SELECT id, email, role, plan, status, verified, usage_count, usage_limit FROM users").all();
     res.json(users);
   });
 
-  app.post("/api/admin/users/:id/approve", authenticateToken, (req: any, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: "Admin access required." });
+  app.post("/api/admin/users/:id/approve", authenticateToken, requireAdmin, (req: any, res) => {
     const { id } = req.params;
     db.prepare("UPDATE users SET status = 'approved', verified = 1 WHERE id = ?").run(id);
     res.json({ success: true });
   });
 
-  app.post("/api/admin/users/:id/plan", authenticateToken, (req: any, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: "Admin access required." });
+  app.post("/api/admin/users/:id/plan", authenticateToken, requireAdmin, (req: any, res) => {
     const { id } = req.params;
     const { plan, limit, days } = req.body;
     
     const end_date = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString() : null;
     db.prepare("UPDATE users SET plan = ?, usage_limit = ?, subscription_end = ? WHERE id = ?").run(plan, limit, end_date, id);
+    res.json({ success: true });
+  });
+
+  app.get("/api/admin/crm", authenticateToken, requireAdmin, (req: any, res) => {
+    const totalUsers: any = db.prepare("SELECT COUNT(*) as count FROM users").get();
+    const approvedUsers: any = db.prepare("SELECT COUNT(*) as count FROM users WHERE status = 'approved'").get();
+    const pendingUsers: any = db.prepare("SELECT COUNT(*) as count FROM users WHERE status = 'pending'").get();
+    const paidUsers: any = db.prepare("SELECT COUNT(*) as count FROM users WHERE plan IN ('pro', 'agency', 'custom')").get();
+    const topUsers = db.prepare(`
+      SELECT id, email, plan, status, usage_count, usage_limit
+      FROM users
+      ORDER BY usage_count DESC, created_at DESC
+      LIMIT 20
+    `).all();
+
+    res.json({
+      totals: {
+        totalUsers: totalUsers?.count || 0,
+        approvedUsers: approvedUsers?.count || 0,
+        pendingUsers: pendingUsers?.count || 0,
+        paidUsers: paidUsers?.count || 0,
+      },
+      users: topUsers,
+    });
+  });
+
+  app.get("/api/admin/blog", authenticateToken, requireAdmin, (req: any, res) => {
+    const posts = db.prepare("SELECT id, title, slug, author, content, created_at FROM blog_posts ORDER BY created_at DESC").all();
+    res.json(posts);
+  });
+
+  app.post("/api/admin/blog", authenticateToken, requireAdmin, (req: any, res) => {
+    const { title, content, author } = req.body || {};
+    if (!title || !content) return res.status(400).json({ error: "Title and content are required." });
+
+    const slug = getUniqueSlug(title);
+    const createdBy = author || req.user?.email || "Admin";
+    const result = db.prepare("INSERT INTO blog_posts (title, slug, content, author) VALUES (?, ?, ?, ?)").run(title, slug, content, createdBy);
+    const post = db.prepare("SELECT id, title, slug, author, content, created_at FROM blog_posts WHERE id = ?").get(result.lastInsertRowid);
+    res.json(post);
+  });
+
+  app.put("/api/admin/blog/:id", authenticateToken, requireAdmin, (req: any, res) => {
+    const { id } = req.params;
+    const { title, content, author } = req.body || {};
+    if (!title || !content) return res.status(400).json({ error: "Title and content are required." });
+
+    const existing: any = db.prepare("SELECT id FROM blog_posts WHERE id = ?").get(id);
+    if (!existing) return res.status(404).json({ error: "Post not found." });
+
+    const numericId = Number(id);
+    const slug = getUniqueSlug(title, numericId);
+    const updatedBy = author || req.user?.email || "Admin";
+
+    db.prepare("UPDATE blog_posts SET title = ?, slug = ?, content = ?, author = ? WHERE id = ?")
+      .run(title, slug, content, updatedBy, id);
+
+    const post = db.prepare("SELECT id, title, slug, author, content, created_at FROM blog_posts WHERE id = ?").get(id);
+    res.json(post);
+  });
+
+  app.delete("/api/admin/blog/:id", authenticateToken, requireAdmin, (req: any, res) => {
+    const { id } = req.params;
+    db.prepare("DELETE FROM blog_posts WHERE id = ?").run(id);
     res.json({ success: true });
   });
 
@@ -823,11 +912,12 @@ async function startServer() {
   });
 
   // Admin
-  app.get("/api/admin/stats", authenticateToken, (req: any, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: "Admin access required." });
+  app.get("/api/admin/stats", authenticateToken, requireAdmin, (req: any, res) => {
     const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get();
     const scanCount = db.prepare("SELECT COUNT(*) as count FROM scans").get();
-    res.json({ userCount, scanCount });
+    const pendingCount = db.prepare("SELECT COUNT(*) as count FROM users WHERE status = 'pending'").get();
+    const blogCount = db.prepare("SELECT COUNT(*) as count FROM blog_posts").get();
+    res.json({ userCount, scanCount, pendingCount, blogCount });
   });
 
   // RapidAPI: Keywords
