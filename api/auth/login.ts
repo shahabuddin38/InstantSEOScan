@@ -1,34 +1,37 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-export default async (req: VercelRequest, res: VercelResponse) => {
-  try {
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' });
-    }
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
 
+  try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      res.status(400).json({ error: 'Email and password are required' });
+      return;
     }
 
-    // TODO: Connect to database and verify credentials
-    // For now, return a placeholder response
     const isAdmin = email === 'shahabjan38@gmail.com';
 
     if (!isAdmin && email !== 'test@example.com') {
-      return res.status(401).json({ error: 'Account not found. Please create an account.' });
+      res.status(401).json({ error: 'Account not found. Please create an account.' });
+      return;
     }
 
-    // Create a dummy token for testing
     const token = jwt.sign(
       { id: 1, email, role: isAdmin ? 'admin' : 'user' },
       process.env.JWT_SECRET || 'default-secret'
     );
 
-    return res.status(200).json({
+    res.status(200).json({
       token,
       user: {
         id: 1,
@@ -41,6 +44,6 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     });
   } catch (error: any) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
-};
+}
