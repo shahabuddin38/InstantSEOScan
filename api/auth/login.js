@@ -18,31 +18,32 @@ export default async (req, res) => {
 
   try {
     const { email, password } = req.body || {};
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({ error: 'Email and password required' });
     }
 
-    console.log(`[LOGIN] Attempting login for: ${email}`);
+    console.log(`[LOGIN] Attempting login for: ${normalizedEmail}`);
 
     // Get user from database
-    let user = await getUserByEmail(email);
+    let user = await getUserByEmail(normalizedEmail);
     
     if (!user) {
       const canAutoInitAdmin =
-        email === DEFAULT_ADMIN_EMAIL &&
+        normalizedEmail === String(DEFAULT_ADMIN_EMAIL).trim().toLowerCase() &&
         password === DEFAULT_ADMIN_PASSWORD;
 
       if (canAutoInitAdmin) {
-        console.log(`[LOGIN] Auto-initializing default admin user: ${email}`);
+        console.log(`[LOGIN] Auto-initializing default admin user: ${normalizedEmail}`);
         const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
         await createUser(DEFAULT_ADMIN_EMAIL, hashedPassword, 'admin');
-        user = await getUserByEmail(email);
+        user = await getUserByEmail(normalizedEmail);
       }
     }
 
     if (!user) {
-      console.log(`[LOGIN] User not found: ${email}`);
+      console.log(`[LOGIN] User not found: ${normalizedEmail}`);
       return res.status(401).json({ error: 'Account not found. Please register first.' });
     }
     

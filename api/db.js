@@ -9,7 +9,7 @@ const MODULE_STORE = {
 };
 
 export const DEFAULT_ADMIN_EMAIL = process.env.DEFAULT_ADMIN_EMAIL || 'shahabjan38@gmail.com';
-export const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'Admin123!';
+export const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'Amind123!';
 const AUTO_INIT_ADMIN = process.env.AUTO_INIT_ADMIN !== 'false';
 
 let usePostgres = false;
@@ -177,6 +177,10 @@ async function initPostgresSchema() {
 // Initialize on first import
 initDatabase().catch(console.error);
 
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
 // Helper to generate IDs for module store
 function getNextUserId() {
   let maxId = 0;
@@ -189,21 +193,26 @@ function getNextUserId() {
 // User functions
 export async function getUserByEmail(email) {
   await initDatabase();
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedEmail) {
+    return null;
+  }
 
   try {
     if (usePostgres && pgPool) {
-      const result = await pgPool.query('SELECT * FROM users WHERE email = $1', [email]);
+      const result = await pgPool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [normalizedEmail]);
       return result.rows[0] || null;
     }
 
     if (useSQLite && db) {
-      const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-      return stmt.get(email) || null;
+      const stmt = db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)');
+      return stmt.get(normalizedEmail) || null;
     }
 
     // Module store fallback
     for (const user of MODULE_STORE.users.values()) {
-      if (user.email === email) {
+      if (normalizeEmail(user.email) === normalizedEmail) {
         return user;
       }
     }
@@ -216,9 +225,14 @@ export async function getUserByEmail(email) {
 
 export async function createUser(email, hashedPassword, role = 'user') {
   await initDatabase();
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedEmail) {
+    throw new Error('Email is required');
+  }
 
   try {
-    const isAdmin = email === DEFAULT_ADMIN_EMAIL;
+    const isAdmin = normalizedEmail === normalizeEmail(DEFAULT_ADMIN_EMAIL);
     const userRole = isAdmin ? 'admin' : role;
     const userStatus = isAdmin ? 'approved' : 'pending';
     const userVerified = isAdmin ? 1 : 0;
@@ -226,7 +240,7 @@ export async function createUser(email, hashedPassword, role = 'user') {
     if (usePostgres && pgPool) {
       const result = await pgPool.query(
         'INSERT INTO users (email, password, role, status, verified, plan, usage_limit) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, email, role, status, verified, plan',
-        [email, hashedPassword, userRole, userStatus, userVerified, isAdmin ? 'agency' : 'free', isAdmin ? 999999 : 5]
+        [normalizedEmail, hashedPassword, userRole, userStatus, userVerified, isAdmin ? 'agency' : 'free', isAdmin ? 999999 : 5]
       );
       return result.rows[0];
     }
@@ -236,11 +250,11 @@ export async function createUser(email, hashedPassword, role = 'user') {
         INSERT INTO users (email, password, role, status, verified, plan, usage_limit)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
-      const result = stmt.run(email, hashedPassword, userRole, userStatus, userVerified, 
+      const result = stmt.run(normalizedEmail, hashedPassword, userRole, userStatus, userVerified, 
                               isAdmin ? 'agency' : 'free', isAdmin ? 999999 : 5);
       return { 
         id: result.lastInsertRowid, 
-        email, 
+        email: normalizedEmail, 
         role: userRole, 
         status: userStatus, 
         verified: userVerified, 
@@ -251,7 +265,7 @@ export async function createUser(email, hashedPassword, role = 'user') {
     // Module store
     const user = {
       id: getNextUserId(),
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       role: userRole,
       status: userStatus,
@@ -263,7 +277,7 @@ export async function createUser(email, hashedPassword, role = 'user') {
     };
     
     MODULE_STORE.users.set(user.id, user);
-    console.log(`✓ User created: ${email} (ID: ${user.id})`);
+    console.log(`✓ User created: ${normalizedEmail} (ID: ${user.id})`);
     return { id: user.id, email: user.email, role: user.role, status: user.status, verified: user.verified, plan: user.plan };
   } catch (error) {
     console.error('Error creating user:', error);
