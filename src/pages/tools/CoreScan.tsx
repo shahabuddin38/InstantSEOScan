@@ -55,8 +55,17 @@ export default function CoreScan() {
         body: JSON.stringify({ url }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const contentType = res.headers.get("content-type") || "";
+      let data: any;
+
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || "Server returned a non-JSON response.");
+      }
+
+      if (!res.ok) throw new Error(data?.error || "Failed to scan site.");
 
       // Perform AI Analysis on frontend
       const targetUrl = url.startsWith('http') ? url : `https://${url}`;
