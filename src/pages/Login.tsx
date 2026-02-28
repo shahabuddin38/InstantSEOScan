@@ -34,8 +34,18 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
         body: JSON.stringify({ email, password }),
       });
       
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const contentType = res.headers.get("content-type");
+      let data;
+      
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.error("Non-JSON response:", text);
+        throw new Error("Server returned invalid response. Please try again.");
+      }
+
+      if (!res.ok) throw new Error(data.error || "An error occurred");
 
       if (isRegister) {
         setSuccess(data.message);
@@ -48,7 +58,8 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
         navigate("/");
       }
     } catch (err: any) {
-      setError(err.message);
+      console.error("Auth error:", err);
+      setError(err.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

@@ -154,9 +154,14 @@ async function startServer() {
 
   // Auth
   app.post("/api/auth/register", async (req, res) => {
-    const { email, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
     try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
       const role = email === 'shahabjan38@gmail.com' ? 'admin' : 'user';
       const status = email === 'shahabjan38@gmail.com' ? 'approved' : 'pending';
       const verified = email === 'shahabjan38@gmail.com' ? 1 : 0;
@@ -166,41 +171,52 @@ async function startServer() {
       const info = db.prepare("INSERT INTO users (email, password, role, status, verified, plan, usage_limit) VALUES (?, ?, ?, ?, ?, ?, ?)").run(email, hashedPassword, role, status, verified, plan, limit);
       
       if (role === 'admin') {
-        res.json({ message: "Admin registration successful. You can now log in." });
+        res.status(201).json({ message: "Admin registration successful. You can now log in." });
       } else {
-        res.json({ message: "Registration successful. Please wait for admin approval and verify your email." });
+        res.status(201).json({ message: "Registration successful. Please wait for admin approval and verify your email." });
       }
-    } catch (e) {
+    } catch (e: any) {
+      console.error("Registration error:", e);
       res.status(400).json({ error: "Email already exists" });
     }
   });
 
   app.post("/api/auth/login", async (req, res) => {
-    const { email, password } = req.body;
-    const user: any = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
-    if (!user) {
-      return res.status(401).json({ error: "Account not found. Please create an account." });
-    }
-    if (!(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: "Invalid password." });
-    }
-    
-    if (user.role !== 'admin') {
-      if (user.status !== 'approved') {
-        return res.status(403).json({ error: "Your account is pending admin approval." });
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
       }
-      if (!user.verified) {
-        return res.status(403).json({ error: "Please verify your email first." });
-      }
-      if (user.subscription_end && new Date(user.subscription_end) < new Date()) {
-        // Downgrade to free if expired
-        db.prepare("UPDATE users SET plan = 'free', usage_limit = 5, subscription_end = NULL WHERE id = ?").run(user.id);
-        user.plan = 'free';
-      }
-    }
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET || 'secret');
-    res.json({ token, user: { id: user.id, email: user.email, role: user.role, plan: user.plan, status: user.status, verified: user.verified } });
+      const user: any = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
+      if (!user) {
+        return res.status(401).json({ error: "Account not found. Please create an account." });
+      }
+      if (!(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ error: "Invalid password." });
+      }
+      
+      if (user.role !== 'admin') {
+        if (user.status !== 'approved') {
+          return res.status(403).json({ error: "Your account is pending admin approval." });
+        }
+        if (!user.verified) {
+          return res.status(403).json({ error: "Please verify your email first." });
+        }
+        if (user.subscription_end && new Date(user.subscription_end) < new Date()) {
+          // Downgrade to free if expired
+          db.prepare("UPDATE users SET plan = 'free', usage_limit = 5, subscription_end = NULL WHERE id = ?").run(user.id);
+          user.plan = 'free';
+        }
+      }
+
+      const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET || 'secret');
+      res.json({ token, user: { id: user.id, email: user.email, role: user.role, plan: user.plan, status: user.status, verified: user.verified } });
+    } catch (e: any) {
+      console.error("Login error:", e);
+      res.status(500).json({ error: "An error occurred during login" });
+    }
   });
 
   // Admin: User Management
@@ -866,6 +882,11 @@ async function startServer() {
     } catch (error: any) {
       res.status(500).json({ error: "RapidAPI Error: " + error.message });
     }
+  });
+
+  // 404 handler for API routes (before Vite middleware)
+  app.use("/api", (req, res) => {
+    res.status(404).json({ error: "API endpoint not found" });
   });
 
   // Vite middleware for development
