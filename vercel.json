@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://instant-seo-scan.vercel.app/api/:path*"
+      "destination": "https://instant-seo-scan.vercel-api.app/api/:path*"
     },
     {
       "source": "/(.*)",
