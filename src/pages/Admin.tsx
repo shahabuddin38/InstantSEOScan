@@ -20,7 +20,11 @@ export default function Admin() {
       headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
     });
     const data = await res.json();
-    setUsers(data);
+    if (Array.isArray(data)) {
+      setUsers(data);
+      return;
+    }
+    setUsers(Array.isArray(data?.users) ? data.users : []);
   };
 
   useEffect(() => {

@@ -47,7 +47,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
               <div className="flex items-center gap-4">
                 <Link to="/dashboard" className="text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">Dashboard</Link>
                 {user.role === 'admin' && (
-                  <Link to="/adminaceess" className="text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">Admin</Link>
+                  <Link to="/adminaccess" className="text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">Admin</Link>
                 )}
                 <button 
                   onClick={onLogout}

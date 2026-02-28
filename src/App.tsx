@@ -87,9 +87,10 @@ export default function App() {
               element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />} 
             />
             <Route 
-              path="/adminaceess" 
+              path="/adminaccess" 
               element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />} 
             />
+            <Route path="/adminaceess" element={<Navigate to="/adminaccess" replace />} />
           </Routes>
         </main>
         <Footer />
