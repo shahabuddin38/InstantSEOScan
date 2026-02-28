@@ -43,11 +43,19 @@ export default function Report() {
   useEffect(() => {
     const loadReport = async () => {
       if (id && id !== "latest") {
-        const result = await apiRequest<{ report?: any }>(`/api/reports/${id}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        if (result.ok && result.data?.report?.technical) {
-          setData(result.data.report);
+        const result = await apiRequest<any>(`/api/scan/${id}`);
+        if (result.ok && result.data && result.data.results) {
+          const reportData = result.data;
+          // Prisma stores results as Json. If it's a string, we parse it.
+          const results = typeof reportData.results === 'string' 
+            ? JSON.parse(reportData.results) 
+            : reportData.results;
+          
+          setData({
+            ...results,
+            score: reportData.score,
+            id: reportData.id
+          });
           return;
         }
       }

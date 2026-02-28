@@ -1,63 +1,105 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Instant SEO Scan (Production)
 
-# Run and deploy your AI Studio app
+Production-ready serverless SaaS architecture using Vercel Functions + Prisma + PostgreSQL + JWT + Stripe.
 
-This contains everything you need to run your app locally.
+## Final Production Structure
 
-View your app in AI Studio: https://ai.studio/apps/ade58c6e-0e0b-48bc-883f-1c28b9c97602
+```text
+instant-seo-scan/
+│
+├── api/
+│   ├── auth/
+│   │   ├── register.ts
+│   │   ├── login.ts
+│   │   └── me.ts
+│   ├── scan/
+│   │   └── index.ts
+│   ├── ai/
+│   │   └── on-page.ts
+│   ├── stripe/
+│   │   ├── checkout.ts
+│   │   └── webhook.ts
+│   └── admin/
+│       └── users.ts
+│
+├── lib/
+│   ├── prisma.ts
+│   ├── auth.ts
+│   ├── quota.ts
+│   ├── stripe.ts
+│   └── gemini.ts
+│
+├── prisma/
+│   └── schema.prisma
+│
+├── middleware/
+│   └── withAuth.ts
+│
+├── vercel.json
+├── package.json
+└── .env
+```
 
-## Run Locally
+## Environment Variables
 
-**Prerequisites:**  Node.js
+Set these in local [.env](.env) and in Vercel project settings:
 
+- `JWT_SECRET`
+- `DATABASE_URL`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `GEMINI_API_KEY`
+- `APP_URL`
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. (Optional, for persistent scan cache + report history) set `DATABASE_URL` in `.env.local`
-4. Generate Prisma client:
-   `npm run prisma:generate`
-5. Run the app:
-   `npm run dev`
+## Local Development
 
-## Prisma report history and cache
+1. Install dependencies
 
-- When `DATABASE_URL` is configured, scan results are stored in Postgres via Prisma.
-- `/api/scan` uses a per-user 24-hour URL cache to return recent scan data faster.
-- New API endpoints:
-  - `GET /api/reports/history` (last 20 reports for logged-in user)
-  - `GET /api/reports/:id` (single saved report for logged-in user)
-- If Prisma is not configured, the app still works and falls back to existing behavior.
+   ```bash
+   npm install
+   ```
 
-## Security note
+2. Generate Prisma client
 
-- Keep database URLs and API keys in local environment files only.
-- If credentials are ever shared publicly, rotate them immediately.
+   ```bash
+   npm run prisma:generate
+   ```
 
-## Vercel deployment (one command + GitHub auto deploy)
+3. Push schema (development)
 
-This repo now includes a Vercel config file at [vercel.json](vercel.json) and deploy scripts in [package.json](package.json).
+   ```bash
+   npx prisma db push
+   ```
 
-### One-command deploy
+4. Start serverless dev runtime
 
-1. Install Vercel CLI once:
-   `npm i -g vercel`
-2. From repo root, deploy production:
-   `npm run deploy:vercel`
+   ```bash
+   npm run dev
+   ```
 
-### Required environment variables in Vercel
+## API Endpoints
 
-- `GEMINI_API_KEY` (used by serverless API routes)
-- `DATABASE_URL` (PostgreSQL connection string for Prisma)
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/scan`
+- `POST /api/ai/on-page`
+- `POST /api/stripe/checkout`
+- `POST /api/stripe/webhook`
+- `GET /api/admin/users`
 
-Note: `/api/*` is handled by Vercel serverless functions in this repo. `VITE_API_BASE_URL` is optional and only needed for custom API origins.
+## Security Notes
 
-### Enable automatic deploys from GitHub pushes
+- Auth uses JWT verification with user lookup in database.
+- Protected APIs use middleware wrapper in [middleware/withAuth.ts](middleware/withAuth.ts).
+- Scan usage quota is enforced in [lib/quota.ts](lib/quota.ts).
+- Stripe plan upgrades are webhook-driven from [api/stripe/webhook.ts](api/stripe/webhook.ts).
+- Login sets HTTP-only auth cookie.
 
-1. Import this GitHub repo into Vercel (one-time setup).
-2. Set Production branch to `main`.
-3. Add the environment variables above in Vercel project settings.
+## Deploy
 
-After that, every push to `main` triggers automatic production deployment.
+1. Import repo into Vercel.
+2. Configure all environment variables above.
+3. Deploy.
+
+This repo is fully serverless (no Express app/listener runtime).

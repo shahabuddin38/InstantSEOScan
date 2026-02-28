@@ -43,7 +43,6 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
         setEmail("");
         setPassword("");
       } else {
-        localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         onLogin(data.user);
         navigate("/");

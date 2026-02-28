@@ -26,7 +26,7 @@ type AdminStats = {
 };
 
 type AdminUser = {
-  id: number;
+  id: string;
   email: string;
   role: string;
   plan: string;
@@ -47,12 +47,12 @@ type CRMResponse = {
 };
 
 type BlogPost = {
-  id: number;
+  id: string;
   title: string;
   slug: string;
   author: string;
   content: string;
-  created_at: string;
+  createdAt: string;
 };
 
 const tokenHeaders = () => ({
@@ -68,7 +68,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingPost, setSavingPost] = useState(false);
-  const [editingPostId, setEditingPostId] = useState<number | null>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [postForm, setPostForm] = useState({ title: "", content: "", author: "" });
   const navigate = useNavigate();
 
@@ -112,7 +112,7 @@ export default function Admin() {
     loadAll();
   }, []);
 
-  const handleApprove = async (userId: number) => {
+  const handleApprove = async (userId: string) => {
     const result = await apiRequest(`/api/admin/users/${userId}/approve`, {
       method: "POST",
       headers: tokenHeaders(),
@@ -126,7 +126,7 @@ export default function Admin() {
     await Promise.all([fetchUsers(), fetchCRM(), fetchStats()]);
   };
 
-  const handleUpdatePlan = async (userId: number, plan: string, limit: number, days?: number) => {
+  const handleUpdatePlan = async (userId: string, plan: string, limit: number, days?: number) => {
     let finalDays = days;
     if (!finalDays) {
       const input = prompt("Enter number of days for this subscription:", "30");
@@ -197,7 +197,7 @@ export default function Admin() {
     resetPostForm();
   };
 
-  const handleDeletePost = async (id: number) => {
+  const handleDeletePost = async (id: string) => {
     if (!confirm("Delete this post permanently?")) return;
 
     const result = await apiRequest(`/api/admin/blog/${id}`, {

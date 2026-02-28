@@ -24,9 +24,7 @@ export default function Dashboard({ user }: { user: any }) {
   };
 
   const loadHistory = async () => {
-    const result = await apiRequest<Array<{ id: string; url: string; score: number; createdAt: string }>>("/api/reports/history", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
+    const result = await apiRequest<Array<{ id: string; url: string; score: number; createdAt: string }>>("/api/scan/history");
     if (result.ok && Array.isArray(result.data)) {
       setHistory(result.data);
     }
@@ -50,8 +48,7 @@ export default function Dashboard({ user }: { user: any }) {
       const result = await apiRequest<any>("/api/scan", {
         method: "POST",
         headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ url }),
       });

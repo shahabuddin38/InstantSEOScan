@@ -42,9 +42,13 @@ export async function apiRequest<T = any>(
   init?: RequestInit
 ): Promise<ApiResult<T>> {
   const resolvedInput = resolveApiInput(input);
+  const requestInit: RequestInit = {
+    ...init,
+    credentials: init?.credentials || "include",
+  };
 
   try {
-    const res = await fetch(resolvedInput, init);
+    const res = await fetch(resolvedInput, requestInit);
     const contentType = res.headers.get("content-type") || "";
     const isJson = contentType.includes("application/json");
     const isNonJson = !isJson;
