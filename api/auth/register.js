@@ -19,6 +19,10 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    if (!email.includes('@')) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
     const role = email === 'shahabjan38@gmail.com' ? 'admin' : 'user';
     
     return res.status(201).json({
@@ -28,6 +32,6 @@ module.exports = async (req, res) => {
     });
   } catch (error) {
     console.error('Register error:', error);
-    return res.status(500).json({ error: 'Internal server error', message: error.message });
+    return res.status(500).json({ error: 'Internal server error', details: String(error) });
   }
 };

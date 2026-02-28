@@ -1,5 +1,3 @@
-const jwt = require('jsonwebtoken');
-
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,10 +25,8 @@ module.exports = async (req, res) => {
       return res.status(401).json({ error: 'Account not found. Please create an account.' });
     }
 
-    const token = jwt.sign(
-      { id: 1, email, role: isAdmin ? 'admin' : 'user' },
-      process.env.JWT_SECRET || 'default-secret'
-    );
+    // Generate simple token without using jwt module
+    const token = Buffer.from(JSON.stringify({ id: 1, email, role: isAdmin ? 'admin' : 'user', iat: Date.now() })).toString('base64');
 
     return res.status(200).json({
       token,
@@ -45,6 +41,6 @@ module.exports = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({ error: 'Internal server error', message: error.message });
+    return res.status(500).json({ error: 'Internal server error', details: String(error) });
   }
 };
