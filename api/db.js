@@ -1,56 +1,91 @@
-// Database module - supports both Vercel Postgres and in-memory fallback
+// Database module - supports both Vercel Postgres and SQLite fallback
 
-let db = {
-  users: new Map(),
-  scans: new Map(),
-  nextUserId: 1,
-  nextScanId: 1
-};
-
-// Use Vercel Postgres if available, otherwise use in-memory
 let usePostgres = false;
+let db = null;
 
-async function initPostgres() {
-  try {
-    if (!process.env.POSTGRES_URL) {
-      console.log('No POSTGRES_URL - using in-memory database');
-      return false;
-    }
-    
-    const { sql } = await import('@vercel/postgres');
-    
-    // Test connection
-    await sql`SELECT 1`;
-    console.log('Connected to Vercel Postgres');
-    usePostgres = true;
-    return true;
-  } catch (error) {
-    console.log('Postgres not available - using in-memory database', error.message);
-    return false;
-  }
+// Try to use better-sqlite3 for persistence
+let Database = null;
+try {
+  Database = (await import('better-sqlite3')).default;
+} catch (e) {
+  console.log('SQLite not available, using in-memory fallback');
 }
 
-initPostgres().catch(err => console.error('Init error:', err));
+// Initialize database
+async function initDatabase() {
+  try {
+    // Try Postgres first
+    if (process.env.POSTGRES_URL) {
+      const { sql } = await import('@vercel/postgres');
+      await sql`SELECT 1`;
+      console.log('Using Vercel Postgres');
+      usePostgres = true;
+      return;
+    }
+  } catch (error) {
+    console.log('Postgres not available');
+  }
+
+  // Try SQLite
+  if (Database) {
+    try {
+      db = new Database('/tmp/instant-seo-scan.db');
+      console.log('Using SQLite database');
+      
+      // Create tables if they don't exist
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          role TEXT DEFAULT 'user',
+          plan TEXT DEFAULT 'free',
+          status TEXT DEFAULT 'pending',
+          verified INTEGER DEFAULT 0,
+          usage_count INTEGER DEFAULT 0,
+          usage_limit INTEGER DEFAULT 5,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE IF NOT EXISTS scans (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          domain TEXT NOT NULL,
+          scan_type TEXT,
+          status TEXT DEFAULT 'completed',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+      `);
+      return;
+    } catch (error) {
+      console.log('SQLite failed:', error.message);
+    }
+  }
+
+  console.log('Using in-memory fallback (data will not persist)');
+}
+
+// Initialize on module load
+initDatabase().catch(console.error);
 
 // User functions
 export async function getUserByEmail(email) {
-  if (usePostgres) {
-    try {
+  try {
+    if (usePostgres) {
       const { sql } = await import('@vercel/postgres');
       const result = await sql`SELECT * FROM users WHERE email = ${email}`;
       return result.rows[0] || null;
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      return null;
     }
+
+    if (db) {
+      const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
+      return stmt.get(email) || null;
+    }
+  } catch (error) {
+    console.error('Error fetching user:', error);
   }
   
-  // In-memory fallback
-  for (const user of db.users.values()) {
-    if (user.email === email) {
-      return user;
-    }
-  }
   return null;
 }
 
@@ -72,22 +107,22 @@ export async function createUser(email, hashedPassword, role = 'user') {
       return result.rows[0];
     }
 
-    // In-memory fallback
-    const user = {
-      id: db.nextUserId++,
-      email,
-      password: hashedPassword,
-      role: userRole,
-      status: userStatus,
-      verified: userVerified,
-      plan: isAdmin ? 'agency' : 'free',
-      usage_limit: isAdmin ? 999999 : 5,
-      usage_count: 0,
-      created_at: new Date()
-    };
-    
-    db.users.set(user.id, user);
-    return { id: user.id, email: user.email, role: user.role, status: user.status, verified: user.verified, plan: user.plan };
+    if (db) {
+      const stmt = db.prepare(`
+        INSERT INTO users (email, password, role, status, verified, plan, usage_limit)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      const result = stmt.run(email, hashedPassword, userRole, userStatus, userVerified, 
+                              isAdmin ? 'agency' : 'free', isAdmin ? 999999 : 5);
+      return { 
+        id: result.lastInsertRowid, 
+        email, 
+        role: userRole, 
+        status: userStatus, 
+        verified: userVerified, 
+        plan: isAdmin ? 'agency' : 'free' 
+      };
+    }
   } catch (error) {
     console.error('Error creating user:', error);
     throw error;
@@ -106,14 +141,12 @@ export async function updateUserStatus(userId, status) {
       return result.rows[0];
     }
 
-    // In-memory fallback
-    const user = db.users.get(userId);
-    if (user) {
-      user.status = status;
-      user.verified = 1;
-      return { id: user.id, email: user.email, status: user.status };
+    if (db) {
+      const stmt = db.prepare('UPDATE users SET status = ?, verified = 1 WHERE id = ?');
+      stmt.run(status, userId);
+      const user = db.prepare('SELECT id, email, status FROM users WHERE id = ?').get(userId);
+      return user;
     }
-    return null;
   } catch (error) {
     console.error('Error updating user:', error);
     throw error;
@@ -132,22 +165,15 @@ export async function getAllUsers() {
       return result.rows;
     }
 
-    // In-memory fallback
-    return Array.from(db.users.values()).map(u => ({
-      id: u.id,
-      email: u.email,
-      role: u.role,
-      plan: u.plan,
-      status: u.status,
-      verified: u.verified,
-      usage_count: u.usage_count,
-      usage_limit: u.usage_limit,
-      created_at: u.created_at
-    }));
+    if (db) {
+      const stmt = db.prepare('SELECT id, email, role, plan, status, verified, usage_count, usage_limit, created_at FROM users ORDER BY created_at DESC');
+      return stmt.all();
+    }
   } catch (error) {
     console.error('Error fetching users:', error);
-    return [];
   }
+  
+  return [];
 }
 
 export async function getPendingUsers() {
@@ -163,22 +189,15 @@ export async function getPendingUsers() {
       return result.rows;
     }
 
-    // In-memory fallback
-    return Array.from(db.users.values())
-      .filter(u => u.status === 'pending')
-      .map(u => ({
-        id: u.id,
-        email: u.email,
-        role: u.role,
-        plan: u.plan,
-        status: u.status,
-        verified: u.verified,
-        created_at: u.created_at
-      }));
+    if (db) {
+      const stmt = db.prepare('SELECT id, email, role, plan, status, verified, created_at FROM users WHERE status = ? ORDER BY created_at ASC');
+      return stmt.all('pending');
+    }
   } catch (error) {
     console.error('Error fetching pending users:', error);
-    return [];
   }
+  
+  return [];
 }
 
 // Scans management
@@ -194,18 +213,16 @@ export async function createScan(userId, domain, scanType) {
       return result.rows[0];
     }
 
-    // In-memory fallback
-    const scan = {
-      id: db.nextScanId++,
-      user_id: userId,
-      domain,
-      scan_type: scanType,
-      status: 'completed',
-      created_at: new Date()
-    };
-    
-    db.scans.set(scan.id, scan);
-    return { id: scan.id, domain: scan.domain, scan_type: scan.scan_type, created_at: scan.created_at };
+    if (db) {
+      const stmt = db.prepare('INSERT INTO scans (user_id, domain, scan_type, status) VALUES (?, ?, ?, ?)');
+      const result = stmt.run(userId, domain, scanType, 'completed');
+      return { 
+        id: result.lastInsertRowid, 
+        domain, 
+        scan_type: scanType, 
+        created_at: new Date().toISOString() 
+      };
+    }
   } catch (error) {
     console.error('Error creating scan:', error);
     throw error;
@@ -225,20 +242,15 @@ export async function getUserScans(userId) {
       return result.rows;
     }
 
-    // In-memory fallback
-    return Array.from(db.scans.values())
-      .filter(s => s.user_id === userId)
-      .map(s => ({
-        id: s.id,
-        domain: s.domain,
-        scan_type: s.scan_type,
-        status: s.status,
-        created_at: s.created_at
-      }));
+    if (db) {
+      const stmt = db.prepare('SELECT id, domain, scan_type, status, created_at FROM scans WHERE user_id = ? ORDER BY created_at DESC');
+      return stmt.all(userId);
+    }
   } catch (error) {
     console.error('Error fetching scans:', error);
-    return [];
   }
+  
+  return [];
 }
 
 // Check if user can access audit
