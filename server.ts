@@ -10,6 +10,7 @@ const Database = (DatabaseConstructor as any).default || DatabaseConstructor;
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { GoogleGenAI } from "@google/genai";
+import { PrismaClient } from "@prisma/client";
 
 dotenv.config();
 
@@ -113,8 +114,19 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  const prisma = process.env.PRISMA_DATABASE_URL ? new PrismaClient() : null;
+
   app.use(express.json());
   console.log("Express middleware configured");
+
+  const calculateScore = (technical: any) => {
+    let score = 100;
+    if (technical.title === "Missing") score -= 20;
+    if (technical.description === "Missing") score -= 20;
+    if (technical.h1Count === 0) score -= 10;
+    if (technical.imgAltMissing > 5) score -= 10;
+    return Math.max(0, score);
+  };
 
   // Health check for infrastructure
   app.get("/api/health", (req, res) => {
@@ -357,10 +369,83 @@ async function startServer() {
     return url.replace(/^https?:\/\//, '').replace(/\/$/, '');
   };
 
+  const normalizedUrlKey = (url: string) => cleanUrl(url).toLowerCase();
+
+  app.get("/api/reports/history", authenticateToken, async (req: any, res) => {
+    if (!prisma) return res.json([]);
+
+    try {
+      const reports = await prisma.scanReport.findMany({
+        where: { userId: req.user.id },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          url: true,
+          score: true,
+          createdAt: true,
+        },
+      });
+      res.json(reports);
+    } catch (error: any) {
+      console.error("Failed to fetch report history:", error);
+      res.status(500).json({ error: "Failed to load report history" });
+    }
+  });
+
+  app.get("/api/reports/:id", authenticateToken, async (req: any, res) => {
+    if (!prisma) return res.status(503).json({ error: "Report history is not configured" });
+
+    try {
+      const report = await prisma.scanReport.findUnique({ where: { id: req.params.id } });
+      if (!report || report.userId !== req.user.id) {
+        return res.status(404).json({ error: "Report not found" });
+      }
+
+      const resultPayload = report.results && typeof report.results === "object"
+        ? { ...(report.results as any), score: report.score }
+        : { score: report.score };
+
+      res.json({
+        id: report.id,
+        createdAt: report.createdAt,
+        report: resultPayload,
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch report:", error);
+      res.status(500).json({ error: "Failed to load report" });
+    }
+  });
+
   // SEO Scan Engine (Updated to use cleanUrl and usage limits)
   app.post("/api/scan", authenticateToken, async (req: any, res) => {
     let { url } = req.body;
     if (!url) return res.status(400).json({ error: "URL is required" });
+
+    const urlKey = normalizedUrlKey(url);
+
+    if (prisma) {
+      try {
+        const cacheWindow = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const cached = await prisma.scanReport.findFirst({
+          where: {
+            userId: req.user.id,
+            normalizedUrl: urlKey,
+            createdAt: { gte: cacheWindow },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (cached) {
+          const payload = cached.results && typeof cached.results === "object"
+            ? { ...(cached.results as any), score: cached.score }
+            : { score: cached.score };
+          return res.json({ ...payload, reportId: cached.id, cached: true });
+        }
+      } catch (error) {
+        console.error("Prisma cache read failed, continuing without cache:", error);
+      }
+    }
 
     // Check usage limits
     const user: any = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
@@ -406,8 +491,27 @@ async function startServer() {
         content: textContent,
         timestamp: new Date().toISOString()
       };
+      const score = calculateScore(technical);
+      let reportId: string | null = null;
 
-      res.json(results);
+      if (prisma) {
+        try {
+          const created = await prisma.scanReport.create({
+            data: {
+              userId: req.user.id,
+              url: targetUrl,
+              normalizedUrl: urlKey,
+              score,
+              results,
+            },
+          });
+          reportId = created.id;
+        } catch (error) {
+          console.error("Prisma report save failed:", error);
+        }
+      }
+
+      res.json({ ...results, score, reportId, cached: false });
     } catch (error: any) {
       res.status(500).json({ error: "Failed to scan site: " + error.message });
     }

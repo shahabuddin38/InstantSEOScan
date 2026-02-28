@@ -8,11 +8,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@prisma/client": "^6.16.2",
     "@stripe/stripe-js": "^8.8.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
@@ -48,6 +51,7 @@
     "@types/node": "^22.14.0",
     "@types/react-router-dom": "^5.3.3",
     "autoprefixer": "^10.4.21",
+    "prisma": "^6.16.2",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",

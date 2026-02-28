@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import ScoreCircle from "../components/ScoreCircle";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { apiRequest } from "../services/apiClient";
 
 export default function Report() {
   const { id } = useParams();
@@ -40,19 +41,31 @@ export default function Report() {
   };
 
   useEffect(() => {
-    const lastScan = sessionStorage.getItem("lastScan");
-    if (!lastScan) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(lastScan);
-      if (parsed && parsed.technical) {
-        setData(parsed);
+    const loadReport = async () => {
+      if (id && id !== "latest") {
+        const result = await apiRequest<{ report?: any }>(`/api/reports/${id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        if (result.ok && result.data?.report?.technical) {
+          setData(result.data.report);
+          return;
+        }
       }
-    } catch {
-      sessionStorage.removeItem("lastScan");
-    }
+
+      const lastScan = sessionStorage.getItem("lastScan");
+      if (!lastScan) return;
+
+      try {
+        const parsed = JSON.parse(lastScan);
+        if (parsed && parsed.technical) {
+          setData(parsed);
+        }
+      } catch {
+        sessionStorage.removeItem("lastScan");
+      }
+    };
+
+    loadReport();
   }, [id]);
 
   const exportPDF = () => {

@@ -5,6 +5,8 @@ type ApiResult<T = any> = {
   error: string;
 };
 
+export const NON_JSON_API_EVENT = "api:non-json-response";
+
 function normalizeErrorMessage(payload: any, fallback: string): string {
   if (!payload) return fallback;
   if (typeof payload === "string") return payload;
@@ -20,13 +22,27 @@ export async function apiRequest<T = any>(
   try {
     const res = await fetch(input, init);
     const contentType = res.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+    const isNonJson = !isJson;
 
     let payload: any = null;
-    if (contentType.includes("application/json")) {
+    if (isJson) {
       payload = await res.json();
     } else {
       const text = await res.text();
       payload = text;
+    }
+
+    if (isNonJson && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent(NON_JSON_API_EVENT, {
+          detail: {
+            path: typeof input === "string" ? input : input.toString(),
+            status: res.status,
+            contentType,
+          },
+        })
+      );
     }
 
     if (!res.ok) {
@@ -34,11 +50,13 @@ export async function apiRequest<T = any>(
         ok: false,
         status: res.status,
         data: null,
-        error: normalizeErrorMessage(payload, `Request failed with status ${res.status}`),
+        error: isNonJson
+          ? "Backend unavailable or API proxy issue. Please ensure backend is running on port 3000 and /api proxy is configured."
+          : normalizeErrorMessage(payload, `Request failed with status ${res.status}`),
       };
     }
 
-    if (!contentType.includes("application/json")) {
+    if (isNonJson) {
       return {
         ok: false,
         status: res.status,

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Zap, Globe, ArrowRight, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
 import { getAIInsights, calculateScore } from "../../services/geminiService";
+import { apiRequest } from "../../services/apiClient";
 
 export default function CoreScan() {
   const [url, setUrl] = useState("");
@@ -45,7 +46,7 @@ export default function CoreScan() {
     setResult(null);
 
     try {
-      const res = await fetch("/api/scan", {
+      const result = await apiRequest<any>("/api/scan", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -54,8 +55,8 @@ export default function CoreScan() {
         body: JSON.stringify({ url }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!result.ok || !result.data) throw new Error(result.error || "Scan failed");
+      const data = result.data;
 
       // Perform AI Analysis on frontend
       const targetUrl = url.startsWith('http') ? url : `https://${url}`;

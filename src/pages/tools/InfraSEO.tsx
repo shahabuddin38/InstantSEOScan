@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Shield, Globe, ArrowRight, Loader2, AlertCircle, Zap, Server, Activity } from "lucide-react";
 import { motion } from "motion/react";
+import { apiRequest } from "../../services/apiClient";
 
 export default function InfraSEO() {
   const [url, setUrl] = useState("");
@@ -15,7 +16,7 @@ export default function InfraSEO() {
     setResult(null);
 
     try {
-      const res = await fetch("/api/tools/infra", {
+      const result = await apiRequest("/api/tools/infra", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -24,9 +25,8 @@ export default function InfraSEO() {
         body: JSON.stringify({ url }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setResult(data);
+      if (!result.ok || !result.data) throw new Error(result.error || "Infra audit failed");
+      setResult(result.data);
     } catch (err: any) {
       setError(err.message);
     } finally {

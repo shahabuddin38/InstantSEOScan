@@ -2,22 +2,32 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, User, ArrowRight, Search } from "lucide-react";
 import { motion } from "motion/react";
+import { apiRequest } from "../services/apiClient";
 
 export default function Blog() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/blog")
-      .then(res => res.json())
-      .then(data => {
-        setPosts(data.length > 0 ? data : [
-          { id: 1, title: "10 Technical SEO Mistakes That Are Killing Your Rankings", slug: "technical-seo-mistakes", content: "Learn how to fix the most common issues...", author: "SEO Expert", created_at: "2024-03-20" },
-          { id: 2, title: "The Future of Search: How AI is Changing Everything", slug: "future-of-search-ai", content: "AI is no longer a buzzword, it's a necessity...", author: "AI Researcher", created_at: "2024-03-18" },
-          { id: 3, title: "How to Build a Backlink Strategy from Scratch", slug: "backlink-strategy-guide", content: "Authority is still king. Here is how to get it...", author: "Link Builder", created_at: "2024-03-15" },
-        ]);
+    const fallbackPosts = [
+      { id: 1, title: "10 Technical SEO Mistakes That Are Killing Your Rankings", slug: "technical-seo-mistakes", content: "Learn how to fix the most common issues...", author: "SEO Expert", created_at: "2024-03-20" },
+      { id: 2, title: "The Future of Search: How AI is Changing Everything", slug: "future-of-search-ai", content: "AI is no longer a buzzword, it's a necessity...", author: "AI Researcher", created_at: "2024-03-18" },
+      { id: 3, title: "How to Build a Backlink Strategy from Scratch", slug: "backlink-strategy-guide", content: "Authority is still king. Here is how to get it...", author: "Link Builder", created_at: "2024-03-15" },
+    ];
+
+    const loadPosts = async () => {
+      const result = await apiRequest<any[]>("/api/blog");
+      if (!result.ok || !Array.isArray(result.data)) {
+        setPosts(fallbackPosts);
         setLoading(false);
-      });
+        return;
+      }
+
+      setPosts(result.data.length > 0 ? result.data : fallbackPosts);
+      setLoading(false);
+    };
+
+    loadPosts();
   }, []);
 
   return (

@@ -1,5 +1,24 @@
 import { GoogleGenAI } from "@google/genai";
 
+function safeParseJSON(text: string | undefined, fallback: any) {
+  const raw = String(text || "").trim();
+  if (!raw) return fallback;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (fenceMatch?.[1]) {
+      try {
+        return JSON.parse(fenceMatch[1].trim());
+      } catch {
+        return fallback;
+      }
+    }
+    return fallback;
+  }
+}
+
 export async function getAIInsights(url: string, technicalData: any, content: string = "") {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -22,7 +41,7 @@ export async function getAIInsights(url: string, technicalData: any, content: st
       config: { responseMimeType: "application/json" }
     });
     
-    return JSON.parse(response.text || "{}");
+    return safeParseJSON(response.text, {});
   } catch (error) {
     console.error("Gemini AI Error:", error);
     return {};
@@ -43,7 +62,7 @@ export async function generateKeywords(topic: string) {
       5. "questions": array of question-based keywords (People Also Ask style).`,
       config: { responseMimeType: "application/json" }
     });
-    return JSON.parse(response.text || "{}");
+    return safeParseJSON(response.text, { ideas: [], longTail: [], semantic: [], entities: [], questions: [] });
   } catch (error) {
     console.error("Gemini AI Error:", error);
     return { ideas: [], longTail: [], semantic: [], entities: [], questions: [] };
@@ -65,7 +84,7 @@ export async function rewriteForSEO(content: string, targetKeyword: string) {
       4. "schema": JSON-LD FAQ schema markup.`,
       config: { responseMimeType: "application/json" }
     });
-    return JSON.parse(response.text || "{}");
+    return safeParseJSON(response.text, { rewrittenContent: "", metaDescription: "", faqs: [], schema: "" });
   } catch (error) {
     console.error("Gemini AI Error:", error);
     return { rewrittenContent: "", metaDescription: "", faqs: [], schema: "" };
@@ -88,7 +107,7 @@ export async function optimizeForAIOverview(content: string) {
       5. "conversationalTips": Tips to make the tone more conversational and authoritative.`,
       config: { responseMimeType: "application/json" }
     });
-    return JSON.parse(response.text || "{}");
+    return safeParseJSON(response.text, { clarityScore: 0, directAnswer: "", structuredQA: [], entityCoverage: "", conversationalTips: "" });
   } catch (error) {
     console.error("Gemini AI Error:", error);
     return { clarityScore: 0, directAnswer: "", structuredQA: [], entityCoverage: "", conversationalTips: "" };
@@ -104,7 +123,7 @@ export async function generateSchema(type: string, data: any) {
       Return only the JSON-LD object.`,
       config: { responseMimeType: "application/json" }
     });
-    return JSON.parse(response.text || "{}");
+    return safeParseJSON(response.text, {});
   } catch (error) {
     console.error("Gemini AI Error:", error);
     return {};
@@ -133,7 +152,7 @@ export async function optimizeContent(url: string, content: string) {
       config: { responseMimeType: "application/json" }
     });
     
-    return JSON.parse(response.text || "{}");
+    return safeParseJSON(response.text, { score: 0, suggestions: [], keywords: [], readability: "Error analyzing content" });
   } catch (error) {
     console.error("Gemini AI Error:", error);
     return { score: 0, suggestions: [], keywords: [], readability: "Error analyzing content" };

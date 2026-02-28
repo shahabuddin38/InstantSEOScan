@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Sidebar from "./components/Sidebar";
+import ApiStatusBanner from "./components/ApiStatusBanner";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Report from "./pages/Report";
@@ -70,6 +71,7 @@ export default function App() {
     <Router>
       <div className="min-h-screen bg-neutral-50 font-sans text-neutral-900 selection:bg-emerald-100 selection:text-emerald-900 flex flex-col">
         <Navbar user={user} onLogout={handleLogout} />
+        <ApiStatusBanner />
         <main className="pt-16 flex-1">
           <Layout user={user}>
             <Routes>

@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_DATABASE_URL")
+}
+
+model ScanReport {
+  id            String   @id @default(cuid())
+  userId        Int
+  url           String
+  normalizedUrl String
+  score         Int
+  results       Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, normalizedUrl, createdAt(sort: Desc)])
+}

@@ -10,12 +10,33 @@ export default function Dashboard({ user }: { user: any }) {
   const [url, setUrl] = useState(searchParams.get("scan") || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [history, setHistory] = useState<Array<{ id: string; url: string; score: number; createdAt: string }>>([]);
   const navigate = useNavigate();
+
+  const formatRelativeDate = (iso: string) => {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 60) return `${Math.max(1, minutes)} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  };
+
+  const loadHistory = async () => {
+    const result = await apiRequest<Array<{ id: string; url: string; score: number; createdAt: string }>>("/api/reports/history", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+    if (result.ok && Array.isArray(result.data)) {
+      setHistory(result.data);
+    }
+  };
 
   useEffect(() => {
     if (searchParams.get("scan")) {
       handleScan();
     }
+    loadHistory();
   }, []);
 
   const handleScan = async (e?: React.FormEvent) => {
@@ -50,7 +71,8 @@ export default function Dashboard({ user }: { user: any }) {
       };
 
       sessionStorage.setItem("lastScan", JSON.stringify(finalResults));
-      navigate(`/report/latest`);
+      await loadHistory();
+      navigate(`/report/${data.reportId || "latest"}`);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -132,15 +154,22 @@ export default function Dashboard({ user }: { user: any }) {
               Recent Scans
             </h2>
             <div className="space-y-4">
-              {[
-                { url: "google.com", score: 98, date: "2 hours ago" },
-                { url: "github.com", score: 92, date: "1 day ago" },
-                { url: "apple.com", score: 85, date: "3 days ago" },
-              ].map((scan, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer group">
+              {(history.length ? history : [
+                { id: "demo-1", url: "google.com", score: 98, createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+                { id: "demo-2", url: "github.com", score: 92, createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+                { id: "demo-3", url: "apple.com", score: 85, createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
+              ]).map((scan, i) => (
+                <div
+                  key={scan.id || i}
+                  onClick={() => {
+                    if (scan.id.startsWith("demo-")) return;
+                    navigate(`/report/${scan.id}`);
+                  }}
+                  className="flex items-center justify-between p-3 rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer group"
+                >
                   <div>
                     <div className="font-bold text-sm group-hover:text-emerald-600 transition-colors">{scan.url}</div>
-                    <div className="text-xs text-neutral-400">{scan.date}</div>
+                    <div className="text-xs text-neutral-400">{formatRelativeDate(scan.createdAt)}</div>
                   </div>
                   <div className={`text-sm font-bold ${scan.score > 90 ? 'text-emerald-600' : 'text-orange-500'}`}>
                     {scan.score}

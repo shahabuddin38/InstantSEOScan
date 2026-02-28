@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
+import { apiRequest } from "../services/apiClient";
 
 // Replace with your Stripe Publishable Key
 const stripePromise = loadStripe((import.meta as any).env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_placeholder');
@@ -55,7 +56,7 @@ export default function Pricing() {
 
     setLoadingPlan(planId);
     try {
-      const response = await fetch('/api/create-checkout-session', {
+      const result = await apiRequest<{ id?: string; error?: string }>('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,10 +65,16 @@ export default function Pricing() {
         body: JSON.stringify({ plan: planId }),
       });
 
-      const session = await response.json();
+      if (!result.ok || !result.data) {
+        alert(result.error || "Failed to initiate checkout.");
+        setLoadingPlan(null);
+        return;
+      }
 
-      if (session.error) {
-        alert(session.error);
+      const session = result.data;
+
+      if (!session.id) {
+        alert(session.error || "Checkout session ID missing.");
         setLoadingPlan(null);
         return;
       }

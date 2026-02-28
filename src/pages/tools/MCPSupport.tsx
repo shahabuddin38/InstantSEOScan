@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Cpu, Globe, ArrowRight, Loader2, AlertCircle, Terminal, Box, Play } from "lucide-react";
 import { motion } from "motion/react";
+import { apiRequest } from "../../services/apiClient";
 
 export default function MCPSupport() {
   const [loading, setLoading] = useState(false);
@@ -30,7 +31,7 @@ export default function MCPSupport() {
     setResult(null);
 
     try {
-      const res = await fetch("/api/mcp/call", {
+      const result = await apiRequest("/api/mcp/call", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -43,9 +44,8 @@ export default function MCPSupport() {
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setResult(data);
+      if (!result.ok || !result.data) throw new Error(result.error || "MCP call failed");
+      setResult(result.data);
     } catch (err: any) {
       setError(err.message);
     } finally {
