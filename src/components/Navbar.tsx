@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Search, Menu, X, User, LogOut } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import GeminiStatusButton from "./GeminiStatusButton";
 
 export default function Navbar({ user, onLogout }: { user: any, onLogout: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,6 +22,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
+            <GeminiStatusButton />
             <Link to="/" className="text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">Home</Link>
             <div className="relative group">
               <button className="text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors flex items-center gap-1">
@@ -85,6 +87,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
             exit={{ opacity: 0, y: -20 }}
             className="md:hidden bg-white border-b border-neutral-200 px-4 py-6 space-y-4"
           >
+            <GeminiStatusButton />
             <Link to="/pricing" className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>Pricing</Link>
             <Link to="/blog" className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>Blog</Link>
             {user ? (
