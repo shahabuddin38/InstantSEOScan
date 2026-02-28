@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { getUserByEmail, createUser } from '../db.js';
+import { getUserByEmail, createUser, DEFAULT_ADMIN_EMAIL } from '../db.js';
 
 export default async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
@@ -45,7 +45,7 @@ export default async (req, res) => {
     // Create user
     const user = await createUser(email, hashedPassword);
 
-    const isAdmin = email === 'shahabjan38@gmail.com';
+    const isAdmin = email === DEFAULT_ADMIN_EMAIL;
 
     res.status(201).json({
       message: isAdmin 

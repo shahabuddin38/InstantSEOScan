@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { createUser, getUserByEmail } from '../db.js';
+import { createUser, getUserByEmail, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD } from '../db.js';
 
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   try {
     // Check if admin already exists
-    const adminUser = await getUserByEmail('shahabjan38@gmail.com');
+    const adminUser = await getUserByEmail(DEFAULT_ADMIN_EMAIL);
     if (adminUser) {
       return res.status(200).json({ 
         message: 'Admin user already exists',
@@ -31,8 +31,8 @@ export default async function handler(req, res) {
     }
 
     // Create admin user with default password
-    const hashedPassword = await bcrypt.hash('Admin123!', 10);
-    const admin = await createUser('shahabjan38@gmail.com', hashedPassword);
+    const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
+    const admin = await createUser(DEFAULT_ADMIN_EMAIL, hashedPassword);
 
     res.status(201).json({
       message: 'Admin account initialized successfully',
@@ -42,8 +42,8 @@ export default async function handler(req, res) {
         role: admin.role,
         status: admin.status,
         credential: {
-          email: 'shahabjan38@gmail.com',
-          password: 'Admin123!'
+          email: DEFAULT_ADMIN_EMAIL,
+          password: DEFAULT_ADMIN_PASSWORD
         }
       },
       note: 'Please change the password after first login'

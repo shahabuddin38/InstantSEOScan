@@ -8,10 +8,22 @@ const MODULE_STORE = {
   initialized: false
 };
 
+export const DEFAULT_ADMIN_EMAIL = process.env.DEFAULT_ADMIN_EMAIL || 'shahabjan38@gmail.com';
+export const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'Admin123!';
+const AUTO_INIT_ADMIN = process.env.AUTO_INIT_ADMIN !== 'false';
+
 let usePostgres = false;
 let useSQLite = false;
 let db = null;
 let pgPool = null;
+
+let bcrypt = null;
+try {
+  const bcryptModule = await import('bcryptjs');
+  bcrypt = bcryptModule.default || bcryptModule;
+} catch (e) {
+  console.log('bcryptjs package not available in this environment');
+}
 
 // PostgreSQL pool
 let Pool = null;
@@ -52,6 +64,7 @@ async function initDatabase() {
       
       // Initialize schema on first connection
       await initPostgresSchema();
+      await ensureDefaultAdminUser();
       return;
     }
   } catch (error) {
@@ -94,6 +107,7 @@ async function initDatabase() {
           FOREIGN KEY (user_id) REFERENCES users(id)
         );
       `);
+      await ensureDefaultAdminUser();
       return;
     } catch (error) {
       console.log('SQLite failed:', error.message);
@@ -102,6 +116,26 @@ async function initDatabase() {
   }
 
   console.log('✓ Using module-level memory store (persists during function container lifetime)');
+  await ensureDefaultAdminUser();
+}
+
+async function ensureDefaultAdminUser() {
+  if (!AUTO_INIT_ADMIN || !bcrypt) {
+    return;
+  }
+
+  try {
+    const existingAdmin = await getUserByEmail(DEFAULT_ADMIN_EMAIL);
+    if (existingAdmin) {
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
+    await createUser(DEFAULT_ADMIN_EMAIL, hashedPassword, 'admin');
+    console.log(`✓ Default admin user initialized: ${DEFAULT_ADMIN_EMAIL}`);
+  } catch (error) {
+    console.error('Failed to auto-initialize default admin user:', error.message);
+  }
 }
 
 // Initialize PostgreSQL schema
@@ -184,7 +218,7 @@ export async function createUser(email, hashedPassword, role = 'user') {
   await initDatabase();
 
   try {
-    const isAdmin = email === 'shahabjan38@gmail.com';
+    const isAdmin = email === DEFAULT_ADMIN_EMAIL;
     const userRole = isAdmin ? 'admin' : role;
     const userStatus = isAdmin ? 'approved' : 'pending';
     const userVerified = isAdmin ? 1 : 0;

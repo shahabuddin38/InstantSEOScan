@@ -30,7 +30,7 @@ export default async (req, res) => {
     
     if (!user) {
       console.log(`[LOGIN] User not found: ${email}`);
-      return res.status(401).json({ error: 'Account not found. Please register first. Call /api/admin/init to create admin user.' });
+      return res.status(401).json({ error: 'Account not found. Please register first.' });
     }
     
     console.log(`[LOGIN] User found, verifying password...`);
