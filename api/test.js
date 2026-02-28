@@ -1,3 +1,3 @@
-module.exports = (req, res) => {
-  res.json({ message: 'API working' });
+export default (req, res) => {
+  res.json({ message: 'API working', timestamp: new Date().toISOString() });
 };

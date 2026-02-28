@@ -1,4 +1,4 @@
-module.exports = (req, res) => {
+export default (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   
   if (req.method !== 'POST') {
@@ -12,7 +12,7 @@ module.exports = (req, res) => {
   }
 
   res.json({
-    token: 'test_token',
-    user: { id: 1, email, role: 'user' }
+    token: 'test_token_' + Date.now(),
+    user: { id: 1, email, role: 'user', plan: 'free', status: 'approved', verified: 1 }
   });
 };
