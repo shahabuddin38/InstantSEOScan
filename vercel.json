@@ -5,12 +5,12 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://instant-seo-scan.vercel-api.app/api/:path*"
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/api",
+      "destination": "/api/health"
     }
   ]
 }

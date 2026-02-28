@@ -16,7 +16,7 @@ View your app in AI Studio: https://ai.studio/apps/ade58c6e-0e0b-48bc-883f-1c28b
 1. Install dependencies:
    `npm install`
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. (Optional, for persistent scan cache + report history) set `PRISMA_DATABASE_URL` in `.env.local`
+3. (Optional, for persistent scan cache + report history) set `DATABASE_URL` in `.env.local`
 4. Generate Prisma client:
    `npm run prisma:generate`
 5. Run the app:
@@ -24,7 +24,7 @@ View your app in AI Studio: https://ai.studio/apps/ade58c6e-0e0b-48bc-883f-1c28b
 
 ## Prisma report history and cache
 
-- When `PRISMA_DATABASE_URL` is configured, scan results are stored in Postgres via Prisma.
+- When `DATABASE_URL` is configured, scan results are stored in Postgres via Prisma.
 - `/api/scan` uses a per-user 24-hour URL cache to return recent scan data faster.
 - New API endpoints:
   - `GET /api/reports/history` (last 20 reports for logged-in user)
@@ -49,9 +49,10 @@ This repo now includes a Vercel config file at [vercel.json](vercel.json) and de
 
 ### Required environment variables in Vercel
 
-- `GEMINI_API_KEY` (if used by your frontend build/runtime)
+- `GEMINI_API_KEY` (used by serverless API routes)
+- `DATABASE_URL` (PostgreSQL connection string for Prisma)
 
-Note: local `/api` proxy is for dev only. In production, this repo uses `vercel.json` rewrites for `/api` so `VITE_API_BASE_URL` is not required.
+Note: `/api/*` is handled by Vercel serverless functions in this repo. `VITE_API_BASE_URL` is optional and only needed for custom API origins.
 
 ### Enable automatic deploys from GitHub pushes
 
