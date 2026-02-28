@@ -23,17 +23,17 @@ export default async (req, res) => {
       return res.status(400).json({ error: 'Email and password required' });
     }
 
-    console.log('Login attempt for:', email);
+    console.log(`[LOGIN] Attempting login for: ${email}`);
 
     // Get user from database
     const user = await getUserByEmail(email);
     
     if (!user) {
-      console.log('User not found:', email);
-      return res.status(401).json({ error: 'Account not found. Please register first.' });
+      console.log(`[LOGIN] User not found: ${email}`);
+      return res.status(401).json({ error: 'Account not found. Please register first. Call /api/admin/init to create admin user.' });
     }
     
-    console.log('User found, verifying password...');
+    console.log(`[LOGIN] User found, verifying password...`);
 
     // Verify password
     const passwordMatch = await bcrypt.compare(password, user.password);
