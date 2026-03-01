@@ -69,7 +69,11 @@ export default function Admin() {
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [postForm, setPostForm] = useState({ title: "", content: "", author: "" });
 
-  const [settingsForm, setSettingsForm] = useState({ GEMINI_API_KEY: "" });
+  const [settingsForm, setSettingsForm] = useState({
+    GEMINI_API_KEY_1: "",
+    GEMINI_API_KEY_2: "",
+    GEMINI_API_KEY_3: "",
+  });
   const [savingSettings, setSavingSettings] = useState(false);
 
   const navigate = useNavigate();
@@ -101,7 +105,11 @@ export default function Admin() {
   const fetchSettings = async () => {
     const result = await apiRequest<any>("/api/admin/settings", { headers: tokenHeaders() });
     if (result.ok && result.data) {
-      setSettingsForm({ GEMINI_API_KEY: result.data.GEMINI_API_KEY || "" });
+      setSettingsForm({
+        GEMINI_API_KEY_1: result.data.GEMINI_API_KEY_1 || "",
+        GEMINI_API_KEY_2: result.data.GEMINI_API_KEY_2 || "",
+        GEMINI_API_KEY_3: result.data.GEMINI_API_KEY_3 || "",
+      });
     }
   };
 
@@ -602,25 +610,38 @@ export default function Admin() {
 
       {activeTab === "settings" && (
         <div className="max-w-3xl bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
-          <h2 className="font-bold mb-6 flex items-center gap-2 text-lg">
+          <h2 className="font-bold mb-2 flex items-center gap-2 text-lg">
             <Settings size={20} className="text-neutral-400" />
-            Global Settings
+            Gemini API Keys
           </h2>
+          <p className="text-xs text-neutral-500 mb-6">
+            Configure up to 3 API keys. If Key 1 expires, the system automatically falls back to Key 2, then Key 3.
+          </p>
 
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-neutral-700">Gemini API Key</label>
-              <input
-                type="text"
-                value={settingsForm.GEMINI_API_KEY}
-                onChange={(e) => setSettingsForm({ ...settingsForm, GEMINI_API_KEY: e.target.value })}
-                placeholder="AIzaSy..."
-                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
-              />
-              <p className="text-xs text-neutral-500">
-                This key will override the default server environment variable. Leave blank to use the `.env` default.
-              </p>
-            </div>
+          <div className="space-y-5">
+            {[
+              { key: "GEMINI_API_KEY_1" as const, label: "Primary Key (Key 1)", color: "emerald" },
+              { key: "GEMINI_API_KEY_2" as const, label: "Secondary Key (Key 2)", color: "blue" },
+              { key: "GEMINI_API_KEY_3" as const, label: "Tertiary Key (Key 3)", color: "purple" },
+            ].map(({ key, label, color }) => (
+              <div key={key} className="space-y-1">
+                <label className="text-sm font-bold text-neutral-700 flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full bg-${color}-500`} />
+                  {label}
+                </label>
+                <input
+                  type="password"
+                  value={settingsForm[key]}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, [key]: e.target.value })}
+                  placeholder="AIzaSy..."
+                  className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                />
+              </div>
+            ))}
+
+            <p className="text-xs text-neutral-400 pt-2">
+              Keys are stored securely in the database (never in git). Leave a slot empty to skip it.
+            </p>
 
             <div className="pt-4 flex justify-end">
               <button
