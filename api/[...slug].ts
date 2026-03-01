@@ -81,8 +81,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ? "Admin registration successful. You can now log in."
           : "Registration successful. Please wait for admin approval and verify your email.",
       });
-    } catch {
-      return res.status(400).json({ error: "Email already exists" });
+    } catch (dbError: any) {
+      console.error("Registration DB Error:", dbError);
+      return res.status(400).json({ error: "Registration failed: " + (dbError?.message || "Email already exists") });
     }
   }
 
