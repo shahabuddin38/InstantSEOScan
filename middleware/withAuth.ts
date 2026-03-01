@@ -8,19 +8,14 @@ export function withAuth(
 ) {
   return async (req: VercelRequest, res: VercelResponse) => {
     try {
-      const origin = req.headers.origin;
+      const origin = req.headers.origin || "*";
       const appUrl = process.env.APP_URL;
 
-      if (appUrl && origin && origin !== appUrl) {
-        return res.status(403).json({ error: "CORS origin not allowed" });
-      }
-
-      if (appUrl) {
-        res.setHeader("Access-Control-Allow-Origin", appUrl);
-        res.setHeader("Access-Control-Allow-Credentials", "true");
-        res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-        res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-      }
+      // Allow all Vercel domains, localhost, and the main APP_URL
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
 
       if (req.method === "OPTIONS") return res.status(204).end();
 

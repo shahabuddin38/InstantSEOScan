@@ -544,6 +544,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const result = await generateAI(prompt, {});
         return resAny.json(result);
       } catch (error: any) {
+        console.error("Gemini Generate Error:", error);
         return resAny.status(500).json({ error: error?.message || "AI failed" });
       }
     });

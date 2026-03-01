@@ -6,6 +6,7 @@ async function callGemini<T>(action: string, payload: Record<string, any>, fallb
       action,
       payload: payload || {},
     });
+    console.log("Gemini API Response:", response.data);
     return (response.data as T) ?? fallback;
   } catch (error) {
     console.error("Gemini API route error:", error);
@@ -15,7 +16,15 @@ async function callGemini<T>(action: string, payload: Record<string, any>, fallb
 
 export async function getAIInsights(url: string, technicalData: any, content: string = "") {
   const safeContent = String(content || "").substring(0, 5000);
-  return callGemini("insights", { url, technicalData, content: safeContent }, {});
+  const fallbackData = {
+    keywordUsage: "AI Analysis unavailable. Please configure a valid GEMINI_API_KEY.",
+    readability: "AI Analysis unavailable. Please configure a valid GEMINI_API_KEY.",
+    nlpSuggestions: "AI Analysis unavailable. Please configure a valid GEMINI_API_KEY.",
+    contentGaps: "AI Analysis unavailable. Please configure a valid GEMINI_API_KEY.",
+    intentMatch: "AI Analysis unavailable. Please configure a valid GEMINI_API_KEY.",
+    missingHeadings: "AI Analysis unavailable. Please configure a valid GEMINI_API_KEY."
+  };
+  return callGemini("insights", { url, technicalData, content: safeContent }, fallbackData);
 }
 
 export async function generateKeywords(topic: string) {

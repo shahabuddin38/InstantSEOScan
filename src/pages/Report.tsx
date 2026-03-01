@@ -47,10 +47,10 @@ export default function Report() {
         if (result.ok && result.data && result.data.results) {
           const reportData = result.data;
           // Prisma stores results as Json. If it's a string, we parse it.
-          const results = typeof reportData.results === 'string' 
-            ? JSON.parse(reportData.results) 
+          const results = typeof reportData.results === 'string'
+            ? JSON.parse(reportData.results)
             : reportData.results;
-          
+
           setData({
             ...results,
             score: reportData.score,
@@ -103,7 +103,7 @@ export default function Report() {
       `"${String(a.value).replace(/"/g, '""')}"`,
       `"${a.desc.replace(/"/g, '""')}"`
     ]);
-    
+
     const csvContent = [
       headers.join(','),
       ...rows.map(r => r.join(','))
@@ -224,7 +224,7 @@ export default function Report() {
             HTML
           </button>
           <div className="relative">
-            <button 
+            <button
               onClick={() => setShowShare(!showShare)}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all"
             >
@@ -271,9 +271,8 @@ export default function Report() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-8 py-5 text-sm font-bold transition-all relative ${
-                activeTab === tab.id ? 'text-emerald-600' : 'text-neutral-400 hover:text-neutral-600'
-              }`}
+              className={`px-8 py-5 text-sm font-bold transition-all relative ${activeTab === tab.id ? 'text-emerald-600' : 'text-neutral-400 hover:text-neutral-600'
+                }`}
             >
               {tab.label}
               {activeTab === tab.id && (
@@ -301,11 +300,10 @@ export default function Report() {
                     </div>
                   </div>
                 </div>
-                <div className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${
-                  audit.status === "passed" ? 'bg-emerald-50 text-emerald-700' :
-                  audit.status === "warning" ? 'bg-orange-50 text-orange-700' :
-                  'bg-red-50 text-red-700'
-                }`}>
+                <div className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${audit.status === "passed" ? 'bg-emerald-50 text-emerald-700' :
+                    audit.status === "warning" ? 'bg-orange-50 text-orange-700' :
+                      'bg-red-50 text-red-700'
+                  }`}>
                   {audit.status}
                 </div>
               </div>
@@ -369,17 +367,23 @@ export default function Report() {
             AI-Powered Recommendations
           </h2>
           <div className="space-y-4">
-            {(data.ai?.improvements || data.improvements || []).map((imp: any, i: number) => (
-              <div key={i} className="flex gap-4 p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center shrink-0 text-emerald-400 font-bold">
-                  {i + 1}
+            {((data.ai?.improvements || data.improvements || []) as any[]).length > 0 ? (
+              ((data.ai?.improvements || data.improvements || []) as any[]).map((imp: any, i: number) => (
+                <div key={i} className="flex gap-4 p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
+                  <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center shrink-0 text-emerald-400 font-bold">
+                    {i + 1}
+                  </div>
+                  <div>
+                    <h3 className="font-bold mb-1">{imp.title || imp.action || "Improvement"}</h3>
+                    <p className="text-emerald-100/70 text-sm leading-relaxed">{imp.description || imp.reason || "No detail provided"}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold mb-1">{imp.title || imp.action}</h3>
-                  <p className="text-emerald-100/70 text-sm leading-relaxed">{imp.description || imp.reason}</p>
-                </div>
+              ))
+            ) : (
+              <div className="text-emerald-200">
+                No specific improvements found. Please review the main analysis above or ensure your Gemini API key is active.
               </div>
-            ))}
+            )}
           </div>
         </div>
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full translate-y-1/2 translate-x-1/2 blur-3xl" />
