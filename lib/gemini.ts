@@ -27,11 +27,16 @@ const getClient = async () => {
 };
 
 export async function generateAI(prompt: string, fallback: any = {}) {
-  const ai = await getClient();
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: { responseMimeType: "application/json" },
-  });
-  return safeParseJSON(response.text, fallback);
+  try {
+    const ai = await getClient();
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: { responseMimeType: "application/json" },
+    });
+    return safeParseJSON(response.text, fallback);
+  } catch (error: any) {
+    console.error("generateAI error:", error?.message || error);
+    return fallback;
+  }
 }

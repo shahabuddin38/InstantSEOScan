@@ -203,7 +203,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Fetch the page
         let htmlSnippet = "";
         try {
-          const pageRes = await axios.get(targetUrl, { timeout: 8000, validateStatus: () => true });
+          const pageRes = await axios.get(targetUrl, { timeout: 5000, validateStatus: () => true });
           const rawHtml = typeof pageRes.data === "string" ? pageRes.data : "";
           htmlSnippet = rawHtml
             .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gim, "")
