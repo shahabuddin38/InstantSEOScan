@@ -9,7 +9,10 @@ export default function GeminiStatusButton() {
   const checkStatus = async () => {
     setStatus("checking");
     try {
-      const res = await apiRequest<any>("/api/gemini", { method: "GET" });
+      const res = await apiRequest<any>("/api/ai/gemini", {
+        method: "POST",
+        body: JSON.stringify({ action: "health" })
+      });
       setStatus(res?.data?.message === "API working" ? "ok" : "error");
     } catch {
       setStatus("error");

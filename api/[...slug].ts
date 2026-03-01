@@ -459,6 +459,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return authed(req as any, res as any);
   }
 
+  // Admin: settings (GET /api/admin/settings)
+  if (path === "/api/admin/settings") {
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
+
+      if (reqAny.method === "GET") {
+        const settings = await prisma.setting.findMany();
+        const config = settings.reduce((acc: any, s: any) => ({ ...acc, [s.key]: s.value }), {});
+        return resAny.json(config);
+      }
+
+      if (reqAny.method === "POST") {
+        const body = reqAny.body || {};
+        for (const [key, value] of Object.entries(body)) {
+          await prisma.setting.upsert({
+            where: { key },
+            update: { value: String(value) },
+            create: { key, value: String(value) },
+          });
+        }
+        return resAny.json({ success: true, message: "Settings updated" });
+      }
+
+      return resAny.status(405).end();
+    });
+    return authed(req as any, res as any);
+  }
+
   // Admin: approve user (POST /api/admin/users/:id/approve)
   if (path.startsWith("/api/admin/users/") && path.endsWith("/approve")) {
     const parts = path.split("/");

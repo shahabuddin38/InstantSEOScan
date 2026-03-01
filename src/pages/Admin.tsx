@@ -58,7 +58,7 @@ type BlogPost = {
 const tokenHeaders = () => ({});
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<"overview" | "crm" | "cms">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "crm" | "cms" | "settings">("overview");
   const [stats, setStats] = useState<AdminStats>({});
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [crm, setCrm] = useState<CRMResponse>({});
@@ -68,6 +68,10 @@ export default function Admin() {
   const [savingPost, setSavingPost] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [postForm, setPostForm] = useState({ title: "", content: "", author: "" });
+
+  const [settingsForm, setSettingsForm] = useState({ GEMINI_API_KEY: "" });
+  const [savingSettings, setSavingSettings] = useState(false);
+
   const navigate = useNavigate();
 
   const fetchStats = async () => {
@@ -94,11 +98,34 @@ export default function Admin() {
     setPosts(result.data);
   };
 
+  const fetchSettings = async () => {
+    const result = await apiRequest<any>("/api/admin/settings", { headers: tokenHeaders() });
+    if (result.ok && result.data) {
+      setSettingsForm({ GEMINI_API_KEY: result.data.GEMINI_API_KEY || "" });
+    }
+  };
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    setError("");
+    const result = await apiRequest("/api/admin/settings", {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify(settingsForm),
+    });
+    setSavingSettings(false);
+    if (!result.ok) {
+      setError(result.error || "Failed to save settings");
+    } else {
+      alert("Settings saved successfully!");
+    }
+  };
+
   const loadAll = async () => {
     setError("");
     setLoading(true);
     try {
-      await Promise.all([fetchStats(), fetchUsers(), fetchCRM(), fetchBlogPosts()]);
+      await Promise.all([fetchStats(), fetchUsers(), fetchCRM(), fetchBlogPosts(), fetchSettings()]);
     } catch (err: any) {
       setError(err.message || "Failed to load admin data");
     } finally {
@@ -256,13 +283,14 @@ export default function Admin() {
           { id: "overview", label: "Overview" },
           { id: "crm", label: "CRM" },
           { id: "cms", label: "CMS" },
+          { id: "settings", label: "Settings" },
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as "overview" | "crm" | "cms")}
+            onClick={() => setActiveTab(tab.id as any)}
             className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === tab.id
-                ? "bg-emerald-600 text-white border-emerald-600"
-                : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
+              ? "bg-emerald-600 text-white border-emerald-600"
+              : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
               }`}
           >
             {tab.label}
@@ -333,10 +361,10 @@ export default function Admin() {
                           <div className="flex flex-col gap-1">
                             <span
                               className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md w-fit ${user.plan === "agency"
-                                  ? "bg-purple-50 text-purple-700"
-                                  : user.plan === "pro"
-                                    ? "bg-emerald-50 text-emerald-700"
-                                    : "bg-neutral-100 text-neutral-600"
+                                ? "bg-purple-50 text-purple-700"
+                                : user.plan === "pro"
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : "bg-neutral-100 text-neutral-600"
                                 }`}
                             >
                               {user.plan}
@@ -567,6 +595,42 @@ export default function Admin() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "settings" && (
+        <div className="max-w-3xl bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+          <h2 className="font-bold mb-6 flex items-center gap-2 text-lg">
+            <Settings size={20} className="text-neutral-400" />
+            Global Settings
+          </h2>
+
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-neutral-700">Gemini API Key</label>
+              <input
+                type="text"
+                value={settingsForm.GEMINI_API_KEY}
+                onChange={(e) => setSettingsForm({ ...settingsForm, GEMINI_API_KEY: e.target.value })}
+                placeholder="AIzaSy..."
+                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+              />
+              <p className="text-xs text-neutral-500">
+                This key will override the default server environment variable. Leave blank to use the `.env` default.
+              </p>
+            </div>
+
+            <div className="pt-4 flex justify-end">
+              <button
+                onClick={saveSettings}
+                disabled={savingSettings}
+                className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50"
+              >
+                <Save size={16} />
+                {savingSettings ? "Saving..." : "Save Settings"}
+              </button>
             </div>
           </div>
         </div>
