@@ -2,12 +2,12 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import axios from "axios";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { prisma } from "../lib/prisma";
-import { signToken } from "../lib/auth";
-import { withAuth } from "../middleware/withAuth";
-import { checkQuota } from "../lib/quota";
-import { generateAI } from "../lib/gemini";
-import { stripe } from "../lib/stripe";
+import { prisma } from "../lib/prisma.js";
+import { signToken } from "../lib/auth.js";
+import { withAuth } from "../middleware/withAuth.js";
+import { checkQuota } from "../lib/quota.js";
+import { generateAI } from "../lib/gemini.js";
+import { stripe } from "../lib/stripe.js";
 
 const cleanUrl = (url: string) =>
   String(url || "")

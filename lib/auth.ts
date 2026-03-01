@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import jwt from "jsonwebtoken";
-import { prisma } from "./prisma";
+import { prisma } from "./prisma.js";
 
 export type AuthUser = {
   id: string;

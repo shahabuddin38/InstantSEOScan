@@ -1,4 +1,4 @@
-import { prisma } from "./prisma";
+import { prisma } from "./prisma.js";
 
 export async function checkQuota(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
