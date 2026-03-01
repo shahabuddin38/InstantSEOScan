@@ -35,7 +35,6 @@ export default function MCPSupport() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
         },
         body: JSON.stringify({ 
           server: "RapidAPI Hub - Semrush Keyword Magic Tool",

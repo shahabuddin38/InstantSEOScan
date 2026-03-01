@@ -2,11 +2,9 @@ import axios from "axios";
 
 async function callGemini<T>(action: string, payload: Record<string, any>, fallback: T): Promise<T> {
   try {
-    const response = await axios.get("/api/gemini", {
-      params: {
-        action,
-        payload: JSON.stringify(payload || {}),
-      },
+    const response = await axios.post("/api/ai/gemini", {
+      action,
+      payload: payload || {},
     });
     return (response.data as T) ?? fallback;
   } catch (error) {

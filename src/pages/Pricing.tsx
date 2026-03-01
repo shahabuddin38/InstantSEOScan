@@ -1,12 +1,8 @@
-import { Check, Zap, Shield, BarChart3, Loader2 } from "lucide-react";
+import { Check, Zap, Shield, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
 import { apiRequest } from "../services/apiClient";
-
-// Replace with your Stripe Publishable Key
-const stripePromise = loadStripe((import.meta as any).env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_placeholder');
 
 export default function Pricing() {
   const navigate = useNavigate();
@@ -48,21 +44,20 @@ export default function Pricing() {
       return;
     }
 
-    const token = localStorage.getItem('token');
-    if (!token) {
+    const user = localStorage.getItem('user');
+    if (!user) {
       navigate('/login?mode=register');
       return;
     }
 
     setLoadingPlan(planId);
     try {
-      const result = await apiRequest<{ id?: string; error?: string }>('/api/create-checkout-session', {
+      const result = await apiRequest<{ url?: string; error?: string }>("/api/stripe/checkout", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ plan: planId }),
+        body: JSON.stringify({ priceId: planId }),
       });
 
       if (!result.ok || !result.data) {
@@ -71,24 +66,15 @@ export default function Pricing() {
         return;
       }
 
-      const session = result.data;
+      const { url } = result.data;
 
-      if (!session.id) {
-        alert(session.error || "Checkout session ID missing.");
+      if (!url) {
+        alert(result.data.error || "Checkout URL missing.");
         setLoadingPlan(null);
         return;
       }
 
-      const stripe: any = await stripePromise;
-      if (stripe) {
-        const { error } = await stripe.redirectToCheckout({
-          sessionId: session.id,
-        });
-        if (error) {
-          console.error("Stripe error:", error);
-          alert(error.message);
-        }
-      }
+      window.location.href = url;
     } catch (error) {
       console.error("Error creating checkout session:", error);
       alert("Failed to initiate checkout. Please try again.");
