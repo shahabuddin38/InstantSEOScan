@@ -30,9 +30,9 @@ export default function ApiStatusBanner() {
       <div className="flex items-start gap-3">
         <AlertTriangle size={18} className="mt-0.5 shrink-0" />
         <div className="text-sm leading-relaxed">
-          <div className="font-bold">Backend unavailable or API proxy mismatch</div>
+          <div className="font-bold">Unexpected API Response</div>
           <div>
-            Received a non-JSON response from <span className="font-mono">{banner.path}</span>. Ensure the backend server is running and <span className="font-mono">/api</span> proxy points to port <span className="font-mono">3000</span>.
+            The server returned an unexpected format from <span className="font-mono">{banner.path}</span>. Please try again later.
           </div>
         </div>
         <button
