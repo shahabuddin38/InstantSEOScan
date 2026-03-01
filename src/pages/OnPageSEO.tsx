@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { 
-  Loader2, ArrowRight, FileText, CheckCircle2, Search, Zap, 
+import {
+  Loader2, ArrowRight, FileText, CheckCircle2, Search, Zap,
   BarChart3, Link as LinkIcon, Edit3, Shield, Globe, AlertCircle,
   XCircle, CheckCircle, Info, Download, Share2, ExternalLink,
   ChevronRight, ChevronDown, Layout, Type, Image as ImageIcon,
   FileCode, List, Activity, Lock
 } from "lucide-react";
-import axios from "axios";
+import { apiRequest } from "../services/apiClient";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
@@ -27,17 +27,19 @@ export default function OnPageSEO() {
     setResult(null);
     setError("");
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post("/api/ai/on-page", {
-        task: activeTab,
-        data: inputData
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await apiRequest<any>("/api/ai/on-page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task: activeTab,
+          data: inputData
+        })
       });
+      if (!res.ok) throw new Error(res.error || "Failed to generate AI insights.");
       setResult(res.data);
     } catch (e: any) {
       console.error(e);
-      setError(e.response?.data?.error || "Failed to generate AI insights.");
+      setError(e.message || "Failed to generate AI insights.");
     } finally {
       setLoading(false);
     }
@@ -51,14 +53,16 @@ export default function OnPageSEO() {
     setAuditResult(null);
     setError("");
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post("/api/scan/eeat", { url }, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await apiRequest<any>("/api/scan/eeat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
       });
+      if (!res.ok) throw new Error(res.error || "Failed to perform E-E-A-T audit.");
       setAuditResult(res.data);
     } catch (e: any) {
       console.error(e);
-      setError(e.response?.data?.error || "Failed to perform E-E-A-T audit.");
+      setError(e.message || "Failed to perform E-E-A-T audit.");
     } finally {
       setLoading(false);
     }
@@ -70,18 +74,18 @@ export default function OnPageSEO() {
 
     const doc = new jsPDF();
     const siteName = "InstantSEOScan";
-    
+
     // Header
     doc.setFontSize(22);
     doc.setTextColor(5, 150, 105); // Emerald 600
     doc.text(siteName, 14, 22);
-    
+
     doc.setFontSize(12);
     doc.setTextColor(100);
     doc.text("Professional SEO Intelligence Report", 14, 30);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 37);
     doc.text(`Target URL: ${url || "AI Analysis"}`, 14, 44);
-    
+
     doc.setDrawColor(200);
     doc.line(14, 50, 196, 50);
 
@@ -89,7 +93,7 @@ export default function OnPageSEO() {
       doc.setFontSize(16);
       doc.setTextColor(0);
       doc.text(`E-E-A-T Audit Score: ${auditResult.score}%`, 14, 65);
-      
+
       const tableData = auditResult.checks.map((c: any) => [c.name, c.status, c.detail]);
       autoTable(doc, {
         startY: 75,
@@ -97,13 +101,13 @@ export default function OnPageSEO() {
         body: tableData,
         headStyles: { fillColor: [5, 150, 105] },
       });
-      
+
       const finalY = (doc as any).lastAutoTable.finalY || 150;
       doc.setFontSize(14);
       doc.text("AI Recommendations:", 14, finalY + 15);
       doc.setFontSize(10);
       doc.setTextColor(80);
-      
+
       const failedChecks = auditResult.checks.filter((c: any) => c.status === "Fail");
       let currentY = finalY + 25;
       failedChecks.forEach((check: any, i: number) => {
@@ -119,7 +123,7 @@ export default function OnPageSEO() {
       doc.setFontSize(16);
       doc.setTextColor(0);
       doc.text("AI SEO Analysis Results", 14, 65);
-      
+
       let currentY = 75;
       Object.entries(result).forEach(([key, value]: any) => {
         if (currentY > 260) { doc.addPage(); currentY = 20; }
@@ -152,10 +156,10 @@ export default function OnPageSEO() {
     try {
       let csv = "";
       if (auditResult) {
-        csv = "Name,Status,Detail\n" + 
+        csv = "Name,Status,Detail\n" +
           auditResult.checks.map((c: any) => `"${c.name}","${c.status}","${c.detail.replace(/"/g, '""')}"`).join("\n");
       } else {
-        csv = "Key,Value\n" + 
+        csv = "Key,Value\n" +
           Object.entries(result).map(([k, v]: any) => `"${k}","${String(v).replace(/"/g, '""')}"`).join("\n");
       }
 
@@ -230,7 +234,7 @@ export default function OnPageSEO() {
               </p>
             </div>
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={handleShare}
                 disabled={!auditResult && !result}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50"
@@ -238,7 +242,7 @@ export default function OnPageSEO() {
                 <Share2 size={18} />
                 Share Report
               </button>
-              <button 
+              <button
                 onClick={handleExportCSV}
                 disabled={!auditResult && !result}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm font-bold text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50"
@@ -246,7 +250,7 @@ export default function OnPageSEO() {
                 <FileCode size={18} />
                 Export CSV
               </button>
-              <button 
+              <button
                 onClick={handleExportPDF}
                 disabled={!auditResult && !result}
                 className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-xl text-sm font-bold hover:bg-neutral-800 transition-colors disabled:opacity-50"
@@ -263,11 +267,10 @@ export default function OnPageSEO() {
               <button
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setResult(null); setAuditResult(null); setError(""); }}
-                className={`group relative flex flex-col items-start p-4 rounded-2xl border transition-all duration-200 min-w-[180px] ${
-                  activeTab === tab.id 
-                    ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20" 
+                className={`group relative flex flex-col items-start p-4 rounded-2xl border transition-all duration-200 min-w-[180px] ${activeTab === tab.id
+                    ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20"
                     : "bg-white border-neutral-200 text-neutral-600 hover:border-emerald-300 hover:bg-emerald-50/30"
-                }`}
+                  }`}
               >
                 <tab.icon size={20} className={activeTab === tab.id ? "text-white" : "text-emerald-500"} />
                 <span className="font-bold mt-2">{tab.label}</span>
@@ -275,7 +278,7 @@ export default function OnPageSEO() {
                   {tab.description}
                 </span>
                 {activeTab === tab.id && (
-                  <motion.div 
+                  <motion.div
                     layoutId="activeTab"
                     className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"
                   />
@@ -288,7 +291,7 @@ export default function OnPageSEO() {
 
       <div className="max-w-7xl mx-auto px-8 mt-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Left Column: Inputs */}
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-white p-8 rounded-[32px] border border-neutral-200 shadow-sm sticky top-24">
@@ -303,8 +306,8 @@ export default function OnPageSEO() {
                     <label className="block text-sm font-bold text-neutral-700 mb-2">Website URL</label>
                     <div className="relative">
                       <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={url}
                         onChange={e => setUrl(e.target.value)}
                         className="w-full pl-12 pr-4 py-4 bg-neutral-50 border border-neutral-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
@@ -312,7 +315,7 @@ export default function OnPageSEO() {
                       />
                     </div>
                   </div>
-                  <button 
+                  <button
                     type="submit"
                     disabled={loading || !url}
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-emerald-600/20 active:scale-[0.98]"
@@ -326,10 +329,10 @@ export default function OnPageSEO() {
                   {(activeTab === "meta" || activeTab === "keywords") && (
                     <div>
                       <label className="block text-sm font-bold text-neutral-700 mb-2">Target Keyword / Topic</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={inputData.keyword}
-                        onChange={e => setInputData({...inputData, keyword: e.target.value})}
+                        onChange={e => setInputData({ ...inputData, keyword: e.target.value })}
                         className="w-full p-4 bg-neutral-50 border border-neutral-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
                         placeholder="e.g. Best SEO Tools 2024"
                       />
@@ -339,10 +342,10 @@ export default function OnPageSEO() {
                   {(activeTab === "technical") && (
                     <div>
                       <label className="block text-sm font-bold text-neutral-700 mb-2">Page Topic / URL Context</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={inputData.topic}
-                        onChange={e => setInputData({...inputData, topic: e.target.value})}
+                        onChange={e => setInputData({ ...inputData, topic: e.target.value })}
                         className="w-full p-4 bg-neutral-50 border border-neutral-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
                         placeholder="e.g. A guide on how to optimize images for SEO"
                       />
@@ -352,16 +355,16 @@ export default function OnPageSEO() {
                   {(activeTab === "content" || activeTab === "score") && (
                     <div>
                       <label className="block text-sm font-bold text-neutral-700 mb-2">Content to Analyze</label>
-                      <textarea 
+                      <textarea
                         value={inputData.content}
-                        onChange={e => setInputData({...inputData, content: e.target.value})}
+                        onChange={e => setInputData({ ...inputData, content: e.target.value })}
                         className="w-full p-4 bg-neutral-50 border border-neutral-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium min-h-[250px] resize-none"
                         placeholder="Paste your article or page content here..."
                       />
                     </div>
                   )}
 
-                  <button 
+                  <button
                     onClick={handleRunAI}
                     disabled={loading}
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-emerald-600/20 active:scale-[0.98]"
@@ -385,7 +388,7 @@ export default function OnPageSEO() {
           <div className="lg:col-span-8">
             <AnimatePresence mode="wait">
               {loading ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
@@ -401,7 +404,7 @@ export default function OnPageSEO() {
                   </p>
                 </motion.div>
               ) : auditResult ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="space-y-8"
@@ -440,8 +443,8 @@ export default function OnPageSEO() {
                     <div className="flex-1">
                       <h3 className="text-3xl font-black text-neutral-900 mb-4 tracking-tight">E-E-A-T Audit Report</h3>
                       <p className="text-neutral-500 mb-6 leading-relaxed">
-                        Your site scored <span className="font-bold text-neutral-900">{auditResult.score}%</span> in our authority and trust audit. 
-                        We found <span className="font-bold text-emerald-600">{auditResult.summary.passed} passed</span> checks and 
+                        Your site scored <span className="font-bold text-neutral-900">{auditResult.score}%</span> in our authority and trust audit.
+                        We found <span className="font-bold text-emerald-600">{auditResult.summary.passed} passed</span> checks and
                         <span className="font-bold text-rose-500"> {auditResult.summary.failed} failed</span> checks that need your attention.
                       </p>
                       <div className="grid grid-cols-3 gap-4">
@@ -524,7 +527,7 @@ export default function OnPageSEO() {
                   </div>
                 </motion.div>
               ) : result ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-6"
@@ -539,7 +542,7 @@ export default function OnPageSEO() {
                         Powered by Gemini 3 Flash
                       </div>
                     </div>
-                    
+
                     <div className="space-y-8">
                       {Object.entries(result).map(([key, value]: any) => (
                         <div key={key} className="group">
@@ -575,7 +578,7 @@ export default function OnPageSEO() {
                   </div>
                 </motion.div>
               ) : (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="bg-white p-12 rounded-[32px] border border-neutral-200 border-dashed flex flex-col items-center justify-center text-center min-h-[500px]"

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import { apiRequest } from "../services/apiClient";
 
 type Status = "idle" | "ok" | "error" | "checking";
 
@@ -9,7 +9,7 @@ export default function GeminiStatusButton() {
   const checkStatus = async () => {
     setStatus("checking");
     try {
-      const res = await axios.get("/api/gemini", { timeout: 8000 });
+      const res = await apiRequest<any>("/api/gemini", { method: "GET" });
       setStatus(res?.data?.message === "API working" ? "ok" : "error");
     } catch {
       setStatus("error");
@@ -20,10 +20,10 @@ export default function GeminiStatusButton() {
     status === "ok"
       ? "bg-emerald-500"
       : status === "error"
-      ? "bg-red-500"
-      : status === "checking"
-      ? "bg-amber-500"
-      : "bg-neutral-400";
+        ? "bg-red-500"
+        : status === "checking"
+          ? "bg-amber-500"
+          : "bg-neutral-400";
 
   return (
     <button

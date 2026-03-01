@@ -2,7 +2,7 @@ import { Search, Zap, Globe, ArrowRight, Loader2, Shield, BarChart3, CheckCircle
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { apiRequest } from "../services/apiClient";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -15,23 +15,24 @@ export default function Home() {
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) return;
-    
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+
+    // if (!token) { navigate("/login"); return; } is disabled since we rely on cookies now. 
+    // Wait we need to check if user is logged in. 
+    // Let's rely on apiRequest failing with 401 if they aren't.
 
     setCrawling(true);
     try {
-      const res = await axios.post("/api/crawl", { url }, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await apiRequest<any>("/api/crawl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
       });
-      
-      const fetchedPages = res.data.pages || [];
+      if (!res.ok) throw new Error(res.error || "Crawl failed.");
+
+      const fetchedPages = res.data?.pages || [];
       const targetUrl = url.startsWith('http') ? url : `https://${url}`;
       const uniquePages = Array.from(new Set([targetUrl, ...fetchedPages]));
-      
+
       setPages(uniquePages);
       setShowModal(true);
     } catch (error) {
@@ -83,7 +84,7 @@ export default function Home() {
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full bg-[radial-gradient(circle_at_50%_50%,#10b981_0,transparent_70%)]" />
         </div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -109,16 +110,16 @@ export default function Home() {
                 <div className="relative flex flex-col sm:flex-row gap-3 p-3 bg-neutral-800 rounded-3xl border border-neutral-700 shadow-2xl">
                   <div className="flex-1 flex items-center px-6">
                     <Globe className="text-emerald-500 mr-4" size={24} />
-                    <input 
-                      type="text" 
-                      placeholder="Enter your website URL (e.g. example.com)" 
+                    <input
+                      type="text"
+                      placeholder="Enter your website URL (e.g. example.com)"
                       className="w-full py-4 bg-transparent outline-none text-white text-lg placeholder:text-neutral-500"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       required
                     />
                   </div>
-                  <button 
+                  <button
                     disabled={crawling}
                     className="bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black text-lg hover:bg-emerald-500 transition-all flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/20 active:scale-95 disabled:opacity-50"
                   >
@@ -153,13 +154,13 @@ export default function Home() {
       {/* Pages Modal */}
       <AnimatePresence>
         {showModal && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -177,7 +178,7 @@ export default function Home() {
                   <X size={24} />
                 </button>
               </div>
-              
+
               <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
                 <div className="space-y-3">
                   {pages.map((page, idx) => (
@@ -186,7 +187,7 @@ export default function Home() {
                         <FileText className="text-neutral-500 group-hover:text-emerald-400 shrink-0" size={18} />
                         <span className="text-neutral-300 truncate font-mono text-sm">{page}</span>
                       </div>
-                      <button 
+                      <button
                         onClick={() => startAudit(page)}
                         className="shrink-0 ml-4 px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-lg text-sm font-bold transition-colors"
                       >
@@ -196,9 +197,9 @@ export default function Home() {
                   ))}
                 </div>
               </div>
-              
+
               <div className="p-6 border-t border-neutral-800 bg-neutral-900/50 flex justify-end">
-                <button 
+                <button
                   onClick={() => startAudit(url)}
                   className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-colors flex items-center gap-2"
                 >
@@ -258,9 +259,9 @@ export default function Home() {
             </div>
             <div className="relative">
               <div className="absolute -inset-4 bg-emerald-600/10 rounded-[40px] blur-2xl" />
-              <img 
-                src="https://picsum.photos/seed/seo-ai/800/600" 
-                alt="AI-Generated SEO Dashboard visualization showing complex data nodes and ranking growth charts" 
+              <img
+                src="https://picsum.photos/seed/seo-ai/800/600"
+                alt="AI-Generated SEO Dashboard visualization showing complex data nodes and ranking growth charts"
                 className="relative rounded-[32px] shadow-2xl border border-neutral-200"
                 referrerPolicy="no-referrer"
               />
@@ -280,7 +281,7 @@ export default function Home() {
       <section className="py-24 bg-neutral-50 border-y border-neutral-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 prose prose-neutral prose-emerald lg:prose-lg">
           <h2 className="text-4xl font-black mb-12 text-center">The Ultimate Guide to AI SEO Auditing in 2024</h2>
-          
+
           <p>
             Search Engine Optimization (SEO) has evolved far beyond simple keyword stuffing. In 2024, search engines like Google use complex AI models (like RankBrain and SGE) to understand user intent, topical authority, and technical performance. To rank today, you need a tool that speaks the same language as the search engines.
           </p>
@@ -320,11 +321,11 @@ export default function Home() {
           <p>
             Whether you are a solo founder or a large agency, SEO is a long-term investment. By using InstantSEOScan, you are not just getting a one-time audit; you are getting a continuous growth partner. Our platform is designed to scale with you, from your first 1,000 visitors to your first 1,000,000.
           </p>
-          
+
           <div className="mt-16 p-12 bg-emerald-600 rounded-[40px] text-center text-white">
             <h3 className="text-white text-3xl font-black mb-6">Ready to Dominate Your Niche?</h3>
             <p className="text-emerald-100 mb-10 text-lg">Join 2,000+ companies using InstantSEOScan to grow their organic traffic.</p>
-            <button 
+            <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="bg-white text-emerald-600 px-10 py-4 rounded-2xl font-black text-lg hover:bg-emerald-50 transition-all shadow-xl"
             >

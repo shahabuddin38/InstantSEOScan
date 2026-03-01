@@ -55,9 +55,7 @@ type BlogPost = {
   createdAt: string;
 };
 
-const tokenHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-});
+const tokenHeaders = () => ({});
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState<"overview" | "crm" | "cms">("overview");
@@ -262,11 +260,10 @@ export default function Admin() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as "overview" | "crm" | "cms")}
-            className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${
-              activeTab === tab.id
+            className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === tab.id
                 ? "bg-emerald-600 text-white border-emerald-600"
                 : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
-            }`}
+              }`}
           >
             {tab.label}
           </button>
@@ -335,13 +332,12 @@ export default function Admin() {
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1">
                             <span
-                              className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md w-fit ${
-                                user.plan === "agency"
+                              className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md w-fit ${user.plan === "agency"
                                   ? "bg-purple-50 text-purple-700"
                                   : user.plan === "pro"
-                                  ? "bg-emerald-50 text-emerald-700"
-                                  : "bg-neutral-100 text-neutral-600"
-                              }`}
+                                    ? "bg-emerald-50 text-emerald-700"
+                                    : "bg-neutral-100 text-neutral-600"
+                                }`}
                             >
                               {user.plan}
                             </span>
@@ -354,9 +350,8 @@ export default function Admin() {
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
                               <div
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  user.status === "approved" ? "bg-emerald-500" : "bg-orange-500"
-                                }`}
+                                className={`w-1.5 h-1.5 rounded-full ${user.status === "approved" ? "bg-emerald-500" : "bg-orange-500"
+                                  }`}
                               />
                               <span className="text-sm text-neutral-600 capitalize">{user.status}</span>
                             </div>

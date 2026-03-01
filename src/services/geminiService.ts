@@ -1,13 +1,14 @@
-import axios from "axios";
+import { apiRequest } from "./apiClient";
 
 async function callGemini<T>(action: string, payload: Record<string, any>, fallback: T): Promise<T> {
   try {
-    const response = await axios.post("/api/ai/gemini", {
-      action,
-      payload: payload || {},
+    const res = await apiRequest<T>("/api/ai/gemini", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, payload: payload || {} })
     });
-    console.log("Gemini API Response:", response.data);
-    return (response.data as T) ?? fallback;
+    console.log("Gemini API Response:", res.data);
+    return res.data ?? fallback;
   } catch (error) {
     console.error("Gemini API route error:", error);
     return fallback;
