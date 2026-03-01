@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Search, Github, Twitter, Linkedin, Facebook, MessageCircle } from "lucide-react";
+import { Github, Twitter, Linkedin, Facebook, MessageCircle } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -8,9 +8,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
           <div className="col-span-2 lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
-                <Search size={18} />
-              </div>
+              <img src="/logo.png" alt="InstantSEOScan - AI-Powered SEO Audit Platform" className="w-8 h-8 rounded-lg" />
               <span className="text-xl font-bold tracking-tight text-neutral-900">InstantSEOScan</span>
             </Link>
             <p className="text-neutral-500 max-w-xs mb-6 leading-relaxed">

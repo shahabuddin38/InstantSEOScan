@@ -1,0 +1,61 @@
+{
+    "site_title": "InstantSEOScan — AI-Powered SEO Audit Platform",
+    "site_description": "Technical SEO audits, AI content optimization, and authority tracking in one powerful platform.",
+    "nav": {
+        "home": "Home",
+        "seo_tools": "SEO Tools",
+        "pricing": "Pricing",
+        "blog": "Blog",
+        "dashboard": "Dashboard",
+        "admin": "Admin",
+        "logout": "Logout",
+        "get_started": "Get Started"
+    },
+    "hero": {
+        "badge": "THE WORLD'S FASTEST SEO AUDIT ENGINE",
+        "title": "DOMINATE THE",
+        "title_highlight": "SEARCH RESULTS.",
+        "subtitle": "Technical SEO audits, AI content optimization, and authority tracking in one powerful platform. Built for growth-focused SaaS and Agencies.",
+        "cta": "RUN AUDIT",
+        "input_placeholder": "Enter your website URL (e.g. example.com)",
+        "no_credit_card": "NO CREDIT CARD",
+        "instant_results": "INSTANT RESULTS",
+        "ai_powered": "AI POWERED"
+    },
+    "footer": {
+        "tagline": "The ultimate SEO audit platform for modern digital teams. Audit, optimize, and rank faster.",
+        "product": "Product",
+        "company": "Company",
+        "legal": "Legal",
+        "features": "Features",
+        "about": "About",
+        "contact": "Contact",
+        "sitemap": "Sitemap",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service",
+        "rights": "All rights reserved.",
+        "built_with": "Built with ❤️ for SEOs"
+    },
+    "tools": {
+        "corescan": "CoreScan Engine",
+        "on_page": "On-Page SEO AI",
+        "off_page": "Off-Page SEO AI",
+        "technical": "Technical Audit",
+        "infra": "InfraSEO Analysis",
+        "content_score": "Content Score",
+        "seo_rewrite": "SEO Rewriter",
+        "keyword_ideas": "Keyword Ideas",
+        "ai_overview": "AI Overview",
+        "schema_generator": "Schema Generator",
+        "authority": "Authority Radar"
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success",
+        "submit": "Submit",
+        "cancel": "Cancel",
+        "save": "Save",
+        "language": "Language"
+    }
+}

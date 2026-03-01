@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { I18nProvider } from "./i18n/I18nContext";
+import { SUPPORTED_LOCALES } from "./i18n/locales";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Sidebar from "./components/Sidebar";
@@ -35,10 +37,15 @@ import TechnicalAudit from "./pages/TechnicalAudit";
 function Layout({ user, children }: { user: any, children: React.ReactNode }) {
   const location = useLocation();
   const publicPages = ['/', '/pricing', '/blog', '/about', '/contact', '/privacy', '/terms', '/sitemap', '/login'];
-  
-  // Check if current path is exactly a public page or starts with /blog/
-  const isPublicPage = publicPages.includes(location.pathname) || location.pathname.startsWith('/blog/');
-  
+
+  // Strip locale prefix for public page checking
+  const pathParts = location.pathname.split("/");
+  const firstSeg = pathParts[1];
+  const isLocalePrefixed = SUPPORTED_LOCALES.includes(firstSeg as any) && firstSeg !== "en";
+  const effectivePath = isLocalePrefixed ? "/" + pathParts.slice(2).join("/") : location.pathname;
+
+  const isPublicPage = publicPages.includes(effectivePath) || effectivePath.startsWith('/blog/');
+
   const showSidebar = user && !isPublicPage;
 
   return (
@@ -48,6 +55,64 @@ function Layout({ user, children }: { user: any, children: React.ReactNode }) {
         {children}
       </div>
     </div>
+  );
+}
+
+function AppRoutes({ user, setUser, handleLogout }: { user: any; setUser: any; handleLogout: () => void }) {
+  const allRoutes = (
+    <>
+      <Route path="/" element={<Home />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:slug" element={<BlogPost />} />
+      <Route path="/login" element={<Login onLogin={setUser} />} />
+      <Route
+        path="/dashboard"
+        element={user ? <Dashboard user={user} /> : <Navigate to="/login" />}
+      />
+      <Route path="/report/:id" element={<Report />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/sitemap" element={<Sitemap />} />
+
+      {/* Tool Routes */}
+      <Route path="/tools/corescan" element={user ? <CoreScan /> : <Navigate to="/login" />} />
+      <Route path="/tools/on-page" element={user ? <OnPageSEO /> : <Navigate to="/login" />} />
+      <Route path="/tools/off-page" element={user ? <OffPageSEO /> : <Navigate to="/login" />} />
+      <Route path="/tools/technical" element={user ? <TechnicalAudit /> : <Navigate to="/login" />} />
+      <Route path="/tools/infra" element={user ? <InfraSEO /> : <Navigate to="/login" />} />
+      <Route path="/ai-seo-content-score" element={user ? <ContentScore /> : <Navigate to="/login" />} />
+      <Route path="/ai-seo-rewrite-tool" element={user ? <SEORewrite /> : <Navigate to="/login" />} />
+      <Route path="/ai-keyword-ideas-tool" element={user ? <KeywordIdeas /> : <Navigate to="/login" />} />
+      <Route path="/ai-overview-optimizer" element={user ? <AIOverview /> : <Navigate to="/login" />} />
+      <Route path="/schema-generator" element={user ? <SchemaGenerator /> : <Navigate to="/login" />} />
+      <Route path="/tools/authority" element={user ? <AuthorityRadar /> : <Navigate to="/login" />} />
+      <Route path="/tools/mcp" element={user ? <MCPSupport /> : <Navigate to="/login" />} />
+
+      <Route
+        path="/admin"
+        element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/adminaceess"
+        element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />}
+      />
+    </>
+  );
+
+  return (
+    <Routes>
+      {/* Default locale (en) — no prefix */}
+      {allRoutes}
+      {/* Locale-prefixed routes */}
+      <Route path="/:locale/*" element={
+        <Routes>
+          {allRoutes}
+        </Routes>
+      } />
+    </Routes>
   );
 }
 
@@ -69,55 +134,18 @@ export default function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-neutral-50 font-sans text-neutral-900 selection:bg-emerald-100 selection:text-emerald-900 flex flex-col">
-        <Navbar user={user} onLogout={handleLogout} />
-        <ApiStatusBanner />
-        <main className="pt-16 flex-1">
-          <Layout user={user}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
-              <Route path="/login" element={<Login onLogin={setUser} />} />
-              <Route 
-                path="/dashboard" 
-                element={user ? <Dashboard user={user} /> : <Navigate to="/login" />} 
-              />
-              <Route path="/report/:id" element={<Report />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/sitemap" element={<Sitemap />} />
-              
-              {/* Tool Routes */}
-              <Route path="/tools/corescan" element={user ? <CoreScan /> : <Navigate to="/login" />} />
-              <Route path="/tools/on-page" element={user ? <OnPageSEO /> : <Navigate to="/login" />} />
-              <Route path="/tools/off-page" element={user ? <OffPageSEO /> : <Navigate to="/login" />} />
-              <Route path="/tools/technical" element={user ? <TechnicalAudit /> : <Navigate to="/login" />} />
-              <Route path="/tools/infra" element={user ? <InfraSEO /> : <Navigate to="/login" />} />
-              <Route path="/ai-seo-content-score" element={user ? <ContentScore /> : <Navigate to="/login" />} />
-              <Route path="/ai-seo-rewrite-tool" element={user ? <SEORewrite /> : <Navigate to="/login" />} />
-              <Route path="/ai-keyword-ideas-tool" element={user ? <KeywordIdeas /> : <Navigate to="/login" />} />
-              <Route path="/ai-overview-optimizer" element={user ? <AIOverview /> : <Navigate to="/login" />} />
-              <Route path="/schema-generator" element={user ? <SchemaGenerator /> : <Navigate to="/login" />} />
-              <Route path="/tools/authority" element={user ? <AuthorityRadar /> : <Navigate to="/login" />} />
-              <Route path="/tools/mcp" element={user ? <MCPSupport /> : <Navigate to="/login" />} />
-
-              <Route 
-                path="/admin" 
-                element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />} 
-              />
-              <Route 
-                path="/adminaceess" 
-                element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />} 
-              />
-            </Routes>
-          </Layout>
-        </main>
-        <Footer />
-      </div>
+      <I18nProvider>
+        <div className="min-h-screen bg-neutral-50 font-sans text-neutral-900 selection:bg-emerald-100 selection:text-emerald-900 flex flex-col">
+          <Navbar user={user} onLogout={handleLogout} />
+          <ApiStatusBanner />
+          <main className="pt-16 flex-1">
+            <Layout user={user}>
+              <AppRoutes user={user} setUser={setUser} handleLogout={handleLogout} />
+            </Layout>
+          </main>
+          <Footer />
+        </div>
+      </I18nProvider>
     </Router>
   );
 }
