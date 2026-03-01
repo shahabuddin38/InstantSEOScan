@@ -79,7 +79,7 @@ export async function apiRequest<T = any>(
         status: res.status,
         data: null,
         error: isNonJson
-          ? "Backend unavailable or API proxy issue. Please ensure backend is running on port 3000 and /api proxy is configured."
+          ? "Unexpected response from server. Please try again or contact support."
           : normalizeErrorMessage(payload, `Request failed with status ${res.status}`),
       };
     }
@@ -89,7 +89,7 @@ export async function apiRequest<T = any>(
         ok: false,
         status: res.status,
         data: null,
-        error: "API returned non-JSON response. Make sure backend server is running and /api is correctly proxied.",
+        error: "API returned an unexpected response format.",
       };
     }
 
