@@ -532,8 +532,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const responses: Record<string, string> = {
         health: "Health check ok",
-        insights: `Analyze these SEO insights: ${JSON.stringify(payload)}`,
-        keywords: `Suggest keyword strategies for: ${JSON.stringify(payload)}`,
+        insights: `Analyze these SEO insights: ${JSON.stringify(payload)}. You MUST return a STRICT JSON object (no markdown formatting) containing exact keys: 'keywordUsage' (string), 'readability' (string), 'nlpSuggestions' (string), 'contentGaps' (string), 'intentMatch' (string), 'missingHeadings' (string), and an array 'improvements' containing objects with 'title' (string) and 'description' (string). Provide actionable feedback.`,
+        keywords: `Suggest keyword strategies for: ${JSON.stringify(payload)}. You MUST return a STRICT JSON object containing properties: 'ideas' (array of strings), 'longTail' (array of strings), 'semantic' (array of strings), 'entities' (array of strings), 'questions' (array of strings).`,
       };
 
       const prompt = responses[action] || `Generate SEO insights for: ${JSON.stringify(payload)}`;
