@@ -22,7 +22,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
-            <GeminiStatusButton />
+            {user?.role === 'admin' && <GeminiStatusButton />}
             <Link to="/" className="text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">Home</Link>
             <div className="relative group">
               <button className="text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors flex items-center gap-1">
@@ -51,7 +51,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
                 {user.role === 'admin' && (
                   <Link to="/admin" className="text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">Admin</Link>
                 )}
-                <button 
+                <button
                   onClick={onLogout}
                   className="flex items-center gap-2 text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
                 >
@@ -60,8 +60,8 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
                 </button>
               </div>
             ) : (
-              <Link 
-                to="/login?mode=register" 
+              <Link
+                to="/login?mode=register"
                 className="bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-emerald-700 transition-all shadow-sm hover:shadow-md"
               >
                 Get Started
@@ -81,13 +81,13 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
       {/* Mobile Nav */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             className="md:hidden bg-white border-b border-neutral-200 px-4 py-6 space-y-4"
           >
-            <GeminiStatusButton />
+            {user?.role === 'admin' && <GeminiStatusButton />}
             <Link to="/pricing" className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>Pricing</Link>
             <Link to="/blog" className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>Blog</Link>
             {user ? (
