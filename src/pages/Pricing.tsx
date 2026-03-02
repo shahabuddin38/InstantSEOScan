@@ -239,9 +239,15 @@ export default function Pricing() {
         <div className="relative z-10">
           <h2 className="text-3xl font-bold mb-4">Need a custom solution?</h2>
           <p className="text-neutral-400 mb-8 max-w-xl mx-auto">We offer enterprise-grade SEO infrastructure for high-volume platforms. Let's build something great together.</p>
-          <button className="bg-emerald-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-emerald-700 transition-all">
-            Talk to Enterprise
-          </button>
+         <a
+  href="https://wa.me/923469366699"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  <button className="bg-emerald-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-emerald-700 transition-all">
+    Talk to Enterprise
+  </button>
+</a>
         </div>
         <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-600/20 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
       </div>
