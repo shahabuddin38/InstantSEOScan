@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle, X, Send, Sparkles } from "lucide-react";
+import { MessageCircle, X, Send } from "lucide-react";
 import { apiRequest } from "../services/apiClient";
 
 type ChatMessage = {
@@ -63,14 +63,12 @@ export default function InstantSEOChatbot() {
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[120]">
       {open && (
         <div className="w-[460px] max-w-[calc(100vw-1rem)] h-[640px] max-h-[82vh] bg-white border border-neutral-200 shadow-2xl rounded-3xl mb-3 flex flex-col overflow-hidden">
-          <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                <Sparkles size={18} />
-              </div>
+          <div className="px-5 py-4 border-b border-neutral-200 flex items-center justify-between bg-white">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
               <div>
-                <h3 className="font-bold text-base text-neutral-900 leading-tight">InstantSEOScan Chatbot</h3>
-                <p className="text-[10px] uppercase tracking-widest text-neutral-500 mt-0.5">generate by instanseoscan ai</p>
+                <h3 className="font-semibold text-sm text-neutral-900 leading-tight">InstantSEOScan Assistant</h3>
+                <p className="text-[10px] uppercase tracking-wider text-neutral-500 mt-0.5">generate by instanseoscan ai</p>
               </div>
             </div>
             <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-neutral-200">
@@ -78,13 +76,13 @@ export default function InstantSEOChatbot() {
             </button>
           </div>
 
-          <div className="px-4 pt-3 pb-2 border-b border-neutral-100 bg-white">
+          <div className="px-4 pt-3 pb-2 border-b border-neutral-200 bg-white">
             <div className="flex flex-wrap gap-2">
               {quickPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => setInput(prompt)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-full bg-neutral-100 text-neutral-700 hover:bg-emerald-50 hover:text-emerald-700 border border-neutral-200"
+                  className="px-3 py-1.5 text-xs font-medium rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-200"
                 >
                   {prompt}
                 </button>
@@ -92,13 +90,13 @@ export default function InstantSEOChatbot() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-neutral-50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-neutral-100/60">
             {messages.map((msg, index) => (
               <div
                 key={`${msg.role}-${index}`}
                 className={`max-w-[92%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed border ${
                   msg.role === "user"
-                    ? "ml-auto bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                    ? "ml-auto bg-neutral-900 text-white border-neutral-900 shadow-sm"
                     : "mr-auto bg-white text-neutral-800 border-neutral-200"
                 }`}
               >
@@ -118,7 +116,7 @@ export default function InstantSEOChatbot() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-3 border-t border-neutral-100 bg-white flex items-end gap-2">
+          <div className="p-3 border-t border-neutral-200 bg-white flex items-end gap-2">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -130,12 +128,12 @@ export default function InstantSEOChatbot() {
               }}
               placeholder="Ask SEO question..."
               rows={2}
-              className="flex-1 px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+              className="flex-1 px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-neutral-300 resize-none"
             />
             <button
               onClick={sendMessage}
               disabled={!canSend}
-              className="p-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2.5 rounded-xl bg-neutral-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send size={16} />
             </button>
@@ -145,10 +143,10 @@ export default function InstantSEOChatbot() {
 
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="ml-auto flex items-center gap-2 px-4 py-3 rounded-full bg-emerald-600 text-white font-bold shadow-xl hover:bg-emerald-700"
+        className="ml-auto flex items-center gap-2 px-4 py-3 rounded-full bg-neutral-900 text-white font-semibold shadow-xl hover:bg-black"
       >
         <MessageCircle size={18} />
-        Chatbot
+        Ask AI
       </button>
     </div>
   );
