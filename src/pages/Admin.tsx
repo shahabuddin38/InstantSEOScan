@@ -15,6 +15,9 @@ import {
   Plus,
   Save,
   RefreshCw,
+  Eye,
+  Key,
+  X,
 } from "lucide-react";
 import { apiRequest } from "../services/apiClient";
 
@@ -186,6 +189,40 @@ export default function Admin() {
     }
 
     await Promise.all([fetchUsers(), fetchCRM()]);
+  };
+
+  const handleDeleteUser = async (userId: string, email: string) => {
+    if (!confirm(`Are you sure you want to DELETE user ${email}? This will also delete all their scan reports. This action cannot be undone.`)) return;
+    const result = await apiRequest(`/api/admin/users/${userId}/delete`, {
+      method: "POST",
+      headers: tokenHeaders(),
+    });
+    if (!result.ok) { setError(result.error || "Failed to delete user"); return; }
+    await Promise.all([fetchUsers(), fetchCRM(), fetchStats()]);
+  };
+
+  const handleResetPassword = async (userId: string, email: string) => {
+    const newPassword = prompt(`Enter new password for ${email} (min 6 chars):`);
+    if (!newPassword) return;
+    if (newPassword.length < 6) { setError("Password must be at least 6 characters"); return; }
+    const result = await apiRequest(`/api/admin/users/${userId}/reset-password`, {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ newPassword }),
+    });
+    if (!result.ok) { setError(result.error || "Failed to reset password"); return; }
+    alert(`Password for ${email} has been reset successfully.`);
+  };
+
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const handleViewUser = async (userId: string) => {
+    setLoadingDetail(true);
+    const result = await apiRequest<any>(`/api/admin/users/${userId}/detail`, { headers: tokenHeaders() });
+    setLoadingDetail(false);
+    if (!result.ok) { setError(result.error || "Failed to load user"); return; }
+    setSelectedUser(result.data);
   };
 
   const resetPostForm = () => {
@@ -426,6 +463,27 @@ export default function Admin() {
                             >
                               <Calendar size={16} />
                             </button>
+                            <button
+                              onClick={() => handleResetPassword(user.id, user.email)}
+                              className="p-2 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors"
+                              title="Reset Password"
+                            >
+                              <Key size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleViewUser(user.id)}
+                              className="p-2 bg-neutral-50 text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors"
+                              title="View Details"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.email)}
+                              className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                              title="Delete User"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -434,6 +492,63 @@ export default function Admin() {
                 </table>
               </div>
             </div>
+
+            {/* User Detail Modal */}
+            {selectedUser && (
+              <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelectedUser(null)}>
+                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-8" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="font-bold text-lg">User Details</h2>
+                    <button onClick={() => setSelectedUser(null)} className="p-2 hover:bg-neutral-100 rounded-lg"><X size={18} /></button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    {[
+                      { label: "User ID", value: selectedUser.id },
+                      { label: "Email", value: selectedUser.email },
+                      { label: "Role", value: selectedUser.role },
+                      { label: "Plan", value: selectedUser.plan },
+                      { label: "Status", value: selectedUser.status },
+                      { label: "Verified", value: selectedUser.verified ? "Yes" : "No" },
+                      { label: "Usage", value: `${selectedUser.usageCount} / ${selectedUser.usageLimit}` },
+                      { label: "Joined", value: new Date(selectedUser.createdAt).toLocaleDateString() },
+                      { label: "Subscription Ends", value: selectedUser.subscriptionEnd ? new Date(selectedUser.subscriptionEnd).toLocaleDateString() : "N/A" },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="p-3 bg-neutral-50 rounded-xl">
+                        <div className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{label}</div>
+                        <div className="text-sm font-medium text-neutral-800 break-all">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <h3 className="font-bold text-sm mb-3">Scan Audit History ({selectedUser.scans?.length || 0})</h3>
+                  {selectedUser.scans?.length > 0 ? (
+                    <div className="overflow-x-auto rounded-xl border border-neutral-200">
+                      <table className="w-full text-xs">
+                        <thead className="bg-neutral-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left font-bold text-neutral-500">URL</th>
+                            <th className="px-4 py-2 text-left font-bold text-neutral-500">Score</th>
+                            <th className="px-4 py-2 text-left font-bold text-neutral-500">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-100">
+                          {selectedUser.scans.map((scan: any) => (
+                            <tr key={scan.id} className="hover:bg-neutral-50">
+                              <td className="px-4 py-2 text-neutral-700 truncate max-w-[200px]">{scan.url || scan.normalizedUrl}</td>
+                              <td className="px-4 py-2"><span className={`font-bold ${scan.score >= 80 ? "text-emerald-600" : scan.score >= 50 ? "text-orange-600" : "text-red-600"}`}>{scan.score}</span></td>
+                              <td className="px-4 py-2 text-neutral-500">{new Date(scan.createdAt).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-neutral-400">No scan history found.</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-8">
               <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">

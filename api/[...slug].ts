@@ -538,7 +538,7 @@ Include at least 10 checks covering: author credentials, about page, contact inf
   // Admin: approve user (POST /api/admin/users/:id/approve)
   if (path.startsWith("/api/admin/users/") && path.endsWith("/approve")) {
     const parts = path.split("/");
-    const id = parts[3];
+    const id = parts[4];
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.user.role !== "admin") {
         return resAny.status(403).json({ error: "Admin access required" });
@@ -571,7 +571,7 @@ Include at least 10 checks covering: author credentials, about page, contact inf
   // Admin: update plan (POST /api/admin/users/:id/plan)
   if (path.startsWith("/api/admin/users/") && path.endsWith("/plan")) {
     const parts = path.split("/");
-    const id = parts[3];
+    const id = parts[4];
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.user.role !== "admin") {
         return resAny.status(403).json({ error: "Admin access required" });
@@ -601,6 +601,82 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       } catch (error: any) {
         console.error("Error updating user plan:", error);
         return resAny.status(500).json({ error: "Failed to update user plan" });
+      }
+    });
+    return authed(req as any, res as any);
+  }
+  // Admin: delete user (DELETE /api/admin/users/:id/delete)
+  if (path.startsWith("/api/admin/users/") && path.endsWith("/delete")) {
+    const parts = path.split("/");
+    const id = parts[4];
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") {
+        return resAny.status(403).json({ error: "Admin access required" });
+      }
+      if (reqAny.method !== "DELETE" && reqAny.method !== "POST") {
+        return resAny.status(405).json({ error: "Method not allowed" });
+      }
+      try {
+        // Delete all scan reports first (cascade)
+        await prisma.scanReport.deleteMany({ where: { userId: String(id) } });
+        await prisma.user.delete({ where: { id: String(id) } });
+        return resAny.status(200).json({ message: "User deleted successfully" });
+      } catch (error: any) {
+        console.error("Error deleting user:", error?.message || error);
+        return resAny.status(500).json({ error: `Failed to delete user: ${error?.message || "Unknown error"}` });
+      }
+    });
+    return authed(req as any, res as any);
+  }
+
+  // Admin: reset user password (POST /api/admin/users/:id/reset-password)
+  if (path.startsWith("/api/admin/users/") && path.endsWith("/reset-password")) {
+    const parts = path.split("/");
+    const id = parts[4];
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") {
+        return resAny.status(403).json({ error: "Admin access required" });
+      }
+      if (reqAny.method !== "POST") {
+        return resAny.status(405).json({ error: "Method not allowed" });
+      }
+      const { newPassword } = reqAny.body || {};
+      if (!newPassword || newPassword.length < 6) {
+        return resAny.status(400).json({ error: "Password must be at least 6 characters" });
+      }
+      try {
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+          where: { id: String(id) },
+          data: { password: hashed },
+        });
+        return resAny.status(200).json({ message: "Password reset successfully" });
+      } catch (error: any) {
+        console.error("Error resetting password:", error?.message || error);
+        return resAny.status(500).json({ error: `Failed to reset password: ${error?.message || "Unknown error"}` });
+      }
+    });
+    return authed(req as any, res as any);
+  }
+
+  // Admin: get user detail + scan history (GET /api/admin/users/:id/detail)
+  if (path.startsWith("/api/admin/users/") && path.endsWith("/detail")) {
+    const parts = path.split("/");
+    const id = parts[4];
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") {
+        return resAny.status(403).json({ error: "Admin access required" });
+      }
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: String(id) },
+          include: { scans: { orderBy: { createdAt: "desc" }, take: 50 } },
+        });
+        if (!user) return resAny.status(404).json({ error: "User not found" });
+        const { password, ...safeUser } = user as any;
+        return resAny.status(200).json(safeUser);
+      } catch (error: any) {
+        return resAny.status(500).json({ error: `Failed to load user: ${error?.message}` });
       }
     });
     return authed(req as any, res as any);
