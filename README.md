@@ -103,3 +103,17 @@ Set these in local [.env](.env) and in Vercel project settings:
 3. Deploy.
 
 This repo is fully serverless (no Express app/listener runtime).
+
+## Troubleshooting
+
+### Prisma cannot reach database (`P1001` / `Can't reach database server`)
+
+- Confirm `DATABASE_URL` points to a reachable PostgreSQL host for the running environment.
+- In Vercel, verify the variable is set in the correct environment (Preview/Production) and redeploy.
+- For local checks, run:
+
+   ```bash
+   npx prisma db pull --print
+   ```
+
+- If this command fails, fix credentials/network first; API auth routes depend on database connectivity.

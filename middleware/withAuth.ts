@@ -3,6 +3,15 @@ import { verifyToken } from "../lib/auth.js";
 
 type AuthedRequest = VercelRequest & { user?: any };
 
+const isPrismaConnectionError = (error: any) => {
+  const message = String(error?.message || "");
+  return (
+    /Can't reach database server/i.test(message) ||
+    /P1001/.test(message) ||
+    /ECONNREFUSED|ETIMEDOUT|ENOTFOUND/i.test(message)
+  );
+};
+
 export function withAuth(
   handler: (req: AuthedRequest, res: VercelResponse) => Promise<any> | any
 ) {
@@ -23,6 +32,11 @@ export function withAuth(
       (req as AuthedRequest).user = user;
       return handler(req as AuthedRequest, res);
     } catch (err: any) {
+      if (isPrismaConnectionError(err)) {
+        return res.status(503).json({
+          error: "Database is temporarily unavailable. Please try again shortly.",
+        });
+      }
       return res.status(401).json({ error: err?.message || "Unauthorized" });
     }
   };
