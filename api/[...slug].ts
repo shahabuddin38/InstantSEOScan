@@ -174,8 +174,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return authed(req as any, res as any);
   }
 
-  // Scan: single report (protected, /api/scan/:id)
-  if (path.startsWith("/api/scan/") && path.split("/").length === 4) {
+  // Scan: single report (protected, GET /api/scan/:id)
+  if (req.method === "GET" && path.startsWith("/api/scan/") && path.split("/").length === 4) {
     const id = path.split("/")[3];
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.method !== "GET") return resAny.status(405).end();
