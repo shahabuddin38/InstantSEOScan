@@ -9,4 +9,4 @@ Disallow: /dashboard
 Disallow: /report/
 
 # Sitemap
-Sitemap: https://instantseoscan.vercel.app/sitemap.xml
+Sitemap: https://instantseoscan.com/sitemap.xml
