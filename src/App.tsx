@@ -8,6 +8,7 @@ import Sidebar from "./components/Sidebar";
 import ApiStatusBanner from "./components/ApiStatusBanner";
 import ScrollToTop from "./components/ScrollToTop";
 import ScrollToTopButton from "./components/ScrollToTopButton";
+import InstantSEOChatbot from "./components/InstantSEOChatbot";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Report from "./pages/Report";
@@ -147,6 +148,7 @@ export default function App() {
             </Layout>
           </main>
           <Footer />
+          <InstantSEOChatbot />
           <ScrollToTopButton />
         </div>
       </I18nProvider>

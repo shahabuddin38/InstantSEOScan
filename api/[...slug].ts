@@ -39,6 +39,75 @@ const scanBodySchema = z.object({
   url: z.string().min(1),
 });
 
+const blogBlockSchema = z.object({
+  id: z.string().optional(),
+  type: z.enum(["h1", "h2", "h3", "paragraph", "quote", "list", "image", "cta"]),
+  text: z.string().optional(),
+  url: z.string().optional(),
+  alt: z.string().optional(),
+});
+
+const blogUpsertSchema = z.object({
+  title: z.string().min(3),
+  slug: z.string().optional(),
+  content: z.string().optional(),
+  excerpt: z.string().optional(),
+  coverImage: z.string().optional(),
+  author: z.string().optional(),
+  blocks: z.array(blogBlockSchema).optional(),
+});
+
+const contactBodySchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  subject: z.string().min(3),
+  message: z.string().min(10),
+});
+
+const slugify = (value: string) =>
+  String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+
+const normalizeBlocks = (input: any[] = []) =>
+  input.map((block, index) => ({
+    id: String(block.id || `block-${Date.now()}-${index}`),
+    type: block.type,
+    text: String(block.text || ""),
+    url: String(block.url || ""),
+    alt: String(block.alt || ""),
+  }));
+
+const blocksToText = (blocks: any[] = []) =>
+  blocks
+    .map((block) => String(block?.text || "").trim())
+    .filter(Boolean)
+    .join("\n\n");
+
+const estimateReadTime = (text: string) => {
+  const words = String(text || "").trim().split(/\s+/).filter(Boolean).length;
+  const minutes = Math.max(1, Math.ceil(words / 220));
+  return `${minutes} min read`;
+};
+
+const uniqueSlug = async (baseSlug: string, ignoreId?: string) => {
+  const safeBase = slugify(baseSlug) || `post-${Date.now()}`;
+  let attempt = safeBase;
+  let suffix = 1;
+
+  while (true) {
+    const existing = await prisma.blogPost.findUnique({ where: { slug: attempt } });
+    if (!existing || (ignoreId && existing.id === ignoreId)) return attempt;
+    suffix += 1;
+    attempt = `${safeBase}-${suffix}`;
+  }
+};
+
 const isPrismaConnectionError = (error: any) => {
   const message = String(error?.message || "");
   return (
@@ -364,6 +433,65 @@ Include at least 10 checks covering: author credentials, about page, contact inf
     return authed(req as any, res as any);
   }
 
+  if (path === "/api/blog" && req.method === "GET") {
+    const posts = await prisma.blogPost.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+
+    return res.status(200).json(
+      posts.map((post) => {
+        const blocks = Array.isArray(post.blocks) ? (post.blocks as any[]) : [];
+        const plainContent = post.content || blocksToText(blocks);
+        return {
+          ...post,
+          created_at: post.createdAt,
+          excerpt: post.excerpt || plainContent.slice(0, 180),
+          read_time: estimateReadTime(plainContent),
+          category: "SEO Guide",
+        };
+      })
+    );
+  }
+
+  if (req.method === "GET" && path.startsWith("/api/blog/") && path.split("/").length === 4) {
+    const slug = decodeURIComponent(path.split("/")[3] || "");
+    if (!slug) return res.status(400).json({ error: "Slug is required" });
+
+    const post = await prisma.blogPost.findUnique({ where: { slug } });
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    const blocks = Array.isArray(post.blocks) ? (post.blocks as any[]) : [];
+    const plainContent = post.content || blocksToText(blocks);
+
+    return res.status(200).json({
+      ...post,
+      created_at: post.createdAt,
+      read_time: estimateReadTime(plainContent),
+      category: "SEO Guide",
+    });
+  }
+
+  if (path === "/api/contact") {
+    if (req.method !== "POST") return res.status(405).end();
+
+    const parsed = contactBodySchema.safeParse((req as any).body || {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    }
+
+    const { name, email, subject, message } = parsed.data;
+    await prisma.contactMessage.create({
+      data: {
+        name: String(name).trim(),
+        email: String(email).toLowerCase().trim(),
+        subject: String(subject).trim(),
+        message: String(message).trim(),
+      },
+    });
+
+    return res.status(200).json({ message: "Message sent successfully" });
+  }
+
   // Admin: users list (GET /api/admin/users)
   if (path === "/api/admin/users") {
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
@@ -407,11 +535,12 @@ Include at least 10 checks covering: author credentials, about page, contact inf
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
 
-      const [userCount, scanCount, pendingCount, blogCount] = await Promise.all([
+      const [userCount, scanCount, pendingCount, blogCount, messageCount] = await Promise.all([
         prisma.user.count(),
         prisma.scanReport.count(),
         prisma.user.count({ where: { status: "pending" } }),
         prisma.blogPost.count(),
+        prisma.contactMessage.count(),
       ]);
 
       return resAny.json({
@@ -419,6 +548,7 @@ Include at least 10 checks covering: author credentials, about page, contact inf
         scanCount: { count: scanCount },
         pendingCount: { count: pendingCount },
         blogCount: { count: blogCount },
+        messageCount: { count: messageCount },
       });
     });
     return authed(req as any, res as any);
@@ -474,13 +604,30 @@ Include at least 10 checks covering: author credentials, about page, contact inf
 
       if (reqAny.method === "GET") {
         const posts = await prisma.blogPost.findMany({ orderBy: { createdAt: "desc" } });
-        return resAny.json(posts);
+        return resAny.json(posts.map((post) => ({ ...post, created_at: post.createdAt })));
       }
 
       if (reqAny.method === "POST") {
-        const { title, slug, content, author } = reqAny.body || {};
+        const parsed = blogUpsertSchema.safeParse(reqAny.body || {});
+        if (!parsed.success) {
+          return resAny.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+        }
+
+        const payload = parsed.data;
+        const blocks = normalizeBlocks(payload.blocks || []);
+        const resolvedSlug = await uniqueSlug(payload.slug || payload.title);
+        const normalizedContent = String(payload.content || blocksToText(blocks)).trim();
+
         const post = await prisma.blogPost.create({
-          data: { title, slug, content, author },
+          data: {
+            title: payload.title.trim(),
+            slug: resolvedSlug,
+            content: normalizedContent,
+            excerpt: String(payload.excerpt || normalizedContent.slice(0, 180) || "").trim(),
+            coverImage: String(payload.coverImage || "").trim() || null,
+            blocks,
+            author: String(payload.author || "Admin").trim() || "Admin",
+          },
         });
         return resAny.json(post);
       }
@@ -491,19 +638,36 @@ Include at least 10 checks covering: author credentials, about page, contact inf
   }
 
   // Admin: blog update/delete (PUT/DELETE /api/admin/blog/:id)
-  if (path.startsWith("/api/admin/blog/") && path.split("/").length === 4) {
-    const id = path.split("/")[3];
+  if (path.startsWith("/api/admin/blog/") && path.split("/").length === 5) {
+    const id = path.split("/")[4];
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.user.role !== "admin") {
         return resAny.status(403).json({ error: "Admin access required" });
       }
 
       if (reqAny.method === "PUT") {
-        const { title, slug, content, author } = reqAny.body || {};
+        const parsed = blogUpsertSchema.safeParse(reqAny.body || {});
+        if (!parsed.success) {
+          return resAny.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+        }
+
+        const payload = parsed.data;
+        const blocks = normalizeBlocks(payload.blocks || []);
+        const resolvedSlug = await uniqueSlug(payload.slug || payload.title, String(id));
+        const normalizedContent = String(payload.content || blocksToText(blocks)).trim();
+
         try {
           const post = await prisma.blogPost.update({
             where: { id: String(id) },
-            data: { title, slug, content, author },
+            data: {
+              title: payload.title.trim(),
+              slug: resolvedSlug,
+              content: normalizedContent,
+              excerpt: String(payload.excerpt || normalizedContent.slice(0, 180) || "").trim(),
+              coverImage: String(payload.coverImage || "").trim() || null,
+              blocks,
+              author: String(payload.author || "Admin").trim() || "Admin",
+            },
           });
           return resAny.status(200).json(post);
         } catch (error: any) {
@@ -523,6 +687,47 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       }
 
       return resAny.status(405).json({ error: "Method not allowed" });
+    });
+    return authed(req as any, res as any);
+  }
+
+  if (path === "/api/admin/messages") {
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
+      if (reqAny.method !== "GET") return resAny.status(405).end();
+
+      const messages = await prisma.contactMessage.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+
+      return resAny.status(200).json(messages);
+    });
+    return authed(req as any, res as any);
+  }
+
+  if (path.startsWith("/api/admin/messages/") && path.split("/").length === 5) {
+    const id = path.split("/")[4];
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
+
+      if (reqAny.method === "PUT") {
+        const status = String(reqAny.body?.status || "").trim();
+        if (!["new", "read", "resolved"].includes(status)) {
+          return resAny.status(400).json({ error: "Invalid status" });
+        }
+        const message = await prisma.contactMessage.update({
+          where: { id: String(id) },
+          data: { status },
+        });
+        return resAny.status(200).json(message);
+      }
+
+      if (reqAny.method === "DELETE") {
+        await prisma.contactMessage.delete({ where: { id: String(id) } });
+        return resAny.status(200).json({ message: "Message deleted" });
+      }
+
+      return resAny.status(405).end();
     });
     return authed(req as any, res as any);
   }
@@ -712,6 +917,7 @@ Include at least 10 checks covering: author credentials, about page, contact inf
         health: "Health check ok",
         insights: `Analyze these SEO insights: ${JSON.stringify(payload)}. You MUST return a STRICT JSON object (no markdown formatting) containing exact keys: 'keywordUsage' (string), 'readability' (string), 'nlpSuggestions' (string), 'contentGaps' (string), 'intentMatch' (string), 'missingHeadings' (string), and an array 'improvements' containing objects with 'title' (string) and 'description' (string). Provide actionable feedback.`,
         keywords: `Suggest keyword strategies for: ${JSON.stringify(payload)}. You MUST return a STRICT JSON object containing properties: 'ideas' (array of strings), 'longTail' (array of strings), 'semantic' (array of strings), 'entities' (array of strings), 'questions' (array of strings).`,
+        chat: `You are InstantSEOScan AI assistant. Answer the user briefly and clearly with SEO-focused help. User message: ${JSON.stringify(payload?.message || "")}`,
       };
 
       const prompt = responses[action] || `Generate SEO insights for: ${JSON.stringify(payload)}`;
@@ -727,6 +933,33 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       }
     });
     return authed(req as any, res as any);
+  }
+
+  if (path === "/api/ai/chatbot") {
+    if (req.method !== "POST") return res.status(405).end();
+    const message = String((req as any).body?.message || "").trim();
+    if (!message) return res.status(400).json({ error: "Message is required" });
+
+    try {
+      const prompt = `You are InstantSEOScan AI assistant. Give concise, useful SEO help. User: ${message}`;
+      const result = await generateAI(prompt, {});
+
+      if (typeof result === "string") {
+        return res.status(200).json({ reply: result });
+      }
+
+      if (typeof result?.response === "string") {
+        return res.status(200).json({ reply: result.response });
+      }
+
+      if (typeof result?.text === "string") {
+        return res.status(200).json({ reply: result.text });
+      }
+
+      return res.status(200).json({ reply: JSON.stringify(result) });
+    } catch (error: any) {
+      return res.status(500).json({ error: error?.message || "Chatbot failed" });
+    }
   }
 
   // AI: on-page (POST /api/ai/on-page)

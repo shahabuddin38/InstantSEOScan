@@ -237,7 +237,7 @@ export default function OnPageSEO() {
               </div>
               <h1 className="text-5xl font-black text-neutral-900 tracking-tight mb-3">On-Page SEO Intelligence</h1>
               <p className="text-xl text-neutral-500 max-w-2xl">
-                Comprehensive site auditing and content optimization powered by Gemini 3 Flash.
+                Comprehensive site auditing and content optimization generate by instanseoscan ai.
               </p>
             </div>
             <div className="flex gap-3">
@@ -407,7 +407,7 @@ export default function OnPageSEO() {
                   </div>
                   <h3 className="text-2xl font-bold text-neutral-900 mb-2">Analyzing Your Website</h3>
                   <p className="text-neutral-500 max-w-md">
-                    Gemini AI is performing deep technical checks and content analysis. This usually takes 5-10 seconds.
+                    generate by instanseoscan ai. This usually takes 5-10 seconds.
                   </p>
                 </motion.div>
               ) : auditResult ? (
@@ -546,7 +546,7 @@ export default function OnPageSEO() {
                         AI Analysis Results
                       </h3>
                       <div className="text-xs font-bold text-neutral-400 uppercase tracking-widest">
-                        Powered by Gemini 3 Flash
+                        generate by instanseoscan ai
                       </div>
                     </div>
 

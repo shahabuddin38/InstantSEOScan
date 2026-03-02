@@ -18,6 +18,8 @@ import {
   Eye,
   Key,
   X,
+  GripVertical,
+  MessageSquare,
 } from "lucide-react";
 import { apiRequest } from "../services/apiClient";
 
@@ -26,6 +28,7 @@ type AdminStats = {
   scanCount?: { count: number };
   pendingCount?: { count: number };
   blogCount?: { count: number };
+  messageCount?: { count: number };
 };
 
 type AdminUser = {
@@ -55,6 +58,27 @@ type BlogPost = {
   slug: string;
   author: string;
   content: string;
+  excerpt?: string;
+  coverImage?: string;
+  blocks?: BlogBlock[];
+  createdAt: string;
+};
+
+type BlogBlock = {
+  id: string;
+  type: "h1" | "h2" | "h3" | "paragraph" | "quote" | "list" | "image" | "cta";
+  text: string;
+  url?: string;
+  alt?: string;
+};
+
+type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: "new" | "read" | "resolved";
   createdAt: string;
 };
 
@@ -66,11 +90,21 @@ export default function Admin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [crm, setCrm] = useState<CRMResponse>({});
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingPost, setSavingPost] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
-  const [postForm, setPostForm] = useState({ title: "", content: "", author: "" });
+  const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
+  const [postForm, setPostForm] = useState({
+    title: "",
+    slug: "",
+    content: "",
+    excerpt: "",
+    coverImage: "",
+    author: "",
+    blocks: [] as BlogBlock[],
+  });
 
   const [settingsForm, setSettingsForm] = useState({
     GEMINI_API_KEY_1: "",
@@ -105,6 +139,12 @@ export default function Admin() {
     setPosts(result.data);
   };
 
+  const fetchMessages = async () => {
+    const result = await apiRequest<ContactMessage[]>("/api/admin/messages", { headers: tokenHeaders() });
+    if (!result.ok || !result.data) throw new Error(result.error || "Failed to load messages");
+    setMessages(result.data);
+  };
+
   const fetchSettings = async () => {
     const result = await apiRequest<any>("/api/admin/settings", { headers: tokenHeaders() });
     if (result.ok && result.data) {
@@ -136,7 +176,7 @@ export default function Admin() {
     setError("");
     setLoading(true);
     try {
-      await Promise.all([fetchStats(), fetchUsers(), fetchCRM(), fetchBlogPosts(), fetchSettings()]);
+      await Promise.all([fetchStats(), fetchUsers(), fetchCRM(), fetchBlogPosts(), fetchMessages(), fetchSettings()]);
     } catch (err: any) {
       setError(err.message || "Failed to load admin data");
     } finally {
@@ -226,17 +266,74 @@ export default function Admin() {
   };
 
   const resetPostForm = () => {
-    setPostForm({ title: "", content: "", author: "" });
+    setPostForm({
+      title: "",
+      slug: "",
+      content: "",
+      excerpt: "",
+      coverImage: "",
+      author: "",
+      blocks: [],
+    });
     setEditingPostId(null);
   };
 
+  const createBlock = (type: BlogBlock["type"]): BlogBlock => ({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    type,
+    text: "",
+    url: "",
+    alt: "",
+  });
+
+  const addBlock = (type: BlogBlock["type"]) => {
+    setPostForm((prev) => ({ ...prev, blocks: [...prev.blocks, createBlock(type)] }));
+  };
+
+  const updateBlock = (blockId: string, patch: Partial<BlogBlock>) => {
+    setPostForm((prev) => ({
+      ...prev,
+      blocks: prev.blocks.map((block) => (block.id === blockId ? { ...block, ...patch } : block)),
+    }));
+  };
+
+  const removeBlock = (blockId: string) => {
+    setPostForm((prev) => ({ ...prev, blocks: prev.blocks.filter((block) => block.id !== blockId) }));
+  };
+
+  const moveBlock = (fromBlockId: string, toBlockId: string) => {
+    setPostForm((prev) => {
+      const fromIndex = prev.blocks.findIndex((block) => block.id === fromBlockId);
+      const toIndex = prev.blocks.findIndex((block) => block.id === toBlockId);
+      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return prev;
+
+      const updated = [...prev.blocks];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      return { ...prev, blocks: updated };
+    });
+  };
+
   const startEditPost = (post: BlogPost) => {
+    const parsedBlocks = Array.isArray(post.blocks) && post.blocks.length > 0
+      ? post.blocks
+      : [createBlock("paragraph")];
+
     setEditingPostId(post.id);
-    setPostForm({ title: post.title, content: post.content, author: post.author || "" });
+    setPostForm({
+      title: post.title,
+      slug: post.slug,
+      content: post.content || "",
+      excerpt: post.excerpt || "",
+      coverImage: post.coverImage || "",
+      author: post.author || "",
+      blocks: parsedBlocks,
+    });
   };
 
   const handleSavePost = async () => {
-    if (!postForm.title.trim() || !postForm.content.trim()) {
+    const derivedContent = postForm.blocks.map((block) => block.text.trim()).filter(Boolean).join("\n\n") || postForm.content;
+    if (!postForm.title.trim() || !derivedContent.trim()) {
       setError("Post title and content are required.");
       return;
     }
@@ -253,7 +350,10 @@ export default function Admin() {
         ...tokenHeaders(),
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(postForm),
+      body: JSON.stringify({
+        ...postForm,
+        content: derivedContent,
+      }),
     });
 
     setSavingPost(false);
@@ -265,6 +365,40 @@ export default function Admin() {
 
     await Promise.all([fetchBlogPosts(), fetchStats()]);
     resetPostForm();
+  };
+
+  const handleMessageStatus = async (id: string, status: ContactMessage["status"]) => {
+    const result = await apiRequest(`/api/admin/messages/${id}`, {
+      method: "PUT",
+      headers: {
+        ...tokenHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!result.ok) {
+      setError(result.error || "Failed to update message status");
+      return;
+    }
+
+    await Promise.all([fetchMessages(), fetchStats()]);
+  };
+
+  const handleDeleteMessage = async (id: string) => {
+    if (!confirm("Delete this message permanently?")) return;
+
+    const result = await apiRequest(`/api/admin/messages/${id}`, {
+      method: "DELETE",
+      headers: tokenHeaders(),
+    });
+
+    if (!result.ok) {
+      setError(result.error || "Failed to delete message");
+      return;
+    }
+
+    await Promise.all([fetchMessages(), fetchStats()]);
   };
 
   const handleDeletePost = async (id: string) => {
@@ -587,6 +721,7 @@ export default function Admin() {
                 <ul className="space-y-2 text-sm text-neutral-700">
                   <li className="flex justify-between"><span>Pending Users</span><strong>{stats.pendingCount?.count || 0}</strong></li>
                   <li className="flex justify-between"><span>Total Blog Posts</span><strong>{stats.blogCount?.count || 0}</strong></li>
+                  <li className="flex justify-between"><span>Contact Messages</span><strong>{stats.messageCount?.count || 0}</strong></li>
                   <li className="flex justify-between"><span>Total Scans</span><strong>{stats.scanCount?.count || 0}</strong></li>
                 </ul>
               </div>
@@ -654,16 +789,57 @@ export default function Admin() {
               />
               <input
                 type="text"
+                value={postForm.slug}
+                onChange={(e) => setPostForm((prev) => ({ ...prev, slug: e.target.value }))}
+                placeholder="Slug (optional)"
+                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+              <input
+                type="text"
                 value={postForm.author}
                 onChange={(e) => setPostForm((prev) => ({ ...prev, author: e.target.value }))}
                 placeholder="Author (optional)"
                 className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
+              <input
+                type="text"
+                value={postForm.coverImage}
+                onChange={(e) => setPostForm((prev) => ({ ...prev, coverImage: e.target.value }))}
+                placeholder="Cover image URL (optional)"
+                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+              <textarea
+                value={postForm.excerpt}
+                onChange={(e) => setPostForm((prev) => ({ ...prev, excerpt: e.target.value }))}
+                placeholder="Excerpt (optional)"
+                rows={3}
+                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ["h1", "H1"],
+                  ["h2", "H2"],
+                  ["h3", "H3"],
+                  ["paragraph", "Paragraph"],
+                  ["quote", "Quote"],
+                  ["list", "List"],
+                  ["image", "Image"],
+                  ["cta", "CTA"],
+                ].map(([type, label]) => (
+                  <button
+                    key={type}
+                    onClick={() => addBlock(type as BlogBlock["type"])}
+                    className="px-3 py-2 text-xs font-bold bg-neutral-50 border border-neutral-200 rounded-lg hover:bg-neutral-100"
+                  >
+                    + {label}
+                  </button>
+                ))}
+              </div>
               <textarea
                 value={postForm.content}
                 onChange={(e) => setPostForm((prev) => ({ ...prev, content: e.target.value }))}
-                placeholder="Write the post content..."
-                rows={12}
+                placeholder="Fallback plain content (optional)"
+                rows={5}
                 className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
               <div className="flex gap-2">
@@ -686,38 +862,148 @@ export default function Admin() {
             </div>
           </div>
 
-          <div className="lg:col-span-2 bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
-              <h2 className="font-bold">CMS Posts</h2>
-              <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{posts.length} posts</span>
+          <div className="lg:col-span-2 space-y-8">
+            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
+                <h2 className="font-bold">Drag & Drop Content Builder</h2>
+                <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{postForm.blocks.length} blocks</span>
+              </div>
+              <div className="p-6 space-y-3">
+                {postForm.blocks.length === 0 && (
+                  <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-xl text-sm text-neutral-500">
+                    Add blocks from the left panel to build your blog post like WordPress.
+                  </div>
+                )}
+
+                {postForm.blocks.map((block) => (
+                  <div
+                    key={block.id}
+                    className="p-4 border border-neutral-200 rounded-xl bg-white"
+                    draggable
+                    onDragStart={() => setDraggingBlockId(block.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (!draggingBlockId || draggingBlockId === block.id) return;
+                      moveBlock(draggingBlockId, block.id);
+                      setDraggingBlockId(null);
+                    }}
+                    onDragEnd={() => setDraggingBlockId(null)}
+                  >
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-500">
+                        <GripVertical size={14} />
+                        {block.type}
+                      </div>
+                      <button
+                        onClick={() => removeBlock(block.id)}
+                        className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                        title="Remove block"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+
+                    {(block.type === "image") ? (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={block.url || ""}
+                          onChange={(e) => updateBlock(block.id, { url: e.target.value })}
+                          placeholder="Image URL"
+                          className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                        <input
+                          type="text"
+                          value={block.alt || ""}
+                          onChange={(e) => updateBlock(block.id, { alt: e.target.value })}
+                          placeholder="Image alt text"
+                          className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+                    ) : (
+                      <textarea
+                        value={block.text}
+                        onChange={(e) => updateBlock(block.id, { text: e.target.value })}
+                        placeholder={`Write ${block.type} content...`}
+                        rows={block.type === "paragraph" ? 4 : 2}
+                        className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="divide-y divide-neutral-100">
-              {posts.length === 0 && <div className="p-6 text-sm text-neutral-500">No posts yet.</div>}
-              {posts.map((post) => (
-                <div key={post.id} className="p-6 flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="font-bold text-sm mb-1">{post.title}</h3>
-                    <p className="text-xs text-neutral-500 mb-2">/{post.slug} • {post.author || "Admin"}</p>
-                    <p className="text-sm text-neutral-600 line-clamp-2">{post.content}</p>
+
+            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
+                <h2 className="font-bold">CMS Posts</h2>
+                <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{posts.length} posts</span>
+              </div>
+              <div className="divide-y divide-neutral-100">
+                {posts.length === 0 && <div className="p-6 text-sm text-neutral-500">No posts yet.</div>}
+                {posts.map((post) => (
+                  <div key={post.id} className="p-6 flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="font-bold text-sm mb-1">{post.title}</h3>
+                      <p className="text-xs text-neutral-500 mb-2">/{post.slug} • {post.author || "Admin"}</p>
+                      <p className="text-sm text-neutral-600 line-clamp-2">{post.excerpt || post.content}</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => startEditPost(post)}
+                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                        title="Edit"
+                      >
+                        <FileText size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeletePost(post.id)}
+                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => startEditPost(post)}
-                      className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
-                      title="Edit"
-                    >
-                      <FileText size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeletePost(post.id)}
-                      className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
-                      title="Delete"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
+                <h2 className="font-bold flex items-center gap-2"><MessageSquare size={16} /> Contact Messages</h2>
+                <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{messages.length} messages</span>
+              </div>
+              <div className="divide-y divide-neutral-100">
+                {messages.length === 0 && <div className="p-6 text-sm text-neutral-500">No messages yet.</div>}
+                {messages.map((message) => (
+                  <div key={message.id} className="p-6 flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="font-bold text-sm">{message.subject}</h3>
+                      <p className="text-xs text-neutral-500 mb-2">{message.name} • {message.email} • {new Date(message.createdAt).toLocaleString()}</p>
+                      <p className="text-sm text-neutral-700 whitespace-pre-wrap">{message.message}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <select
+                        value={message.status}
+                        onChange={(e) => handleMessageStatus(message.id, e.target.value as ContactMessage["status"])}
+                        className="px-2 py-1 bg-neutral-50 border border-neutral-200 rounded-lg text-xs font-bold"
+                      >
+                        <option value="new">New</option>
+                        <option value="read">Read</option>
+                        <option value="resolved">Resolved</option>
+                      </select>
+                      <button
+                        onClick={() => handleDeleteMessage(message.id)}
+                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                        title="Delete message"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>

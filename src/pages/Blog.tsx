@@ -4,19 +4,31 @@ import { Calendar, User, ArrowRight, Search } from "lucide-react";
 import { motion } from "motion/react";
 import { apiRequest } from "../services/apiClient";
 
+type BlogPost = {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt?: string;
+  coverImage?: string;
+  author: string;
+  createdAt?: string;
+  created_at?: string;
+};
+
 export default function Blog() {
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fallbackPosts = [
-      { id: 1, title: "10 Technical SEO Mistakes That Are Killing Your Rankings", slug: "technical-seo-mistakes", content: "Learn how to fix the most common issues...", author: "SEO Expert", created_at: "2024-03-20" },
-      { id: 2, title: "The Future of Search: How AI is Changing Everything", slug: "future-of-search-ai", content: "AI is no longer a buzzword, it's a necessity...", author: "AI Researcher", created_at: "2024-03-18" },
-      { id: 3, title: "How to Build a Backlink Strategy from Scratch", slug: "backlink-strategy-guide", content: "Authority is still king. Here is how to get it...", author: "Link Builder", created_at: "2024-03-15" },
+    const fallbackPosts: BlogPost[] = [
+      { id: "1", title: "10 Technical SEO Mistakes That Are Killing Your Rankings", slug: "technical-seo-mistakes", content: "Learn how to fix the most common issues...", author: "SEO Expert", created_at: "2024-03-20" },
+      { id: "2", title: "The Future of Search: How AI is Changing Everything", slug: "future-of-search-ai", content: "AI is no longer a buzzword, it's a necessity...", author: "AI Researcher", created_at: "2024-03-18" },
+      { id: "3", title: "How to Build a Backlink Strategy from Scratch", slug: "backlink-strategy-guide", content: "Authority is still king. Here is how to get it...", author: "Link Builder", created_at: "2024-03-15" },
     ];
 
     const loadPosts = async () => {
-      const result = await apiRequest<any[]>("/api/blog");
+      const result = await apiRequest<BlogPost[]>("/api/blog");
       if (!result.ok || !Array.isArray(result.data)) {
         setPosts(fallbackPosts);
         setLoading(false);
@@ -65,7 +77,7 @@ export default function Blog() {
             >
               <div className="h-48 bg-neutral-100 relative overflow-hidden">
                 <img 
-                  src={`https://picsum.photos/seed/${post.slug}/800/600`} 
+                  src={post.coverImage || `https://picsum.photos/seed/${post.slug}/800/600`} 
                   alt={post.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   referrerPolicy="no-referrer"
@@ -78,7 +90,7 @@ export default function Blog() {
                 <div className="flex items-center gap-4 text-xs text-neutral-400 mb-4">
                   <div className="flex items-center gap-1">
                     <Calendar size={14} />
-                    {new Date(post.created_at).toLocaleDateString()}
+                    {new Date(post.createdAt || post.created_at || new Date().toISOString()).toLocaleDateString()}
                   </div>
                   <div className="flex items-center gap-1">
                     <User size={14} />
@@ -89,7 +101,7 @@ export default function Blog() {
                   <Link to={`/blog/${post.slug}`}>{post.title}</Link>
                 </h2>
                 <p className="text-neutral-500 text-sm mb-6 line-clamp-2 leading-relaxed">
-                  {post.content}
+                  {post.excerpt || post.content}
                 </p>
                 <Link 
                   to={`/blog/${post.slug}`}

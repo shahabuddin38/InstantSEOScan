@@ -2,109 +2,89 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, User, Clock, Share2, Facebook, Twitter, Linkedin } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { apiRequest } from "../services/apiClient";
+
+type BlogBlock = {
+  id?: string;
+  type: "h1" | "h2" | "h3" | "paragraph" | "quote" | "list" | "image" | "cta";
+  text?: string;
+  url?: string;
+  alt?: string;
+};
+
+type BlogPostType = {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  author: string;
+  createdAt?: string;
+  created_at?: string;
+  read_time?: string;
+  category?: string;
+  blocks?: BlogBlock[];
+};
 
 export default function BlogPost() {
   const { slug } = useParams();
-  const [post, setPost] = useState<any>(null);
+  const [post, setPost] = useState<BlogPostType | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, fetch from API by slug
-    // For now, we use mock data matching the blog list
-    const mockPosts = [
-      { 
-        id: 1, 
-        title: "10 Technical SEO Mistakes That Are Killing Your Rankings", 
-        slug: "technical-seo-mistakes", 
-        content: `
-# 10 Technical SEO Mistakes That Are Killing Your Rankings
+    const loadPost = async () => {
+      if (!slug) {
+        setLoading(false);
+        return;
+      }
 
-Technical SEO is the foundation of any successful search strategy. If search engines can't crawl, render, and index your pages correctly, all your content and link-building efforts will be in vain.
+      const result = await apiRequest<BlogPostType>(`/api/blog/${slug}`);
+      if (!result.ok || !result.data) {
+        setPost(null);
+        setLoading(false);
+        return;
+      }
 
-Here are the top 10 technical SEO mistakes you need to avoid:
+      setPost(result.data);
+      setLoading(false);
+    };
 
-## 1. Blocking Search Engines in robots.txt
-It sounds obvious, but you'd be surprised how often a stray \`Disallow: /\` makes it to production. Always double-check your robots.txt file.
-
-## 2. Slow Page Speed
-Core Web Vitals are a ranking factor. If your site takes more than 3 seconds to load, you are losing traffic and rankings. Optimize images, minify CSS/JS, and use a CDN.
-
-## 3. Improper Use of Canonical Tags
-Duplicate content can confuse search engines. Use canonical tags to point to the master version of a page.
-
-## 4. Broken Links (404s)
-Internal and external broken links create a poor user experience and waste crawl budget.
-
-## 5. Missing XML Sitemaps
-Sitemaps help search engines discover your content faster. Ensure your sitemap is up-to-date and submitted to Google Search Console.
-
-## Conclusion
-Fixing these technical issues will provide a solid foundation for your SEO efforts. Use our CoreScan Engine to identify these problems automatically.
-        `, 
-        author: "SEO Expert", 
-        created_at: "2024-03-20",
-        read_time: "5 min read",
-        category: "Technical SEO"
-      },
-      { 
-        id: 2, 
-        title: "The Future of Search: How AI is Changing Everything", 
-        slug: "future-of-search-ai", 
-        content: `
-# The Future of Search: How AI is Changing Everything
-
-Artificial Intelligence is fundamentally altering how search engines understand queries and rank content. From Google's SGE (Search Generative Experience) to AI-driven content creation, the landscape is shifting rapidly.
-
-## The Rise of SGE
-Google's Search Generative Experience aims to answer user queries directly in the SERP using generative AI. This means zero-click searches will likely increase for informational queries.
-
-## How to Adapt
-To survive in an AI-first search world, your content must offer unique perspectives, deep expertise, and first-hand experience (the 'E' in E-E-A-T).
-
-## AI Content Generation
-While AI can help scale content production, relying solely on unedited AI content is risky. Search engines are getting better at identifying low-quality, mass-produced text.
-
-Embrace AI as an assistant, not a replacement for human creativity and expertise.
-        `, 
-        author: "AI Researcher", 
-        created_at: "2024-03-18",
-        read_time: "8 min read",
-        category: "AI & Search"
-      },
-      { 
-        id: 3, 
-        title: "How to Build a Backlink Strategy from Scratch", 
-        slug: "backlink-strategy-guide", 
-        content: `
-# How to Build a Backlink Strategy from Scratch
-
-Backlinks remain one of the top ranking factors in Google's algorithm. But how do you build them if you're starting from zero?
-
-## 1. Create Linkable Assets
-People link to great content. Create original research, comprehensive guides, or free tools that naturally attract links.
-
-## 2. Guest Posting
-Reach out to authoritative blogs in your niche and offer to write high-quality guest posts. Ensure the site has genuine traffic and engagement.
-
-## 3. Broken Link Building
-Find broken links on relevant websites and suggest your content as a replacement. It's a win-win: you get a link, and they fix a broken page.
-
-## 4. Digital PR
-Create newsworthy content and pitch it to journalists and industry publications.
-
-Building authority takes time, but a consistent, quality-focused approach will yield long-term results.
-        `, 
-        author: "Link Builder", 
-        created_at: "2024-03-15",
-        read_time: "6 min read",
-        category: "Off-Page SEO"
-      },
-    ];
-
-    const foundPost = mockPosts.find(p => p.slug === slug);
-    setPost(foundPost);
-    setLoading(false);
+    loadPost();
   }, [slug]);
+
+  const renderBlock = (block: BlogBlock, index: number) => {
+    const key = block.id || `${block.type}-${index}`;
+    const text = block.text || "";
+
+    if (block.type === "h1") return <h1 key={key} className="text-3xl md:text-4xl font-black text-neutral-900 mt-8 mb-4">{text}</h1>;
+    if (block.type === "h2") return <h2 key={key} className="text-2xl md:text-3xl font-bold text-neutral-900 mt-8 mb-4">{text}</h2>;
+    if (block.type === "h3") return <h3 key={key} className="text-xl md:text-2xl font-bold text-neutral-900 mt-6 mb-3">{text}</h3>;
+    if (block.type === "quote") return <blockquote key={key} className="border-l-4 border-emerald-500 pl-4 italic text-neutral-700 my-6">{text}</blockquote>;
+    if (block.type === "list") {
+      const items = text.split("\n").map((item) => item.trim()).filter(Boolean);
+      return (
+        <ul key={key} className="list-disc pl-6 my-4 space-y-1 text-neutral-700">
+          {items.map((item, itemIndex) => <li key={`${key}-${itemIndex}`}>{item}</li>)}
+        </ul>
+      );
+    }
+    if (block.type === "image") {
+      if (!block.url) return null;
+      return (
+        <figure key={key} className="my-8">
+          <img src={block.url} alt={block.alt || "Blog image"} className="w-full rounded-2xl border border-neutral-200" referrerPolicy="no-referrer" />
+          {block.alt && <figcaption className="text-xs text-neutral-500 mt-2">{block.alt}</figcaption>}
+        </figure>
+      );
+    }
+    if (block.type === "cta") {
+      return (
+        <div key={key} className="my-8 p-5 rounded-2xl bg-emerald-50 border border-emerald-100 font-bold text-emerald-800">
+          {text}
+        </div>
+      );
+    }
+    return <p key={key} className="text-neutral-700 leading-relaxed mb-4">{text}</p>;
+  };
 
   if (loading) {
     return (
@@ -139,7 +119,7 @@ Building authority takes time, but a consistent, quality-focused approach will y
         <article className="bg-white rounded-3xl p-8 md:p-12 border border-neutral-200 shadow-sm">
           <div className="mb-8">
             <div className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-widest rounded-full mb-6">
-              {post.category}
+              {post.category || "SEO Guide"}
             </div>
             <h1 className="text-3xl md:text-5xl font-black text-neutral-900 tracking-tight leading-tight mb-6">
               {post.title}
@@ -154,18 +134,24 @@ Building authority takes time, but a consistent, quality-focused approach will y
               </div>
               <div className="flex items-center gap-2">
                 <Calendar size={16} />
-                {new Date(post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                {new Date(post.createdAt || post.created_at || new Date().toISOString()).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </div>
               <div className="flex items-center gap-2">
                 <Clock size={16} />
-                {post.read_time}
+                {post.read_time || "5 min read"}
               </div>
             </div>
           </div>
 
-          <div className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700">
-            <ReactMarkdown>{post.content}</ReactMarkdown>
-          </div>
+          {Array.isArray(post.blocks) && post.blocks.length > 0 ? (
+            <div className="max-w-none">
+              {post.blocks.map((block, index) => renderBlock(block, index))}
+            </div>
+          ) : (
+            <div className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700">
+              <ReactMarkdown>{post.content}</ReactMarkdown>
+            </div>
+          )}
 
           <div className="mt-12 pt-8 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-4">
             <span className="font-bold text-neutral-900">Share this article:</span>

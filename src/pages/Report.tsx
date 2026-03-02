@@ -381,7 +381,7 @@ export default function Report() {
               ))
             ) : (
               <div className="text-emerald-200">
-                No specific improvements found. Please review the main analysis above or ensure your Gemini API key is active.
+                No specific improvements found. Please review the main analysis above or ensure generate by instanseoscan ai is active.
               </div>
             )}
           </div>
