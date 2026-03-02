@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, Globe, History, BarChart3, Zap, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
@@ -37,6 +37,20 @@ export default function Dashboard({ user }: { user: any }) {
     loadHistory();
   }, []);
 
+  // Real stats computed from actual scan history
+  const stats = useMemo(() => {
+    const now = new Date();
+    const thisMonth = history.filter(s => {
+      const d = new Date(s.createdAt);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const totalScans = thisMonth.length;
+    const avgScore = totalScans > 0
+      ? Math.round(thisMonth.reduce((sum, s) => sum + s.score, 0) / totalScans)
+      : 0;
+    return { totalScans, avgScore };
+  }, [history]);
+
   const handleScan = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!url) return;
@@ -47,7 +61,7 @@ export default function Dashboard({ user }: { user: any }) {
     try {
       const result = await apiRequest<any>("/api/scan", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ url }),
@@ -77,6 +91,8 @@ export default function Dashboard({ user }: { user: any }) {
     }
   };
 
+  const isPaidUser = user?.plan === "pro" || user?.plan === "agency";
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-12">
@@ -95,8 +111,8 @@ export default function Dashboard({ user }: { user: any }) {
             <form onSubmit={handleScan} className="space-y-4">
               <div className="relative">
                 <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   placeholder="example.com"
                   className="w-full pl-12 pr-4 py-4 bg-neutral-50 border border-neutral-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
@@ -104,7 +120,7 @@ export default function Dashboard({ user }: { user: any }) {
                   onChange={(e) => setUrl(e.target.value)}
                 />
               </div>
-              <button 
+              <button
                 disabled={loading}
                 className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
@@ -124,20 +140,20 @@ export default function Dashboard({ user }: { user: any }) {
             )}
           </div>
 
-          {/* Quick Stats */}
+          {/* Quick Stats — real data from scan history */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm">
               <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
                 <BarChart3 size={20} />
               </div>
-              <div className="text-2xl font-bold">12</div>
+              <div className="text-2xl font-bold">{stats.totalScans}</div>
               <div className="text-sm text-neutral-500">Total Scans This Month</div>
             </div>
             <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm">
               <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
                 <Zap size={20} />
               </div>
-              <div className="text-2xl font-bold">84%</div>
+              <div className="text-2xl font-bold">{stats.avgScore > 0 ? `${stats.avgScore}%` : "—"}</div>
               <div className="text-sm text-neutral-500">Average SEO Score</div>
             </div>
           </div>
@@ -151,44 +167,45 @@ export default function Dashboard({ user }: { user: any }) {
               Recent Scans
             </h2>
             <div className="space-y-4">
-              {(history.length ? history : [
-                { id: "demo-1", url: "google.com", score: 98, createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-                { id: "demo-2", url: "github.com", score: 92, createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
-                { id: "demo-3", url: "apple.com", score: 85, createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
-              ]).map((scan, i) => (
+              {history.length > 0 ? history.map((scan, i) => (
                 <div
                   key={scan.id || i}
-                  onClick={() => {
-                    if (scan.id.startsWith("demo-")) return;
-                    navigate(`/report/${scan.id}`);
-                  }}
+                  onClick={() => navigate(`/report/${scan.id}`)}
                   className="flex items-center justify-between p-3 rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer group"
                 >
                   <div>
                     <div className="font-bold text-sm group-hover:text-emerald-600 transition-colors">{scan.url}</div>
                     <div className="text-xs text-neutral-400">{formatRelativeDate(scan.createdAt)}</div>
                   </div>
-                  <div className={`text-sm font-bold ${scan.score > 90 ? 'text-emerald-600' : 'text-orange-500'}`}>
+                  <div className={`text-sm font-bold ${scan.score > 90 ? 'text-emerald-600' : scan.score > 60 ? 'text-orange-500' : 'text-red-500'}`}>
                     {scan.score}
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8 text-neutral-400">
+                  <Search size={24} className="mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No scans yet. Run your first audit above!</p>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="bg-emerald-900 rounded-3xl p-8 text-white relative overflow-hidden">
-            <div className="relative z-10">
-              <h3 className="text-xl font-bold mb-2">Go Pro</h3>
-              <p className="text-emerald-200 text-sm mb-6 leading-relaxed">Unlock backlink tracking, keyword research, and unlimited scans.</p>
-              <button 
-                onClick={() => navigate('/pricing')}
-                className="w-full bg-white text-emerald-900 py-3 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors"
-              >
-                Upgrade Now
-              </button>
+          {/* Go Pro — only show for free plan users */}
+          {!isPaidUser && (
+            <div className="bg-emerald-900 rounded-3xl p-8 text-white relative overflow-hidden">
+              <div className="relative z-10">
+                <h3 className="text-xl font-bold mb-2">Go Pro</h3>
+                <p className="text-emerald-200 text-sm mb-6 leading-relaxed">Unlock backlink tracking, keyword research, and unlimited scans.</p>
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="w-full bg-white text-emerald-900 py-3 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors"
+                >
+                  Upgrade Now
+                </button>
+              </div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
             </div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-          </div>
+          )}
         </div>
       </div>
     </div>

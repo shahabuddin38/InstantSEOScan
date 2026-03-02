@@ -6,6 +6,8 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Sidebar from "./components/Sidebar";
 import ApiStatusBanner from "./components/ApiStatusBanner";
+import ScrollToTop from "./components/ScrollToTop";
+import ScrollToTopButton from "./components/ScrollToTopButton";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Report from "./pages/Report";
@@ -135,6 +137,7 @@ export default function App() {
   return (
     <Router>
       <I18nProvider>
+        <ScrollToTop />
         <div className="min-h-screen bg-neutral-50 font-sans text-neutral-900 selection:bg-emerald-100 selection:text-emerald-900 flex flex-col">
           <Navbar user={user} onLogout={handleLogout} />
           <ApiStatusBanner />
@@ -144,6 +147,7 @@ export default function App() {
             </Layout>
           </main>
           <Footer />
+          <ScrollToTopButton />
         </div>
       </I18nProvider>
     </Router>
