@@ -549,14 +549,20 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       }
 
       try {
+        // Check if user exists first
+        const existing = await prisma.user.findUnique({ where: { id: String(id) } });
+        if (!existing) {
+          return resAny.status(404).json({ error: `User not found with id: ${id}` });
+        }
+
         const user = await prisma.user.update({
           where: { id: String(id) },
           data: { status: "approved", verified: true },
         });
         return resAny.status(200).json(user);
       } catch (error: any) {
-        console.error("Error approving user:", error);
-        return resAny.status(500).json({ error: "Failed to approve user" });
+        console.error("Error approving user:", error?.message || error);
+        return resAny.status(500).json({ error: `Failed to approve user: ${error?.message || "Unknown error"}` });
       }
     });
     return authed(req as any, res as any);
