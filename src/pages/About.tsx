@@ -33,9 +33,9 @@ export default function About() {
         </div>
         <div className="relative">
           <div className="aspect-square bg-emerald-100 rounded-3xl overflow-hidden shadow-2xl">
-            <img 
-              src="https://picsum.photos/seed/team/800/800" 
-              alt="Our Team" 
+            <img
+              src="https://picsum.photos/seed/team/800/800"
+              alt="Our Team"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
@@ -47,8 +47,8 @@ export default function About() {
             <div className="mt-4 flex items-center gap-3">
               <div className="w-10 h-10 bg-neutral-200 rounded-full" />
               <div>
-                <div className="font-bold text-sm">Alex Rivera</div>
-                <div className="text-xs text-neutral-400">CEO, GrowthLabs</div>
+                <div className="font-bold text-sm">SHAHAB</div>
+                <div className="text-xs text-neutral-400">CEO, instant seo scan</div>
               </div>
             </div>
           </div>
