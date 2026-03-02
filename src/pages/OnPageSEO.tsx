@@ -59,7 +59,14 @@ export default function OnPageSEO() {
         body: JSON.stringify({ url })
       });
       if (!res.ok) throw new Error(res.error || "Failed to perform E-E-A-T audit.");
-      setAuditResult(res.data);
+
+      const data = res.data;
+      if (data && data.checks) {
+        const passed = data.checks.filter((c: any) => c.status === "Pass").length;
+        const failed = data.checks.filter((c: any) => c.status === "Fail").length;
+        data.summary = { passed, failed, total: data.checks.length };
+      }
+      setAuditResult(data);
     } catch (e: any) {
       console.error(e);
       setError(e.message || "Failed to perform E-E-A-T audit.");
@@ -268,8 +275,8 @@ export default function OnPageSEO() {
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setResult(null); setAuditResult(null); setError(""); }}
                 className={`group relative flex flex-col items-start p-4 rounded-2xl border transition-all duration-200 min-w-[180px] ${activeTab === tab.id
-                    ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20"
-                    : "bg-white border-neutral-200 text-neutral-600 hover:border-emerald-300 hover:bg-emerald-50/30"
+                  ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20"
+                  : "bg-white border-neutral-200 text-neutral-600 hover:border-emerald-300 hover:bg-emerald-50/30"
                   }`}
               >
                 <tab.icon size={20} className={activeTab === tab.id ? "text-white" : "text-emerald-500"} />

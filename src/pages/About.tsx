@@ -40,7 +40,7 @@ export default function About() {
               referrerPolicy="no-referrer"
             />
           </div>
-          <<div className="absolute -bottom-8 -left-8 bg-white p-8 rounded-3xl shadow-xl border border-neutral-100 max-w-xs">
+          <div className="absolute -bottom-8 -left-8 bg-white p-8 rounded-3xl shadow-xl border border-neutral-100 max-w-xs">
             <p className="text-sm font-medium text-neutral-600 italic">
               "InstantSEOScan has completely transformed how our agency handles technical audits. It's a game changer."
             </p>
@@ -60,11 +60,9 @@ export default function About() {
               </div>
 
             </div>
+          </div>
         </div>
       </div>
     </div>
-        </div >
-      </div >
-    </div >
   );
 }

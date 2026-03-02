@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <!-- ===== English (default, no prefix) ===== -->
+  <url>
+    <loc>https://instantseoscan.vercel.app/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://instantseoscan.vercel.app/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://instantseoscan.vercel.app/hi" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://instantseoscan.vercel.app/es" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://instantseoscan.vercel.app/ru" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://instantseoscan.vercel.app/fr" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://instantseoscan.vercel.app/de" />
+    <xhtml:link rel="alternate" hreflang="it" href="https://instantseoscan.vercel.app/it" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://instantseoscan.vercel.app/pt" />
+    <xhtml:link rel="alternate" hreflang="bn" href="https://instantseoscan.vercel.app/bn" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://instantseoscan.vercel.app/ja" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://instantseoscan.vercel.app/ko" />
+    <xhtml:link rel="alternate" hreflang="ms" href="https://instantseoscan.vercel.app/ms" />
+    <xhtml:link rel="alternate" hreflang="pl" href="https://instantseoscan.vercel.app/pl" />
+    <xhtml:link rel="alternate" hreflang="id" href="https://instantseoscan.vercel.app/id" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://instantseoscan.vercel.app/ar" />
+    <xhtml:link rel="alternate" hreflang="bg" href="https://instantseoscan.vercel.app/bg" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://instantseoscan.vercel.app/tr" />
+    <xhtml:link rel="alternate" hreflang="sv" href="https://instantseoscan.vercel.app/sv" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantseoscan.vercel.app/" />
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/pricing</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/blog</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/about</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/sitemap</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/login</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- ===== Tool Pages (public landing, require login to use) ===== -->
+  <url>
+    <loc>https://instantseoscan.vercel.app/tools/corescan</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/tools/on-page</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/tools/off-page</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/tools/technical</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/tools/infra</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/tools/authority</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/ai-seo-content-score</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/ai-seo-rewrite-tool</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/ai-keyword-ideas-tool</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/ai-overview-optimizer</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://instantseoscan.vercel.app/schema-generator</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- ===== Localized Home Pages ===== -->
+  <url><loc>https://instantseoscan.vercel.app/hi</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/es</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ru</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/fr</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/de</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/it</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/pt</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/bn</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ja</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ko</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ms</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/pl</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/id</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ar</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/bg</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/tr</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/sv</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- ===== Localized Key Pages (es, fr, de, ar, ja — top languages) ===== -->
+  <url><loc>https://instantseoscan.vercel.app/es/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/es/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/es/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/es/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/fr/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/fr/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/fr/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/fr/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/de/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/de/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/de/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/de/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/ar/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ar/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ar/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ar/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/ja/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ja/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ja/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ja/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/hi/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/hi/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/hi/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/hi/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/pt/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/pt/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/ko/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ko/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/tr/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/tr/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/ru/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ru/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/id/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/id/blog</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+
+  <url><loc>https://instantseoscan.vercel.app/sv/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/bn/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/ms/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/pl/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.vercel.app/bg/pricing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+
+</urlset>
