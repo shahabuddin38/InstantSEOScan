@@ -47,7 +47,8 @@ export default function Sidebar() {
         { name: "On-Page SEO AI", path: "/tools/on-page" },
         { name: "Content Score", path: "/ai-seo-content-score" },
         { name: "SEO Rewriter", path: "/ai-seo-rewrite-tool" },
-        { name: "AI Overview", path: "/ai-overview-optimizer" }
+        { name: "AI Overview", path: "/ai-overview-optimizer" },
+        { name: "SEO Strategy Plan", path: "/tools/strategy-plan" }
       ]
     },
     {

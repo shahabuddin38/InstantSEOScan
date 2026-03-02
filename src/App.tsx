@@ -30,6 +30,7 @@ import ContentScore from "./pages/tools/ContentScore";
 import SEORewrite from "./pages/tools/SEORewrite";
 import KeywordIdeas from "./pages/tools/KeywordIdeas";
 import AIOverview from "./pages/tools/AIOverview";
+import SEOStrategyPlan from "./pages/tools/SEOStrategyPlan";
 import SchemaGenerator from "./pages/tools/SchemaGenerator";
 import AuthorityRadar from "./pages/tools/AuthorityRadar";
 import MCPSupport from "./pages/tools/MCPSupport";
@@ -90,6 +91,7 @@ function AppRoutes({ user, setUser, handleLogout }: { user: any; setUser: any; h
       <Route path="/ai-seo-rewrite-tool" element={user ? <SEORewrite /> : <Navigate to="/login" />} />
       <Route path="/ai-keyword-ideas-tool" element={user ? <KeywordIdeas /> : <Navigate to="/login" />} />
       <Route path="/ai-overview-optimizer" element={user ? <AIOverview /> : <Navigate to="/login" />} />
+      <Route path="/tools/strategy-plan" element={user ? <SEOStrategyPlan /> : <Navigate to="/login" />} />
       <Route path="/schema-generator" element={user ? <SchemaGenerator /> : <Navigate to="/login" />} />
       <Route path="/tools/authority" element={user ? <AuthorityRadar /> : <Navigate to="/login" />} />
       <Route path="/tools/mcp" element={user ? <MCPSupport /> : <Navigate to="/login" />} />

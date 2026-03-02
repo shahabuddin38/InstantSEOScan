@@ -56,3 +56,21 @@ export function calculateScore(technical: any) {
 export async function optimizeContent(url: string, content: string) {
   return callGemini("optimizeContent", { url, content }, { score: 0, suggestions: [], keywords: [], readability: "Error analyzing content" });
 }
+
+export async function generateSEOStrategyPlan(payload: {
+  website: string;
+  niche: string;
+  goals: string;
+  budget?: string;
+  timeline?: string;
+}) {
+  return callGemini(
+    "strategyPlan",
+    payload,
+    {
+      summary: "Strategy unavailable right now.",
+      timelinePlan: "Timeline unavailable right now.",
+      priorities: [],
+    }
+  );
+}

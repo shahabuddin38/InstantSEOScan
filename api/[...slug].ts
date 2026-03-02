@@ -918,6 +918,7 @@ Include at least 10 checks covering: author credentials, about page, contact inf
         insights: `Analyze these SEO insights: ${JSON.stringify(payload)}. You MUST return a STRICT JSON object (no markdown formatting) containing exact keys: 'keywordUsage' (string), 'readability' (string), 'nlpSuggestions' (string), 'contentGaps' (string), 'intentMatch' (string), 'missingHeadings' (string), and an array 'improvements' containing objects with 'title' (string) and 'description' (string). Provide actionable feedback.`,
         keywords: `Suggest keyword strategies for: ${JSON.stringify(payload)}. You MUST return a STRICT JSON object containing properties: 'ideas' (array of strings), 'longTail' (array of strings), 'semantic' (array of strings), 'entities' (array of strings), 'questions' (array of strings).`,
         chat: `You are InstantSEOScan AI assistant. Answer the user briefly and clearly with SEO-focused help. User message: ${JSON.stringify(payload?.message || "")}`,
+        strategyPlan: `Create a website SEO strategy plan from this input: ${JSON.stringify(payload)}. You MUST return STRICT JSON with keys: 'summary' (string), 'timelinePlan' (string), and 'priorities' (array of 5-10 objects each with 'title' and 'detail'). Focus on technical SEO, on-page, content, off-page, and tracking KPIs.`,
       };
 
       const prompt = responses[action] || `Generate SEO insights for: ${JSON.stringify(payload)}`;

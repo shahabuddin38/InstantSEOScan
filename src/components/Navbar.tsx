@@ -40,6 +40,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
                 <Link to="/ai-seo-rewrite-tool" className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.seo_rewrite")}</Link>
                 <Link to="/ai-keyword-ideas-tool" className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.keyword_ideas")}</Link>
                 <Link to="/ai-overview-optimizer" className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.ai_overview")}</Link>
+                <Link to="/tools/strategy-plan" className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">SEO Strategy Plan</Link>
                 <Link to="/schema-generator" className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.schema_generator")}</Link>
                 <Link to="/tools/authority" className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.authority")}</Link>
               </div>
@@ -93,6 +94,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
             {user?.role === 'admin' && <GeminiStatusButton />}
             <Link to="/pricing" className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>{t("nav.pricing")}</Link>
             <Link to="/blog" className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>{t("nav.blog")}</Link>
+            <Link to="/tools/strategy-plan" className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>SEO Strategy Plan</Link>
             {user ? (
               <>
                 <Link to="/dashboard" className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>{t("nav.dashboard")}</Link>
