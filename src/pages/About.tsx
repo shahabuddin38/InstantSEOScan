@@ -40,20 +40,31 @@ export default function About() {
               referrerPolicy="no-referrer"
             />
           </div>
-          <div className="absolute -bottom-8 -left-8 bg-white p-8 rounded-3xl shadow-xl border border-neutral-100 max-w-xs">
+          <<div className="absolute -bottom-8 -left-8 bg-white p-8 rounded-3xl shadow-xl border border-neutral-100 max-w-xs">
             <p className="text-sm font-medium text-neutral-600 italic">
               "InstantSEOScan has completely transformed how our agency handles technical audits. It's a game changer."
             </p>
+
             <div className="mt-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-neutral-200 rounded-full" />
+
+              {/* Profile Image */}
+              <img
+                src="/shahab.png"  // <-- put your image inside public folder
+                alt="Shahab"
+                className="w-10 h-10 rounded-full object-cover"
+              />
+
               <div>
                 <div className="font-bold text-sm">SHAHAB</div>
-                <div className="text-xs text-neutral-400">CEO, instant seo scan</div>
+                <div className="text-xs text-neutral-400">CEO, Instant SEO Scan</div>
               </div>
+
             </div>
-          </div>
         </div>
       </div>
     </div>
+        </div >
+      </div >
+    </div >
   );
 }
