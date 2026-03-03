@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Github, Twitter, Linkedin, Facebook, MessageCircle } from "lucide-react";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Footer() {
   return (
@@ -63,7 +64,8 @@ export default function Footer() {
           <p className="text-sm text-neutral-400">
             © {new Date().getFullYear()} InstantSEOScan. All rights reserved.
           </p>
-          <div className="flex gap-6 text-sm text-neutral-400">
+          <div className="flex items-center gap-6 text-sm text-neutral-400">
+            <LanguageSwitcher />
             <span>Built with ❤️ for SEOs</span>
           </div>
         </div>

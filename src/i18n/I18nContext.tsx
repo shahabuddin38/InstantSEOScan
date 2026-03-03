@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useEffect, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import { getLocaleFromPath, LOCALE_META, DEFAULT_LOCALE, type Locale } from "./locales";
+import { getLocaleFromPath, LOCALE_META, DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from "./locales";
 
 // Import all translation files
 import en from "./translations/en.json";
@@ -42,10 +42,20 @@ const I18nContext = createContext<I18nContextValue>({
 
 export function I18nProvider({ children }: { children: ReactNode }) {
     const location = useLocation();
-    const locale = getLocaleFromPath(location.pathname);
+    const localeFromPath = getLocaleFromPath(location.pathname);
+    const firstSegment = location.pathname.split("/")[1];
+    const hasExplicitLocalePrefix = Boolean(
+        firstSegment && firstSegment === localeFromPath && firstSegment !== DEFAULT_LOCALE
+    );
+    const savedLocaleRaw = typeof window !== "undefined" ? localStorage.getItem("preferredLocale") : null;
+    const savedLocale = savedLocaleRaw && SUPPORTED_LOCALES.includes(savedLocaleRaw as Locale)
+        ? (savedLocaleRaw as Locale)
+        : null;
+    const locale = hasExplicitLocalePrefix ? localeFromPath : (savedLocale ?? DEFAULT_LOCALE);
     const dir = LOCALE_META[locale].dir;
 
     useEffect(() => {
+        localStorage.setItem("preferredLocale", locale);
         document.documentElement.lang = locale;
         document.documentElement.dir = dir;
     }, [locale, dir]);
