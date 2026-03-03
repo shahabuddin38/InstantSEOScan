@@ -129,8 +129,10 @@ function LocaleUrlSync() {
   useEffect(() => {
     const firstSeg = location.pathname.split("/")[1];
     const hasLocalePrefix = SUPPORTED_LOCALES.includes(firstSeg as any) && firstSeg !== "en";
+    const preferredLocale = localStorage.getItem("preferredLocale");
+    const shouldKeepUnprefixedEnglish = preferredLocale === "en";
 
-    if (locale !== "en" && !hasLocalePrefix) {
+    if (locale !== "en" && !hasLocalePrefix && !shouldKeepUnprefixedEnglish) {
       navigate(`${localizedPath(location.pathname, locale)}${location.search}${location.hash}`, { replace: true });
     }
   }, [locale, location.pathname, location.search, location.hash, navigate]);
