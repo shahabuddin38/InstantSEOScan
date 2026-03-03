@@ -1,7 +1,7 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { I18nProvider } from "./i18n/I18nContext";
-import { SUPPORTED_LOCALES } from "./i18n/locales";
+import { I18nProvider, useI18n } from "./i18n/I18nContext";
+import { SUPPORTED_LOCALES, localizedPath } from "./i18n/locales";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Sidebar from "./components/Sidebar";
@@ -121,6 +121,23 @@ function AppRoutes({ user, setUser, handleLogout }: { user: any; setUser: any; h
   );
 }
 
+function LocaleUrlSync() {
+  const { locale } = useI18n();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const firstSeg = location.pathname.split("/")[1];
+    const hasLocalePrefix = SUPPORTED_LOCALES.includes(firstSeg as any) && firstSeg !== "en";
+
+    if (locale !== "en" && !hasLocalePrefix) {
+      navigate(`${localizedPath(location.pathname, locale)}${location.search}${location.hash}`, { replace: true });
+    }
+  }, [locale, location.pathname, location.search, location.hash, navigate]);
+
+  return null;
+}
+
 export default function App() {
   const [user, setUser] = useState<any>(null);
 
@@ -140,6 +157,7 @@ export default function App() {
   return (
     <Router>
       <I18nProvider>
+        <LocaleUrlSync />
         <ScrollToTop />
         <div className="min-h-screen bg-neutral-50 font-sans text-neutral-900 selection:bg-emerald-100 selection:text-emerald-900 flex flex-col">
           <Navbar user={user} onLogout={handleLogout} />

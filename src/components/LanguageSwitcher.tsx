@@ -4,7 +4,7 @@ import { Globe } from "lucide-react";
 import { SUPPORTED_LOCALES, LOCALE_META, localizedPath, stripLocalePrefix, type Locale } from "../i18n/locales";
 import { useI18n } from "../i18n/I18nContext";
 
-export default function LanguageSwitcher() {
+export default function LanguageSwitcher({ openUp = false }: { openUp?: boolean }) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
     const { locale: currentLocale } = useI18n();
@@ -31,7 +31,7 @@ export default function LanguageSwitcher() {
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full mt-2 w-56 max-h-80 overflow-y-auto bg-white border border-neutral-200 rounded-xl shadow-xl p-1.5 z-50 grid grid-cols-2 gap-0.5">
+                <div className={`absolute right-0 ${openUp ? "bottom-full mb-2" : "top-full mt-2"} w-56 max-h-80 overflow-y-auto bg-white border border-neutral-200 rounded-xl shadow-xl p-1.5 z-50 grid grid-cols-2 gap-0.5`}>
                     {SUPPORTED_LOCALES.map((loc: Locale) => (
                         <Link
                             key={loc}
