@@ -36,7 +36,10 @@ export default function LanguageSwitcher({ openUp = false }: { openUp?: boolean 
                         <Link
                             key={loc}
                             to={localizedPath(currentPath, loc)}
-                            onClick={() => setOpen(false)}
+                            onClick={() => {
+                                localStorage.setItem("preferredLocale", loc);
+                                setOpen(false);
+                            }}
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${loc === currentLocale
                                     ? "bg-emerald-50 text-emerald-700"
                                     : "text-neutral-600 hover:bg-neutral-50 hover:text-emerald-600"
