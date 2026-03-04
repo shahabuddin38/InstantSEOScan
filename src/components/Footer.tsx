@@ -14,7 +14,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
           <div className="col-span-2 lg:col-span-2">
             <Link to={toLocalized("/")} className="flex items-center gap-2 mb-6">
-              <img src="/logo.png" alt="InstantSEOScan - AI-Powered SEO Audit Platform" className="w-8 h-8 rounded-lg" />
+              <img src="/logo.png" alt="InstantSEOScan  AI Powered SEO Audit & Analysis Platform" className="w-8 h-8 rounded-lg" />
               <span className="text-xl font-bold tracking-tight text-neutral-900">InstantSEOScan</span>
             </Link>
             <p className="text-neutral-500 max-w-xs mb-6 leading-relaxed">

@@ -18,7 +18,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
         <div className="flex justify-between h-16 items-center">
           <div className="flex items-center gap-2">
             <Link to={toLocalized("/")} className="flex items-center gap-2 group">
-              <img src="/logo.png" alt="InstantSEOScan - AI-Powered SEO Audit Platform" className="w-8 h-8 rounded-lg group-hover:rotate-12 transition-transform" />
+              <img src="/logo.png" alt="InstantSEOScan  AI Powered SEO Audit & Analysis Platform" className="w-8 h-8 rounded-lg group-hover:rotate-12 transition-transform" />
               <span className="text-xl font-bold tracking-tight text-neutral-900">InstantSEOScan</span>
             </Link>
           </div>

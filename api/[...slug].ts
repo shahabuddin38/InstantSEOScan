@@ -117,6 +117,15 @@ const isPrismaConnectionError = (error: any) => {
   );
 };
 
+const consumeOperationQuota = async (userId: string, resAny: VercelResponse) => {
+  try {
+    await checkQuota(userId);
+    return null;
+  } catch (error: any) {
+    return resAny.status(403).json({ error: error?.message || "Usage limit reached. Upgrade required." });
+  }
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url || "", "http://localhost");
   const path = url.pathname || "";
@@ -151,7 +160,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           plan: isAdmin ? "agency" : "free",
           status: isAdmin ? "approved" : "pending",
           verified: isAdmin,
-          usageLimit: isAdmin ? 999999 : 5,
+          usageLimit: isAdmin ? 999999 : 1,
         },
       });
       return res.json({
@@ -194,7 +203,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (user.subscriptionEnd && new Date(user.subscriptionEnd) < new Date()) {
           await prisma.user.update({
             where: { id: user.id },
-            data: { plan: "free", usageLimit: 5, subscriptionEnd: null },
+            data: { plan: "free", usageLimit: 1, subscriptionEnd: null },
           });
           (user as any).plan = "free";
         }
@@ -283,6 +292,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (path === "/api/scan/eeat") {
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.method !== "POST") return resAny.status(405).end();
+      const quotaFailure = await consumeOperationQuota(reqAny.user.id as string, resAny);
+      if (quotaFailure) return quotaFailure;
       const { url: eeatUrl } = reqAny.body || {};
       if (!eeatUrl) return resAny.status(400).json({ error: "URL is required" });
 
@@ -358,13 +369,13 @@ Include at least 10 checks covering: author credentials, about page, contact inf
 
       const { url } = parsed.data;
       const userId = reqAny.user.id as string;
+      const quotaFailure = await consumeOperationQuota(userId, resAny);
+      if (quotaFailure) return quotaFailure;
 
       const targetUrl = String(url).startsWith("http") ? String(url) : `https://${url}`;
       const urlKey = normalizedUrlKey(String(url));
 
       try {
-        await checkQuota(userId);
-
         const cacheWindow = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const cached = await prisma.scanReport.findFirst({
           where: {
@@ -972,6 +983,9 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
 
       if (action === "health") return resAny.json({ message: "API working" });
 
+      const quotaFailure = await consumeOperationQuota(reqAny.user.id as string, resAny);
+      if (quotaFailure) return quotaFailure;
+
       try {
         const result = await generateAI(prompt, {});
         return resAny.json(result);
@@ -1019,6 +1033,8 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
 
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.method !== "POST") return resAny.status(405).end();
+      const quotaFailure = await consumeOperationQuota(reqAny.user.id as string, resAny);
+      if (quotaFailure) return quotaFailure;
 
       const parsed = bodySchema.safeParse(reqAny.body || {});
       if (!parsed.success) {
@@ -1082,6 +1098,8 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
   if (path === "/api/tools/infra") {
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.method !== "POST") return resAny.status(405).end();
+      const quotaFailure = await consumeOperationQuota(reqAny.user.id as string, resAny);
+      if (quotaFailure) return quotaFailure;
       const { url: infraUrl } = reqAny.body || {};
       if (!infraUrl) return resAny.status(400).json({ error: "URL is required" });
 
@@ -1107,6 +1125,8 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
   if (path === "/api/mcp/call") {
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.method !== "POST") return resAny.status(405).end();
+      const quotaFailure = await consumeOperationQuota(reqAny.user.id as string, resAny);
+      if (quotaFailure) return quotaFailure;
       const { tool, args } = reqAny.body || {};
 
       return resAny.json({

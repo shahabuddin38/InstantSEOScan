@@ -100,7 +100,7 @@ export default function Home() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">SEARCH RESULTS.</span>
             </h1>
             <h1 className="max-w-2xl mx-auto text-xl text-neutral-400 mb-12 leading-relaxed">
-              Technical SEO audits, AI content optimization, and authority tracking in one powerful platform. Built for growth-focused SaaS and Agencies.
+              Analyze your website in seconds with InstantSEOScan.com. Get a free SEO audit, technical insights, on-page analysis, and actionable recommendations to improve rankings.
             </h1>
 
             {/* Core Scan Engine Input */}
@@ -288,7 +288,7 @@ export default function Home() {
 
           <h3 className="text-2xl font-bold mt-12 mb-6">Why Technical SEO is Your Foundation</h3>
           <p>
-            Technical SEO is the practice of optimizing your website for the crawling and indexing phase. If search engines can't crawl your site, they can't rank it. Our <strong>CoreScan Engine</strong> performs a deep technical audit that identifies:
+            Technical SEO is the practice of optimizing your website for the crawling and indexing phase. If search engines can't crawl your site, they can't rank it. Our <a href="https://www.instantseoscan.com/tools/corescan">CoreScan Engine</a> performs a deep technical audit that identifies:
           </p>
           <ul>
             <li><strong>Crawlability Issues:</strong> Broken links, 404 errors, and redirect loops that waste crawl budget.</li>
@@ -299,7 +299,7 @@ export default function Home() {
 
           <h3 className="text-2xl font-bold mt-12 mb-6">AI Content Optimization: The New Frontier</h3>
           <p>
-            Content is still king, but "AI Content" is the new crown. With the rise of LLMs, the volume of content on the web has exploded. To stand out, your content must be more than just accurate—it must be semantically complete. Our AI Content Score tool analyzes your text against thousands of top-ranking pages to identify NLP (Natural Language Processing) opportunities.
+            Content is still king, but "AI Content" is the new crown. With the rise of LLMs, the volume of content on the web has exploded. To stand out, your content must be more than just accurate it must be semantically complete. Our AI Content Score tool analyzes your text against thousands of top-ranking pages to identify NLP (Natural Language Processing) opportunities.
           </p>
 
           <div className="bg-white p-8 rounded-3xl border border-neutral-200 my-12 shadow-sm">
