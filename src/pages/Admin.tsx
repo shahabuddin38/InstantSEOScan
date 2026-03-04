@@ -202,6 +202,8 @@ export default function Admin() {
     GEMINI_API_KEY_1: "",
     GEMINI_API_KEY_2: "",
     GEMINI_API_KEY_3: "",
+    POSTGRES_URL: "",
+    PRISMA_DATABASE_URL: "",
   });
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -244,6 +246,8 @@ export default function Admin() {
         GEMINI_API_KEY_1: result.data.GEMINI_API_KEY_1 || "",
         GEMINI_API_KEY_2: result.data.GEMINI_API_KEY_2 || "",
         GEMINI_API_KEY_3: result.data.GEMINI_API_KEY_3 || "",
+        POSTGRES_URL: result.data.POSTGRES_URL || "",
+        PRISMA_DATABASE_URL: result.data.PRISMA_DATABASE_URL || "",
       });
     }
   };
@@ -1210,29 +1214,58 @@ export default function Admin() {
               Gemini API Keys
             </h2>
             <p className="text-xs text-neutral-500 mb-6">
-              Configure up to 3 API keys. If Key 1 expires, the system automatically falls back to Key 2, then Key 3.
+              Configure your Gemini AI Keys and Database Configuration.
             </p>
 
-            <div className="space-y-5">
-              {[
-                { key: "GEMINI_API_KEY_1" as const, label: "Primary Key (Key 1)", color: "emerald" },
-                { key: "GEMINI_API_KEY_2" as const, label: "Secondary Key (Key 2)", color: "blue" },
-                { key: "GEMINI_API_KEY_3" as const, label: "Tertiary Key (Key 3)", color: "purple" },
-              ].map(({ key, label, color }) => (
-                <div key={key} className="space-y-1">
-                  <label className="text-sm font-bold text-neutral-700 flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full bg-${color}-500`} />
-                    {label}
-                  </label>
+            <div className="space-y-8">
+              {/* Gemini Section */}
+              <div className="space-y-4">
+                <h3 className="font-bold text-sm text-neutral-800 border-b pb-2">AI Configuration</h3>
+                {[
+                  { key: "GEMINI_API_KEY_1" as const, label: "Primary Key (Key 1)", color: "emerald", type: "password" },
+                  { key: "GEMINI_API_KEY_2" as const, label: "Secondary Key (Key 2)", color: "blue", type: "password" },
+                  { key: "GEMINI_API_KEY_3" as const, label: "Tertiary Key (Key 3)", color: "purple", type: "password" },
+                ].map(({ key, label, color, type }) => (
+                  <div key={key} className="space-y-1">
+                    <label className="text-sm font-bold text-neutral-700 flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full bg-${color}-500`} />
+                      {label}
+                    </label>
+                    <input
+                      type={type}
+                      value={settingsForm[key]}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, [key]: e.target.value })}
+                      placeholder="AIzaSy..."
+                      className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Database Section */}
+              <div className="space-y-4">
+                <h3 className="font-bold text-sm text-neutral-800 border-b pb-2">Database Configuration</h3>
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-neutral-700">POSTGRES_URL</label>
                   <input
                     type="password"
-                    value={settingsForm[key]}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, [key]: e.target.value })}
-                    placeholder="AIzaSy..."
+                    value={settingsForm.POSTGRES_URL}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, POSTGRES_URL: e.target.value })}
+                    placeholder="postgres://user:password@host/db"
                     className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
                   />
                 </div>
-              ))}
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-neutral-700">PRISMA_DATABASE_URL</label>
+                  <input
+                    type="password"
+                    value={settingsForm.PRISMA_DATABASE_URL}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, PRISMA_DATABASE_URL: e.target.value })}
+                    placeholder="postgres://user:password@host/db?pgbouncer=true"
+                    className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                  />
+                </div>
+              </div>
 
               <p className="text-xs text-neutral-400 pt-2">
                 Keys are stored securely in the database (never in git). Leave a slot empty to skip it.
