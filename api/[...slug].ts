@@ -971,15 +971,60 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
       if (reqAny.method !== "POST") return resAny.status(405).end();
       const { action, payload } = reqAny.body || {};
 
-      const responses: Record<string, string> = {
-        health: "Health check ok",
-        insights: `Analyze these SEO insights: ${JSON.stringify(payload)}. You MUST return a STRICT JSON object (no markdown formatting) containing exact keys: 'keywordUsage' (string), 'readability' (string), 'nlpSuggestions' (string), 'contentGaps' (string), 'intentMatch' (string), 'missingHeadings' (string), and an array 'improvements' containing objects with 'title' (string) and 'description' (string). Provide actionable feedback.`,
-        keywords: `Suggest keyword strategies for: ${JSON.stringify(payload)}. You MUST return a STRICT JSON object containing properties: 'ideas' (array of strings), 'longTail' (array of strings), 'semantic' (array of strings), 'entities' (array of strings), 'questions' (array of strings).`,
-        chat: `You are InstantSEOScan AI assistant. Answer the user briefly and clearly with SEO-focused help. User message: ${JSON.stringify(payload?.message || "")}`,
-        strategyPlan: `Create a website SEO strategy plan from this input: ${JSON.stringify(payload)}. You MUST return STRICT JSON with keys: 'summary' (string), 'timelinePlan' (string), and 'priorities' (array of 5-10 objects each with 'title' and 'detail'). Focus on technical SEO, on-page, content, off-page, and tracking KPIs.`,
-      };
+        const responses: Record<string, string> = {
+    health: "Health check ok",
+    insights: `Analyze these SEO insights: ${JSON.stringify(payload)}.
+  You MUST return STRICT JSON only (no markdown) with exact keys:
+  - keywordUsage: string
+  - readability: string
+  - nlpSuggestions: string
+  - contentGaps: string
+  - intentMatch: string
+  - missingHeadings: string
+  - improvements: array of 3-8 objects with { title: string, description: string }
+  - faq: array of 3-6 objects with { question: string, answer: string }
+  Keep recommendations practical and prioritized.`,
+    keywords: `Generate SEO keyword research for this topic: ${JSON.stringify(payload)}.
+  Return STRICT JSON with exact keys:
+  - ideas: string[]
+  - longTail: string[]
+  - semantic: string[]
+  - entities: string[]
+  - questions: string[]
+  Provide at least 8 ideas and 6 long-tail terms.`,
+    rewrite: `Rewrite and optimize this content for SEO: ${JSON.stringify(payload)}.
+  Return STRICT JSON with exact keys:
+  - rewrittenContent: string
+  - metaDescription: string (max 160 chars)
+  - faqs: array of 3-5 objects with { question: string, answer: string }
+  - schema: object (valid JSON-LD Article schema)
+  Ensure natural readability and keyword placement.`,
+    aiOverview: `Optimize this content for AI Overviews and answer engines: ${JSON.stringify(payload)}.
+  Return STRICT JSON with exact keys:
+  - clarityScore: number (0-100)
+  - directAnswer: string
+  - structuredQA: array of 3-6 objects with { question: string, answer: string }
+  - entityCoverage: string
+  - conversationalTips: string`,
+    schema: `Generate JSON-LD schema for this input: ${JSON.stringify(payload)}.
+  Return STRICT JSON object only containing valid schema markup for the requested type.
+  Use @context and @type keys and include realistic required properties.`,
+    optimizeContent: `Evaluate and optimize this SEO content: ${JSON.stringify(payload)}.
+  Return STRICT JSON with exact keys:
+  - score: number (0-100)
+  - suggestions: array of 5-10 objects with { title: string, description: string }
+  - keywords: string[]
+  - readability: string`,
+    chat: `You are InstantSEOScan AI assistant. Answer briefly and clearly with SEO-focused help. User message: ${JSON.stringify(payload?.message || "")}`,
+    strategyPlan: `Create a website SEO strategy plan from this input: ${JSON.stringify(payload)}.
+  Return STRICT JSON with keys:
+  - summary: string
+  - timelinePlan: string
+  - priorities: array of 5-10 objects with { title: string, detail: string }
+  Focus on technical SEO, on-page SEO, content, off-page SEO, and KPI tracking.`,
+        };
 
-      const prompt = responses[action] || `Generate SEO insights for: ${JSON.stringify(payload)}`;
+        const prompt = responses[String(action || "")] || `Generate SEO insights for: ${JSON.stringify(payload)}`;
 
       if (action === "health") return resAny.json({ message: "API working" });
 
@@ -1027,7 +1072,7 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
   // AI: on-page (POST /api/ai/on-page)
   if (path === "/api/ai/on-page") {
     const bodySchema = z.object({
-      task: z.enum(["meta", "content", "keywords", "technical"]),
+      task: z.enum(["meta", "content", "keywords", "technical", "score"]),
       data: z.record(z.any()).optional(),
     });
 
@@ -1052,8 +1097,56 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
         prompt = `Generate a basic keyword strategy for: "${data?.keyword}". Return JSON with keys: related, longTail, questions, semantic.`;
       } else if (task === "technical") {
         prompt = `Provide technical on-page SEO suggestions for: "${data?.topic}". Return JSON with keys: altText, internalLinks, schema, mobile, speed.`;
+      } else if (task === "score") {
+        prompt = `Analyze this page content and provide SEO scoring insights: ${JSON.stringify(data)}.
+Return STRICT JSON with keys: overallScore (number), readability (string), keywordUsage (string), issues (array of strings), quickFixes (array of strings).`;
       } else {
         return resAny.status(400).json({ error: "Invalid task" });
+      }
+
+      try {
+        const result = await generateAI(prompt, {});
+        return resAny.json(result);
+      } catch (error: any) {
+        return resAny.status(500).json({ error: error?.message || "AI request failed" });
+      }
+    });
+    return authed(req as any, res as any);
+  }
+
+  // AI: off-page (POST /api/ai/off-page)
+  if (path === "/api/ai/off-page") {
+    const bodySchema = z.object({
+      task: z.enum(["backlinks", "outreach", "competitor", "social"]),
+      data: z.record(z.any()).optional(),
+    });
+
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.method !== "POST") return resAny.status(405).end();
+
+      const quotaFailure = await consumeOperationQuota(reqAny.user.id as string, resAny);
+      if (quotaFailure) return quotaFailure;
+
+      const parsed = bodySchema.safeParse(reqAny.body || {});
+      if (!parsed.success) {
+        return resAny.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+      }
+
+      const { task, data } = parsed.data;
+      let prompt = "";
+
+      if (task === "backlinks") {
+        prompt = `Create a backlink strategy for this niche data: ${JSON.stringify(data)}.
+Return STRICT JSON with keys: opportunities (array), targetSites (array), anchorTextStrategy (string), riskNotes (array), nextSteps (array).`;
+      } else if (task === "outreach") {
+        prompt = `Create outreach content strategy from: ${JSON.stringify(data)}.
+Return STRICT JSON with keys: emailTemplates (array), pitchAngles (array), followUpSequence (array), personalizationTips (array).`;
+      } else if (task === "competitor") {
+        prompt = `Analyze competitors using this input: ${JSON.stringify(data)}.
+Return STRICT JSON with keys: gaps (array), linkOpportunities (array), contentAngles (array), actionPlan (array).`;
+      } else {
+        prompt = `Build social SEO strategy from: ${JSON.stringify(data)}.
+Return STRICT JSON with keys: channelPlan (array), contentFormats (array), postingCadence (string), engagementTactics (array), trackingMetrics (array).`;
       }
 
       try {

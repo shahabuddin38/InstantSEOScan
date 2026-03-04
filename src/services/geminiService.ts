@@ -7,7 +7,9 @@ async function callGemini<T>(action: string, payload: Record<string, any>, fallb
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, payload: payload || {} })
     });
-    console.log("Gemini API Response:", res.data);
+    if (!res.ok) {
+      throw new Error(res.error || "Gemini request failed");
+    }
     return res.data ?? fallback;
   } catch (error) {
     console.error("Gemini API route error:", error);
