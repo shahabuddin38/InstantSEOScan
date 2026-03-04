@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -20,8 +20,18 @@ import {
   X,
   GripVertical,
   MessageSquare,
+  LayoutDashboard,
+  Search,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  FileEdit,
+  Moon,
+  Upload,
 } from "lucide-react";
 import { apiRequest } from "../services/apiClient";
+import { cn } from "../lib/utils";
 
 type AdminStats = {
   userCount?: { count: number };
@@ -40,6 +50,7 @@ type AdminUser = {
   verified: number;
   usage_count: number;
   usage_limit: number;
+  createdAt?: string;
 };
 
 type CRMResponse = {
@@ -62,6 +73,8 @@ type BlogPost = {
   coverImage?: string;
   blocks?: BlogBlock[];
   createdAt: string;
+  status?: "Published" | "Draft";
+  seoScore?: number;
 };
 
 type BlogBlock = {
@@ -70,6 +83,7 @@ type BlogBlock = {
   text: string;
   url?: string;
   alt?: string;
+  description?: string;
 };
 
 type ContactMessage = {
@@ -84,8 +98,77 @@ type ContactMessage = {
 
 const tokenHeaders = () => ({});
 
+// --- UI Components ---
+const SidebarItem = ({ icon: Icon, label, active = false, onClick }: { icon: any, label: string, active?: boolean, onClick: () => void }) => (
+  <div
+    onClick={onClick}
+    className={cn(
+      "flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition-all duration-200 group",
+      active ? "bg-[#E7F7F1] text-[#10B981]" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+    )}
+  >
+    <Icon size={20} className={cn(active ? "text-[#10B981]" : "text-slate-400 group-hover:text-slate-600")} />
+    <span className="font-medium text-sm">{label}</span>
+  </div>
+);
+
+const StatCard = ({ label, value, change, icon: Icon, iconBg, iconColor }: { label: string, value: string | number, change: string | number, icon: any, iconBg: string, iconColor: string }) => (
+  <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-4">
+    <div className="flex justify-between items-start">
+      <span className="text-slate-500 text-sm font-medium">{label}</span>
+      <div className={cn("p-2 rounded-lg", iconBg)}>
+        <Icon size={18} className={iconColor} />
+      </div>
+    </div>
+    <div className="flex items-end gap-2">
+      <span className="text-2xl font-bold text-slate-900">{value}</span>
+      <span className="text-[#10B981] text-xs font-bold mb-1 flex items-center gap-0.5">
+        {change} <TrendingUp size={12} />
+      </span>
+    </div>
+  </div>
+);
+
+const SEOProgress = ({ score = 80 }: { score?: number }) => {
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+
+  let color = "#EF4444"; // Red
+  if (score >= 80) color = "#10B981"; // Green
+  else if (score >= 60) color = "#F59E0B"; // Orange
+
+  return (
+    <div className="relative flex items-center justify-center w-12 h-12">
+      <svg className="w-full h-full transform -rotate-90">
+        <circle
+          cx="24"
+          cy="24"
+          r={radius}
+          stroke="#F1F5F9"
+          strokeWidth="4"
+          fill="transparent"
+        />
+        <circle
+          cx="24"
+          cy="24"
+          r={radius}
+          stroke={color}
+          strokeWidth="4"
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="absolute text-[11px] font-bold text-slate-700">{score}</span>
+    </div>
+  );
+};
+
+
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<"overview" | "crm" | "cms" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "crm" | "cms" | "settings" | "aiwriter">("dashboard");
   const [stats, setStats] = useState<AdminStats>({});
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [crm, setCrm] = useState<CRMResponse>({});
@@ -95,7 +178,15 @@ export default function Admin() {
   const [error, setError] = useState("");
   const [savingPost, setSavingPost] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
+  const [aiTopic, setAiTopic] = useState("");
+  const [generatingAi, setGeneratingAi] = useState(false);
+
+  // File Upload State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadTargetBlock, setUploadTargetBlock] = useState<string | null>(null);
+
   const [postForm, setPostForm] = useState({
     title: "",
     slug: "",
@@ -136,7 +227,7 @@ export default function Admin() {
   const fetchBlogPosts = async () => {
     const result = await apiRequest<BlogPost[]>("/api/admin/blog", { headers: tokenHeaders() });
     if (!result.ok || !result.data) throw new Error(result.error || "Failed to load CMS posts");
-    setPosts(result.data);
+    setPosts(result.data.map(p => ({ ...p, status: p.status || "Published", seoScore: p.seoScore || 85 })));
   };
 
   const fetchMessages = async () => {
@@ -187,6 +278,12 @@ export default function Admin() {
   useEffect(() => {
     loadAll();
   }, []);
+
+  useEffect(() => {
+    if (posts.length > 0 && !selectedPost && activeTab === "cms") {
+      setSelectedPost(posts[0]);
+    }
+  }, [posts, activeTab]);
 
   const handleApprove = async (userId: string) => {
     const result = await apiRequest(`/api/admin/users/${userId}/approve`, {
@@ -254,7 +351,7 @@ export default function Admin() {
     alert(`Password for ${email} has been reset successfully.`);
   };
 
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUserDetail, setSelectedUserDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   const handleViewUser = async (userId: string) => {
@@ -262,7 +359,7 @@ export default function Admin() {
     const result = await apiRequest<any>(`/api/admin/users/${userId}/detail`, { headers: tokenHeaders() });
     setLoadingDetail(false);
     if (!result.ok) { setError(result.error || "Failed to load user"); return; }
-    setSelectedUser(result.data);
+    setSelectedUserDetail(result.data);
   };
 
   const resetPostForm = () => {
@@ -284,6 +381,7 @@ export default function Admin() {
     text: "",
     url: "",
     alt: "",
+    description: "",
   });
 
   const addBlock = (type: BlogBlock["type"]) => {
@@ -333,7 +431,7 @@ export default function Admin() {
 
   const handleSavePost = async () => {
     const derivedContent = postForm.blocks.map((block) => block.text.trim()).filter(Boolean).join("\n\n") || postForm.content;
-    if (!postForm.title.trim() || !derivedContent.trim()) {
+    if (!postForm.title.trim() || (!derivedContent.trim() && postForm.blocks.length === 0)) {
       setError("Post title and content are required.");
       return;
     }
@@ -416,108 +514,544 @@ export default function Admin() {
 
     await Promise.all([fetchBlogPosts(), fetchStats()]);
     if (editingPostId === id) resetPostForm();
+    if (selectedPost?.id === id) setSelectedPost(null);
+  };
+
+  // --- Handlers for Image Upload via Base64 ---
+  const triggerImageUpload = (blockId: string | null = null) => {
+    setUploadTargetBlock(blockId);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (uploadTargetBlock === null) {
+        setPostForm(prev => ({ ...prev, coverImage: base64String }));
+      } else {
+        updateBlock(uploadTargetBlock, { url: base64String });
+      }
+      setUploadTargetBlock(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // --- Handler for AI Gen ---
+  const handleGenerateAIArticle = async () => {
+    if (!aiTopic.trim()) {
+      setError("Please enter a topic for the AI to write about.");
+      return;
+    }
+    setGeneratingAi(true);
+    setError("");
+
+    const result = await apiRequest<any>("/api/admin/blog/generate", {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ topic: aiTopic }),
+    });
+
+    setGeneratingAi(false);
+
+    if (!result.ok || !result.data) {
+      setError(result.error || "Failed to generate AI article");
+      return;
+    }
+
+    setActiveTab("cms");
+    setEditingPostId(null);
+    setPostForm({
+      title: result.data.title,
+      slug: "",
+      content: "",
+      excerpt: result.data.excerpt || "",
+      coverImage: result.data.coverImage || "",
+      author: "AI Writer",
+      blocks: result.data.blocks || [],
+    });
+    setAiTopic("");
   };
 
   const activeSubscriptions = useMemo(() => users.filter((u) => u.plan !== "free").length, [users]);
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-neutral-500">Loading admin workspace...</div>
+      <div className="flex items-center justify-center min-h-screen bg-[#F8FAFC]">
+        <div className="text-neutral-500 font-bold flex items-center gap-2">
+          <RefreshCw className="animate-spin" size={20} /> Loading admin workspace...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-1">Admin Workspace</h1>
-          <p className="text-neutral-500">Overview, CRM operations, and CMS publishing in one place</p>
+    <div className="flex min-h-screen bg-[#F8FAFC]">
+      <input type="file" ref={fileInputRef} className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handleFileChange} />
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r border-slate-100 flex flex-col p-6 sticky top-0 h-screen shrink-0">
+        <div className="flex items-center gap-2 mb-10 cursor-pointer" onClick={() => navigate("/")}>
+          <div className="bg-[#10B981] p-1.5 rounded-lg">
+            <Zap size={20} className="text-white fill-white" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-slate-900">
+            Instant<span className="text-[#10B981]">SEO</span>Scan
+          </span>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={loadAll}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm font-bold hover:bg-neutral-50"
-          >
-            <RefreshCw size={16} /> Refresh
-          </button>
-          <button
-            onClick={() => navigate("/tools/mcp")}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm font-bold hover:bg-neutral-50"
-          >
-            <Settings size={16} /> Settings
-          </button>
-        </div>
-      </div>
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 text-sm font-medium">
-          {error}
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-2 mb-8">
-        {[
-          { id: "overview", label: "Overview" },
-          { id: "crm", label: "CRM" },
-          { id: "cms", label: "CMS" },
-          { id: "settings", label: "Settings" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === tab.id
-              ? "bg-emerald-600 text-white border-emerald-600"
-              : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
-              }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === "overview" && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-            <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm">
-              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
-                <Users size={20} />
-              </div>
-              <div className="text-2xl font-bold">{stats.userCount?.count || 0}</div>
-              <div className="text-sm text-neutral-500">Total Users</div>
-            </div>
-            <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm">
-              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
-                <Zap size={20} />
-              </div>
-              <div className="text-2xl font-bold">{stats.scanCount?.count || 0}</div>
-              <div className="text-sm text-neutral-500">Total Scans</div>
-            </div>
-            <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm">
-              <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-4">
-                <CheckCircle2 size={20} />
-              </div>
-              <div className="text-2xl font-bold">{stats.pendingCount?.count || 0}</div>
-              <div className="text-sm text-neutral-500">Pending Approvals</div>
-            </div>
-            <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-sm">
-              <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4">
-                <Newspaper size={20} />
-              </div>
-              <div className="text-2xl font-bold">{stats.blogCount?.count || 0}</div>
-              <div className="text-sm text-neutral-500">Published Posts</div>
-            </div>
+        <div className="flex flex-col gap-8 flex-1">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-4">Platform</p>
+            <nav className="flex flex-col gap-1">
+              <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} />
+              <SidebarItem icon={FileText} label="Content Manager" active={activeTab === "cms"} onClick={() => setActiveTab("cms")} />
+              <SidebarItem icon={Sparkles} label="AI Writer" active={activeTab === "aiwriter"} onClick={() => setActiveTab("aiwriter")} />
+            </nav>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
-                <h2 className="font-bold">User Management</h2>
-                <div className="flex items-center gap-2 text-xs font-bold text-neutral-400">
-                  <Users size={14} />
-                  {users.length} Users
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-4">Configuration</p>
+            <nav className="flex flex-col gap-1">
+              <SidebarItem icon={Users} label="Team Members" active={activeTab === "crm"} onClick={() => setActiveTab("crm")} />
+              <SidebarItem icon={Settings} label="SEO Settings" active={activeTab === "settings"} onClick={() => setActiveTab("settings")} />
+            </nav>
+          </div>
+        </div>
+
+        <div className="mt-auto flex flex-col gap-6">
+          <button className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors">
+            <Moon size={18} />
+            <span className="text-sm font-medium">Toggle Appearance</span>
+          </button>
+
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-600">
+              AD
+            </div>
+            <div className="flex flex-col border-emerald-100">
+              <span className="text-sm font-bold text-slate-900">Admin User</span>
+              <span className="text-[11px] text-slate-500 font-medium">Super Admin</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 p-10 overflow-y-auto relative">
+        <header className="flex justify-between items-start mb-10">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+              {activeTab === "dashboard" && "Dashboard Overview"}
+              {activeTab === "cms" && (<>SEO CMS <span className="text-[#10B981]">Content Manager</span></>)}
+              {activeTab === "crm" && "Team Members & CRM"}
+              {activeTab === "settings" && "SEO Settings"}
+              {activeTab === "aiwriter" && "AI Article Writer"}
+            </h1>
+            <p className="text-slate-500 font-medium">
+              {activeTab === "dashboard" ? "System statistics and recent activity." :
+                activeTab === "cms" ? "Manage, optimize and publish high-ranking AI articles." :
+                  activeTab === "crm" ? "Manage users, subscriptions, and plans." :
+                    activeTab === "settings" ? "Configure API keys and platform settings." :
+                      "Generate SEO optimized articles in a single click."}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={loadAll}
+              className="p-3 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+              title="Refresh Data"
+            >
+              <RefreshCw size={18} />
+            </button>
+            {activeTab === "cms" && (
+              <button onClick={resetPostForm} className="bg-[#10B981] hover:bg-[#059669] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-emerald-100">
+                <Plus size={20} />
+                Create New Post
+              </button>
+            )}
+          </div>
+        </header>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 text-sm font-medium flex items-center justify-between">
+            {error}
+            <button onClick={() => setError("")}><X size={16} /></button>
+          </div>
+        )}
+
+        {/* Dashboard Tab */}
+        {activeTab === "dashboard" && (
+          <>
+            <div className="grid grid-cols-4 gap-6 mb-10">
+              <StatCard label="Total Users" value={stats.userCount?.count || 0} change="+12" icon={Users} iconBg="bg-blue-50" iconColor="text-blue-500" />
+              <StatCard label="Total Scans" value={stats.scanCount?.count || 0} change="+42" icon={Zap} iconBg="bg-emerald-50" iconColor="text-[#10B981]" />
+              <StatCard label="Total Blog Posts" value={stats.blogCount?.count || 0} change="+5" icon={FileText} iconBg="bg-purple-50" iconColor="text-purple-500" />
+              <StatCard label="Pending Approvals" value={stats.pendingCount?.count || 0} change="Needs review" icon={CheckCircle2} iconBg="bg-orange-50" iconColor="text-orange-500" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
+                  <h2 className="font-bold flex items-center gap-2"><MessageSquare size={16} /> Recent Contact Messages</h2>
+                  <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{messages.length} total</span>
                 </div>
+                <div className="divide-y divide-neutral-100">
+                  {messages.length === 0 && <div className="p-6 text-sm text-neutral-500">No messages yet.</div>}
+                  {messages.slice(0, 5).map((message) => (
+                    <div key={message.id} className="p-6 flex items-start justify-between gap-4 hover:bg-slate-50 transition-colors">
+                      <div>
+                        <h3 className="font-bold text-sm">{message.subject}</h3>
+                        <p className="text-xs text-neutral-500 mb-2">{message.name} • {message.email} • {new Date(message.createdAt).toLocaleString()}</p>
+                        <p className="text-sm text-neutral-700 whitespace-pre-wrap">{message.message}</p>
+                      </div>
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <select
+                          value={message.status}
+                          onChange={(e) => handleMessageStatus(message.id, e.target.value as ContactMessage["status"])}
+                          className="px-2 py-1 bg-neutral-50 border border-neutral-200 rounded-lg text-xs font-bold"
+                        >
+                          <option value="new">New</option>
+                          <option value="read">Read</option>
+                          <option value="resolved">Resolved</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+                <h2 className="font-bold mb-6 flex items-center gap-2">
+                  <Lock size={18} className="text-neutral-400" />
+                  SaaS Controls
+                </h2>
+                <div className="space-y-4">
+                  <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
+                    <div className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2">Subscriptions</div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Active Paid Users</span>
+                      <span className="font-bold">{activeSubscriptions}</span>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
+                    <div className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2">Plans</div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Pro</span>
+                      <span className="font-bold">$10/mo</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm mt-1">
+                      <span>Agency</span>
+                      <span className="font-bold">$100/mo</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* CMS Tab */}
+        {activeTab === "cms" && (
+          <div className="flex flex-col lg:flex-row gap-8 items-start relative">
+            <div className="w-full lg:w-2/3 space-y-8">
+
+              {/* Search & Filters Placeholder */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search articles..."
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-bottom border-slate-50 bg-slate-50/30">
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Post Title & Metadata</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">SEO Score</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {posts.map((post) => (
+                      <tr
+                        key={post.id}
+                        className={cn(
+                          "group hover:bg-slate-50/50 transition-colors cursor-pointer border-t border-slate-50",
+                          selectedPost?.id === post.id && "bg-emerald-50/30"
+                        )}
+                        onClick={() => setSelectedPost(post)}
+                      >
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-4">
+                            {post.coverImage ? (
+                              <img
+                                src={post.coverImage}
+                                alt={post.title}
+                                className="w-12 h-12 rounded-xl object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
+                                <FileText className="text-slate-400" size={20} />
+                              </div>
+                            )}
+
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm font-bold text-slate-900 group-hover:text-[#10B981] transition-colors">{post.title}</span>
+                              <div className="flex items-center gap-3 text-[11px] text-slate-400 font-medium">
+                                <span className="flex items-center gap-1">
+                                  <Calendar size={12} /> {new Date(post.createdAt).toLocaleDateString()}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Users size={12} /> {post.author || "Admin"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <SEOProgress score={post.seoScore} />
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-bold",
+                            post.status === 'Published' ? "bg-emerald-100 text-[#10B981]" : "bg-slate-100 text-slate-500"
+                          )}>
+                            • {post.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-right flex justify-end gap-2">
+                          <button onClick={(e) => { e.stopPropagation(); startEditPost(post); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="Edit inline">
+                            <FileEdit size={18} />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id); }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Delete">
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {posts.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-8 text-center text-sm text-slate-500">
+                          No posts found. Create one or use the AI Writer.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+
+            {/* Right Sidebar - Full Editor if editing/creating, else Quick View */}
+            <div className="w-full lg:w-1/3 shrink-0">
+              {editingPostId || postForm.title !== "" || postForm.blocks.length > 0 ? (
+                <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-6 flex flex-col gap-6 sticky top-6 max-h-[calc(100vh-80px)] overflow-y-auto">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                    <h2 className="font-bold flex items-center gap-2">
+                      <FileEdit size={18} className="text-[#10B981]" />
+                      {editingPostId ? "Full Editor" : "New Post Editor"}
+                    </h2>
+                    <button onClick={resetPostForm} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={postForm.title}
+                      onChange={(e) => setPostForm((prev) => ({ ...prev, title: e.target.value }))}
+                      placeholder="Post title"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                    <input
+                      type="text"
+                      value={postForm.slug}
+                      onChange={(e) => setPostForm((prev) => ({ ...prev, slug: e.target.value }))}
+                      placeholder="Slug (optional)"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cover Image</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={postForm.coverImage}
+                          onChange={(e) => setPostForm((prev) => ({ ...prev, coverImage: e.target.value }))}
+                          placeholder="Cover image URL or upload ->"
+                          className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                        <button onClick={() => triggerImageUpload(null)} className="px-4 bg-emerald-100 text-[#10B981] rounded-xl hover:bg-emerald-200 transition-colors flex items-center justify-center" title="Upload Image">
+                          <Upload size={18} />
+                        </button>
+                      </div>
+                      {postForm.coverImage && <img src={postForm.coverImage} alt="Cover Preview" className="h-24 object-cover rounded-xl mt-2 border border-slate-100 max-w-full" />}
+                    </div>
+
+                    <div className="flex gap-2 bg-slate-50 p-2 rounded-xl overflow-x-auto no-scrollbar">
+                      {[
+                        ["h2", "H2"],
+                        ["paragraph", "Text"],
+                        ["list", "List"],
+                        ["image", "Img"],
+                      ].map(([type, label]) => (
+                        <button
+                          key={type}
+                          onClick={() => addBlock(type as BlogBlock["type"])}
+                          className="px-3 py-1.5 text-xs font-bold bg-white text-slate-600 border border-slate-200 rounded-lg hover:border-[#10B981] hover:text-[#10B981] transition-colors shrink-0"
+                        >
+                          + {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="space-y-4 pt-2">
+                      {postForm.blocks.length === 0 && (
+                        <div className="p-4 text-center border-2 border-dashed border-slate-200 rounded-xl text-xs text-slate-400">
+                          Add blocks to build content.
+                        </div>
+                      )}
+                      {postForm.blocks.map((block) => (
+                        <div
+                          key={block.id}
+                          className="p-3 border border-slate-200 bg-slate-50 rounded-xl flex flex-col gap-2"
+                          draggable
+                          onDragStart={() => setDraggingBlockId(block.id)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => {
+                            if (!draggingBlockId || draggingBlockId === block.id) return;
+                            moveBlock(draggingBlockId, block.id);
+                            setDraggingBlockId(null);
+                          }}
+                          onDragEnd={() => setDraggingBlockId(null)}
+                        >
+                          <div className="flex items-center justify-between opacity-50 hover:opacity-100 mb-1">
+                            <GripVertical size={14} className="cursor-grab text-slate-400" />
+                            <button onClick={() => removeBlock(block.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                          </div>
+
+                          {(block.type === "image") ? (
+                            <div className="space-y-2">
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={block.url || ""}
+                                  onChange={(e) => updateBlock(block.id, { url: e.target.value })}
+                                  placeholder="Image URL or upload ->"
+                                  className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none"
+                                />
+                                <button onClick={() => triggerImageUpload(block.id)} className="w-10 flex items-center justify-center bg-emerald-100 text-[#10B981] rounded-lg hover:bg-emerald-200">
+                                  <Upload size={16} />
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                value={block.alt || ""}
+                                onChange={(e) => updateBlock(block.id, { alt: e.target.value })}
+                                placeholder="Alt text (SEO)"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none"
+                              />
+                              <input
+                                type="text"
+                                value={block.description || ""}
+                                onChange={(e) => updateBlock(block.id, { description: e.target.value })}
+                                placeholder="Caption / Description"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none"
+                              />
+                              {block.url && <img src={block.url} className="mt-2 rounded max-h-32 object-contain bg-white border" alt="preview" />}
+                            </div>
+                          ) : (
+                            <textarea
+                              value={block.text}
+                              onChange={(e) => updateBlock(block.id, { text: e.target.value })}
+                              placeholder={`${block.type}...`}
+                              rows={block.type === "paragraph" ? 4 : 2}
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none resize-y min-h-[60px]"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={handleSavePost}
+                      disabled={savingPost}
+                      className="w-full py-3 mt-4 bg-[#10B981] text-white rounded-xl font-bold text-sm hover:bg-[#059669] transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 flex justify-center items-center gap-2"
+                    >
+                      {savingPost ? "Saving..." : <><Save size={18} /> Save & Publish</>}
+                    </button>
+                  </div>
+                </div>
+              ) : selectedPost ? (
+                <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-6 flex flex-col gap-6 sticky top-6">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-bold text-slate-900">Quick View</h2>
+                    <span className="px-2 py-1 bg-emerald-50 text-[#10B981] text-[9px] font-bold rounded uppercase tracking-wider">Ready</span>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Currently Selected</p>
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                      <p className="text-sm font-bold text-slate-900 mb-3 leading-relaxed">{selectedPost.title}</p>
+                      <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mb-2">
+                        <div
+                          className="bg-[#10B981] h-full rounded-full transition-all duration-500"
+                          style={{ width: `${selectedPost.seoScore || 0}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] font-bold mb-4">
+                        <span className="text-slate-400">SEO Score</span>
+                        <span className="text-[#10B981]">{selectedPost.seoScore}%</span>
+                      </div>
+                      <button onClick={() => startEditPost(selectedPost)} className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors">
+                        Full Editor Mode
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Content Summary</p>
+                    <p className="text-sm text-slate-600 line-clamp-4">{selectedPost.excerpt || selectedPost.content}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-6 text-center text-slate-400 text-sm">
+                  Select a post to view details
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CRM Tab */}
+        {activeTab === "crm" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1 bg-white rounded-3xl border border-neutral-200 shadow-sm p-6">
+              <h2 className="font-bold mb-4">CRM Snapshot</h2>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between"><span>Total Users</span><strong>{crm.totals?.totalUsers || 0}</strong></div>
+                <div className="flex justify-between"><span>Approved</span><strong>{crm.totals?.approvedUsers || 0}</strong></div>
+                <div className="flex justify-between"><span>Pending</span><strong>{crm.totals?.pendingUsers || 0}</strong></div>
+                <div className="flex justify-between"><span>Paid Users</span><strong>{crm.totals?.paidUsers || 0}</strong></div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-neutral-100">
+                <h2 className="font-bold">Most Active Users</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
@@ -530,7 +1064,7 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100">
-                    {users.map((user) => (
+                    {(crm.users || []).map((user) => (
                       <tr key={user.id} className="hover:bg-neutral-50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="font-bold text-sm">{user.email}</div>
@@ -591,25 +1125,11 @@ export default function Admin() {
                               <Shield size={16} />
                             </button>
                             <button
-                              onClick={() => handleUpdatePlan(user.id, "custom", 500)}
-                              className="p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-colors"
-                              title="Set Custom Plan"
-                            >
-                              <Calendar size={16} />
-                            </button>
-                            <button
                               onClick={() => handleResetPassword(user.id, user.email)}
                               className="p-2 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors"
                               title="Reset Password"
                             >
                               <Key size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleViewUser(user.id)}
-                              className="p-2 bg-neutral-50 text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors"
-                              title="View Details"
-                            >
-                              <Eye size={16} />
                             </button>
                             <button
                               onClick={() => handleDeleteUser(user.id, user.email)}
@@ -626,437 +1146,108 @@ export default function Admin() {
                 </table>
               </div>
             </div>
-
-            {/* User Detail Modal */}
-            {selectedUser && (
-              <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelectedUser(null)}>
-                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-8" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="font-bold text-lg">User Details</h2>
-                    <button onClick={() => setSelectedUser(null)} className="p-2 hover:bg-neutral-100 rounded-lg"><X size={18} /></button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    {[
-                      { label: "User ID", value: selectedUser.id },
-                      { label: "Email", value: selectedUser.email },
-                      { label: "Role", value: selectedUser.role },
-                      { label: "Plan", value: selectedUser.plan },
-                      { label: "Status", value: selectedUser.status },
-                      { label: "Verified", value: selectedUser.verified ? "Yes" : "No" },
-                      { label: "Usage", value: `${selectedUser.usageCount} / ${selectedUser.usageLimit}` },
-                      { label: "Joined", value: new Date(selectedUser.createdAt).toLocaleDateString() },
-                      { label: "Subscription Ends", value: selectedUser.subscriptionEnd ? new Date(selectedUser.subscriptionEnd).toLocaleDateString() : "N/A" },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="p-3 bg-neutral-50 rounded-xl">
-                        <div className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{label}</div>
-                        <div className="text-sm font-medium text-neutral-800 break-all">{value}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <h3 className="font-bold text-sm mb-3">Scan Audit History ({selectedUser.scans?.length || 0})</h3>
-                  {selectedUser.scans?.length > 0 ? (
-                    <div className="overflow-x-auto rounded-xl border border-neutral-200">
-                      <table className="w-full text-xs">
-                        <thead className="bg-neutral-50">
-                          <tr>
-                            <th className="px-4 py-2 text-left font-bold text-neutral-500">URL</th>
-                            <th className="px-4 py-2 text-left font-bold text-neutral-500">Score</th>
-                            <th className="px-4 py-2 text-left font-bold text-neutral-500">Date</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-neutral-100">
-                          {selectedUser.scans.map((scan: any) => (
-                            <tr key={scan.id} className="hover:bg-neutral-50">
-                              <td className="px-4 py-2 text-neutral-700 truncate max-w-[200px]">{scan.url || scan.normalizedUrl}</td>
-                              <td className="px-4 py-2"><span className={`font-bold ${scan.score >= 80 ? "text-emerald-600" : scan.score >= 50 ? "text-orange-600" : "text-red-600"}`}>{scan.score}</span></td>
-                              <td className="px-4 py-2 text-neutral-500">{new Date(scan.createdAt).toLocaleDateString()}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-neutral-400">No scan history found.</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-8">
-              <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
-                <h2 className="font-bold mb-6 flex items-center gap-2">
-                  <Lock size={18} className="text-neutral-400" />
-                  SaaS Controls
-                </h2>
-                <div className="space-y-4">
-                  <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
-                    <div className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2">Subscriptions</div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Active Paid Users</span>
-                      <span className="font-bold">{activeSubscriptions}</span>
-                    </div>
-                  </div>
-                  <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
-                    <div className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2">Plans</div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Pro</span>
-                      <span className="font-bold">$10/mo</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm mt-1">
-                      <span>Agency</span>
-                      <span className="font-bold">$100/mo</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
-                <h2 className="font-bold mb-2 flex items-center gap-2">
-                  <BarChart3 size={18} className="text-neutral-400" />
-                  System Summary
-                </h2>
-                <p className="text-xs text-neutral-500 mb-4">Quick signal of approval and publishing workflow.</p>
-                <ul className="space-y-2 text-sm text-neutral-700">
-                  <li className="flex justify-between"><span>Pending Users</span><strong>{stats.pendingCount?.count || 0}</strong></li>
-                  <li className="flex justify-between"><span>Total Blog Posts</span><strong>{stats.blogCount?.count || 0}</strong></li>
-                  <li className="flex justify-between"><span>Contact Messages</span><strong>{stats.messageCount?.count || 0}</strong></li>
-                  <li className="flex justify-between"><span>Total Scans</span><strong>{stats.scanCount?.count || 0}</strong></li>
-                </ul>
-              </div>
-            </div>
           </div>
-        </>
-      )}
+        )}
 
-      {activeTab === "crm" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 bg-white rounded-3xl border border-neutral-200 shadow-sm p-6">
-            <h2 className="font-bold mb-4">CRM Snapshot</h2>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between"><span>Total Users</span><strong>{crm.totals?.totalUsers || 0}</strong></div>
-              <div className="flex justify-between"><span>Approved</span><strong>{crm.totals?.approvedUsers || 0}</strong></div>
-              <div className="flex justify-between"><span>Pending</span><strong>{crm.totals?.pendingUsers || 0}</strong></div>
-              <div className="flex justify-between"><span>Paid Users</span><strong>{crm.totals?.paidUsers || 0}</strong></div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-2 bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-neutral-100">
-              <h2 className="font-bold">Most Active Users</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-xs font-bold text-neutral-400 uppercase tracking-widest bg-neutral-50">
-                    <th className="px-6 py-4">Email</th>
-                    <th className="px-6 py-4">Plan</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Usage</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100">
-                  {(crm.users || []).map((user) => (
-                    <tr key={user.id} className="hover:bg-neutral-50">
-                      <td className="px-6 py-4 text-sm font-medium">{user.email}</td>
-                      <td className="px-6 py-4 text-sm capitalize">{user.plan}</td>
-                      <td className="px-6 py-4 text-sm capitalize">{user.status}</td>
-                      <td className="px-6 py-4 text-sm">{user.usage_count} / {user.usage_limit}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "cms" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 bg-white rounded-3xl border border-neutral-200 shadow-sm p-6">
-            <h2 className="font-bold mb-4 flex items-center gap-2">
-              <FileText size={18} className="text-neutral-400" />
-              {editingPostId ? "Edit Post" : "New Post"}
+        {/* AI Writer Tab */}
+        {activeTab === "aiwriter" && (
+          <div className="max-w-3xl bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+            <h2 className="font-bold mb-4 flex items-center gap-2 text-xl">
+              <Sparkles className="text-[#10B981]" size={24} />
+              Generate SEO Article
             </h2>
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={postForm.title}
-                onChange={(e) => setPostForm((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="Post title"
-                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-              <input
-                type="text"
-                value={postForm.slug}
-                onChange={(e) => setPostForm((prev) => ({ ...prev, slug: e.target.value }))}
-                placeholder="Slug (optional)"
-                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-              <input
-                type="text"
-                value={postForm.author}
-                onChange={(e) => setPostForm((prev) => ({ ...prev, author: e.target.value }))}
-                placeholder="Author (optional)"
-                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-              <input
-                type="text"
-                value={postForm.coverImage}
-                onChange={(e) => setPostForm((prev) => ({ ...prev, coverImage: e.target.value }))}
-                placeholder="Cover image URL (optional)"
-                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-              <textarea
-                value={postForm.excerpt}
-                onChange={(e) => setPostForm((prev) => ({ ...prev, excerpt: e.target.value }))}
-                placeholder="Excerpt (optional)"
-                rows={3}
-                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  ["h1", "H1"],
-                  ["h2", "H2"],
-                  ["h3", "H3"],
-                  ["paragraph", "Paragraph"],
-                  ["quote", "Quote"],
-                  ["list", "List"],
-                  ["image", "Image"],
-                  ["cta", "CTA"],
-                ].map(([type, label]) => (
-                  <button
-                    key={type}
-                    onClick={() => addBlock(type as BlogBlock["type"])}
-                    className="px-3 py-2 text-xs font-bold bg-neutral-50 border border-neutral-200 rounded-lg hover:bg-neutral-100"
-                  >
-                    + {label}
-                  </button>
-                ))}
-              </div>
-              <textarea
-                value={postForm.content}
-                onChange={(e) => setPostForm((prev) => ({ ...prev, content: e.target.value }))}
-                placeholder="Fallback plain content (optional)"
-                rows={5}
-                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSavePost}
-                  disabled={savingPost}
-                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {editingPostId ? <Save size={16} /> : <Plus size={16} />} {editingPostId ? "Update" : "Publish"}
-                </button>
-                {editingPostId && (
-                  <button
-                    onClick={resetPostForm}
-                    className="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-sm font-bold hover:bg-neutral-50"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
-                <h2 className="font-bold">Drag & Drop Content Builder</h2>
-                <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{postForm.blocks.length} blocks</span>
-              </div>
-              <div className="p-6 space-y-3">
-                {postForm.blocks.length === 0 && (
-                  <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-xl text-sm text-neutral-500">
-                    Add blocks from the left panel to build your blog post like WordPress.
-                  </div>
-                )}
-
-                {postForm.blocks.map((block) => (
-                  <div
-                    key={block.id}
-                    className="p-4 border border-neutral-200 rounded-xl bg-white"
-                    draggable
-                    onDragStart={() => setDraggingBlockId(block.id)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (!draggingBlockId || draggingBlockId === block.id) return;
-                      moveBlock(draggingBlockId, block.id);
-                      setDraggingBlockId(null);
-                    }}
-                    onDragEnd={() => setDraggingBlockId(null)}
-                  >
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-500">
-                        <GripVertical size={14} />
-                        {block.type}
-                      </div>
-                      <button
-                        onClick={() => removeBlock(block.id)}
-                        className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
-                        title="Remove block"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-
-                    {(block.type === "image") ? (
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={block.url || ""}
-                          onChange={(e) => updateBlock(block.id, { url: e.target.value })}
-                          placeholder="Image URL"
-                          className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
-                        />
-                        <input
-                          type="text"
-                          value={block.alt || ""}
-                          onChange={(e) => updateBlock(block.id, { alt: e.target.value })}
-                          placeholder="Image alt text"
-                          className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
-                        />
-                      </div>
-                    ) : (
-                      <textarea
-                        value={block.text}
-                        onChange={(e) => updateBlock(block.id, { text: e.target.value })}
-                        placeholder={`Write ${block.type} content...`}
-                        rows={block.type === "paragraph" ? 4 : 2}
-                        className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
-                <h2 className="font-bold">CMS Posts</h2>
-                <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{posts.length} posts</span>
-              </div>
-              <div className="divide-y divide-neutral-100">
-                {posts.length === 0 && <div className="p-6 text-sm text-neutral-500">No posts yet.</div>}
-                {posts.map((post) => (
-                  <div key={post.id} className="p-6 flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-bold text-sm mb-1">{post.title}</h3>
-                      <p className="text-xs text-neutral-500 mb-2">/{post.slug} • {post.author || "Admin"}</p>
-                      <p className="text-sm text-neutral-600 line-clamp-2">{post.excerpt || post.content}</p>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => startEditPost(post)}
-                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
-                        title="Edit"
-                      >
-                        <FileText size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeletePost(post.id)}
-                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
-                <h2 className="font-bold flex items-center gap-2"><MessageSquare size={16} /> Contact Messages</h2>
-                <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{messages.length} messages</span>
-              </div>
-              <div className="divide-y divide-neutral-100">
-                {messages.length === 0 && <div className="p-6 text-sm text-neutral-500">No messages yet.</div>}
-                {messages.map((message) => (
-                  <div key={message.id} className="p-6 flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-bold text-sm">{message.subject}</h3>
-                      <p className="text-xs text-neutral-500 mb-2">{message.name} • {message.email} • {new Date(message.createdAt).toLocaleString()}</p>
-                      <p className="text-sm text-neutral-700 whitespace-pre-wrap">{message.message}</p>
-                    </div>
-                    <div className="flex flex-col gap-2 shrink-0">
-                      <select
-                        value={message.status}
-                        onChange={(e) => handleMessageStatus(message.id, e.target.value as ContactMessage["status"])}
-                        className="px-2 py-1 bg-neutral-50 border border-neutral-200 rounded-lg text-xs font-bold"
-                      >
-                        <option value="new">New</option>
-                        <option value="read">Read</option>
-                        <option value="resolved">Resolved</option>
-                      </select>
-                      <button
-                        onClick={() => handleDeleteMessage(message.id)}
-                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
-                        title="Delete message"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "settings" && (
-        <div className="max-w-3xl bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
-          <h2 className="font-bold mb-2 flex items-center gap-2 text-lg">
-            <Settings size={20} className="text-neutral-400" />
-            Gemini API Keys
-          </h2>
-          <p className="text-xs text-neutral-500 mb-6">
-            Configure up to 3 API keys. If Key 1 expires, the system automatically falls back to Key 2, then Key 3.
-          </p>
-
-          <div className="space-y-5">
-            {[
-              { key: "GEMINI_API_KEY_1" as const, label: "Primary Key (Key 1)", color: "emerald" },
-              { key: "GEMINI_API_KEY_2" as const, label: "Secondary Key (Key 2)", color: "blue" },
-              { key: "GEMINI_API_KEY_3" as const, label: "Tertiary Key (Key 3)", color: "purple" },
-            ].map(({ key, label, color }) => (
-              <div key={key} className="space-y-1">
-                <label className="text-sm font-bold text-neutral-700 flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full bg-${color}-500`} />
-                  {label}
-                </label>
-                <input
-                  type="password"
-                  value={settingsForm[key]}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, [key]: e.target.value })}
-                  placeholder="AIzaSy..."
-                  className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
-                />
-              </div>
-            ))}
-
-            <p className="text-xs text-neutral-400 pt-2">
-              Keys are stored securely in the database (never in git). Leave a slot empty to skip it.
+            <p className="text-slate-500 mb-8">
+              Let Gemini generate a structured, SEO-optimized article ready for your CMS. Just provide a topic or primary keywords.
             </p>
 
-            <div className="pt-4 flex justify-end">
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm font-bold text-slate-700 block mb-2">Topic or Keywords</label>
+                <input
+                  type="text"
+                  value={aiTopic}
+                  onChange={(e) => setAiTopic(e.target.value)}
+                  placeholder="e.g. 10 Best SEO Practices for Local Businesses in 2024"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700"
+                />
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-900 text-white relative overflow-hidden group">
+                <div className="relative z-10">
+                  <p className="text-[9px] font-bold text-[#10B981] uppercase tracking-widest mb-2">Pro Tip</p>
+                  <h3 className="text-sm font-bold mb-2">Detailed Prompts Work Best</h3>
+                  <p className="text-[11px] text-slate-400 leading-relaxed mb-1">
+                    Include target audience, tone of voice, and any specific headers you want included. The AI will return structured blocks (H1, H2, text, lists).
+                  </p>
+                </div>
+                <div className="absolute -right-4 -bottom-4 bg-[#10B981]/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-[#10B981]/20 transition-all" />
+              </div>
+
               <button
-                onClick={saveSettings}
-                disabled={savingSettings}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50"
+                onClick={handleGenerateAIArticle}
+                disabled={generatingAi || !aiTopic.trim()}
+                className="w-full py-4 mt-2 bg-[#10B981] text-white rounded-xl font-bold hover:bg-[#059669] transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:shadow-none flex justify-center items-center gap-2"
               >
-                <Save size={16} />
-                {savingSettings ? "Saving..." : "Save Settings"}
+                {generatingAi ? (
+                  <><RefreshCw className="animate-spin" size={20} /> Generating via Gemini...</>
+                ) : (
+                  <><Sparkles size={20} /> Generate Article</>
+                )}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === "settings" && (
+          <div className="max-w-3xl bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+            <h2 className="font-bold mb-2 flex items-center gap-2 text-lg">
+              <Settings size={20} className="text-neutral-400" />
+              Gemini API Keys
+            </h2>
+            <p className="text-xs text-neutral-500 mb-6">
+              Configure up to 3 API keys. If Key 1 expires, the system automatically falls back to Key 2, then Key 3.
+            </p>
+
+            <div className="space-y-5">
+              {[
+                { key: "GEMINI_API_KEY_1" as const, label: "Primary Key (Key 1)", color: "emerald" },
+                { key: "GEMINI_API_KEY_2" as const, label: "Secondary Key (Key 2)", color: "blue" },
+                { key: "GEMINI_API_KEY_3" as const, label: "Tertiary Key (Key 3)", color: "purple" },
+              ].map(({ key, label, color }) => (
+                <div key={key} className="space-y-1">
+                  <label className="text-sm font-bold text-neutral-700 flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full bg-${color}-500`} />
+                    {label}
+                  </label>
+                  <input
+                    type="password"
+                    value={settingsForm[key]}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, [key]: e.target.value })}
+                    placeholder="AIzaSy..."
+                    className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                  />
+                </div>
+              ))}
+
+              <p className="text-xs text-neutral-400 pt-2">
+                Keys are stored securely in the database (never in git). Leave a slot empty to skip it.
+              </p>
+
+              <div className="pt-4 flex justify-end">
+                <button
+                  onClick={saveSettings}
+                  disabled={savingSettings}
+                  className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  <Save size={16} />
+                  {savingSettings ? "Saving..." : "Save Settings"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

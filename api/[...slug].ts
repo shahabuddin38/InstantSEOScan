@@ -691,6 +691,53 @@ Include at least 10 checks covering: author credentials, about page, contact inf
     return authed(req as any, res as any);
   }
 
+  // Admin: AI Blog Generator (POST /api/admin/blog/generate)
+  if (path === "/api/admin/blog/generate") {
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
+      if (reqAny.method !== "POST") return resAny.status(405).end();
+
+      const { topic } = reqAny.body || {};
+      if (!topic) return resAny.status(400).json({ error: "Topic is required" });
+
+      try {
+        const prompt = `You are an expert SEO content writer. Generate a highly optimized blog post about: "${topic}".
+Output must be a STRICT JSON object matching this schema:
+{
+  "title": "A catchy, SEO-friendly H1 title",
+  "excerpt": "A compelling meta description (max 160 chars)",
+  "blocks": [
+    { "type": "paragraph", "text": "Introduction paragraph..." },
+    { "type": "h2", "text": "First Main Point" },
+    { "type": "paragraph", "text": "Details about the first main point..." },
+    { "type": "list", "text": "1. Point one\n2. Point two\n3. Point three" },
+    { "type": "h2", "text": "Second Main Point" },
+    { "type": "paragraph", "text": "More details..." },
+    { "type": "quote", "text": "A relevant industry quote..." },
+    { "type": "paragraph", "text": "Conclusion paragraph..." },
+    { "type": "cta", "text": "Call to action text at the bottom" }
+  ]
+}
+Make sure to include at least 8-10 blocks total for a comprehensive article. Do not use markdown syntax for code fencing around the JSON output, return raw JSON JSON.`;
+
+        const fallback = {
+          title: `Generated Draft: ${topic}`,
+          excerpt: "Auto-generated draft. Please review and expand.",
+          blocks: [
+            { type: "paragraph", text: `This is a placeholder for your article about: ${topic}. The AI generation was incomplete or failed to format correctly.` }
+          ]
+        };
+
+        const aiResult = await generateAI(prompt, fallback);
+        return resAny.json(aiResult);
+      } catch (error: any) {
+        console.error("AI Generation Error:", error);
+        return resAny.status(500).json({ error: "Failed to generate AI content" });
+      }
+    });
+    return authed(req as any, res as any);
+  }
+
   if (path === "/api/admin/messages") {
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
