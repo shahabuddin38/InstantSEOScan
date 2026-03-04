@@ -30,7 +30,7 @@ export function withAuth(
 
       const user = await verifyToken(req);
       (req as AuthedRequest).user = user;
-      return handler(req as AuthedRequest, res);
+      return await handler(req as AuthedRequest, res);
     } catch (err: any) {
       if (isPrismaConnectionError(err)) {
         return res.status(503).json({
