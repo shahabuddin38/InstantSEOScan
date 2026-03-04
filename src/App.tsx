@@ -50,7 +50,7 @@ function Layout({ user, children }: { user: any, children: React.ReactNode }) {
 
   const isPublicPage = publicPages.includes(effectivePath) || effectivePath.startsWith('/blog/');
 
-  const showSidebar = user && !isPublicPage;
+  const showSidebar = user && !isPublicPage && !effectivePath.startsWith('/admin');
 
   return (
     <div className="flex min-h-[calc(100vh-64px)]">

@@ -178,6 +178,7 @@ export default function Admin() {
   const [error, setError] = useState("");
   const [savingPost, setSavingPost] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
   const [aiTopic, setAiTopic] = useState("");
@@ -373,6 +374,7 @@ export default function Admin() {
       blocks: [],
     });
     setEditingPostId(null);
+    setIsCreatingPost(true);
   };
 
   const createBlock = (type: BlogBlock["type"]): BlogBlock => ({
@@ -418,6 +420,7 @@ export default function Admin() {
       : [createBlock("paragraph")];
 
     setEditingPostId(post.id);
+    setIsCreatingPost(false);
     setPostForm({
       title: post.title,
       slug: post.slug,
@@ -463,6 +466,7 @@ export default function Admin() {
 
     await Promise.all([fetchBlogPosts(), fetchStats()]);
     resetPostForm();
+    setIsCreatingPost(false);
   };
 
   const handleMessageStatus = async (id: string, status: ContactMessage["status"]) => {
@@ -858,7 +862,7 @@ export default function Admin() {
 
             {/* Right Sidebar - Full Editor if editing/creating, else Quick View */}
             <div className="w-full lg:w-1/3 shrink-0">
-              {editingPostId || postForm.title !== "" || postForm.blocks.length > 0 ? (
+              {isCreatingPost || editingPostId || postForm.title !== "" || postForm.blocks.length > 0 ? (
                 <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-6 flex flex-col gap-6 sticky top-6 max-h-[calc(100vh-80px)] overflow-y-auto">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-4">
                     <h2 className="font-bold flex items-center gap-2">

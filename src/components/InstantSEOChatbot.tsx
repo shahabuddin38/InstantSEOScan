@@ -90,15 +90,14 @@ export default function InstantSEOChatbot() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-neutral-100/60">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-neutral-100/60 min-h-0">
             {messages.map((msg, index) => (
               <div
                 key={`${msg.role}-${index}`}
-                className={`max-w-[92%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed border ${
-                  msg.role === "user"
+                className={`max-w-[92%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed border ${msg.role === "user"
                     ? "ml-auto bg-neutral-900 text-white border-neutral-900 shadow-sm"
                     : "mr-auto bg-white text-neutral-800 border-neutral-200"
-                }`}
+                  }`}
               >
                 {msg.text}
               </div>
