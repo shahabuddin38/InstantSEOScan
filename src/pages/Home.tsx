@@ -1,4 +1,4 @@
-import { Search, Zap, Globe, ArrowRight, Loader2, Shield, BarChart3, CheckCircle2, Star, Users, Award, FileText, X } from "lucide-react";
+import { Search, Zap, Globe, ArrowRight, Loader2, Shield, BarChart3, CheckCircle2, Star, Users, Award, FileText, X, Heading1 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -99,9 +99,9 @@ export default function Home() {
               DOMINATE THE <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">SEARCH RESULTS.</span>
             </h1>
-            <p className="max-w-2xl mx-auto text-xl text-neutral-400 mb-12 leading-relaxed">
+            <h1 className="max-w-2xl mx-auto text-xl text-neutral-400 mb-12 leading-relaxed">
               Technical SEO audits, AI content optimization, and authority tracking in one powerful platform. Built for growth-focused SaaS and Agencies.
-            </p>
+            </h1>
 
             {/* Core Scan Engine Input */}
             <div className="max-w-3xl mx-auto">
