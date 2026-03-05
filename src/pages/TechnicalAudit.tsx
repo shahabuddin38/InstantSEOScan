@@ -48,7 +48,6 @@ export default function TechnicalAudit() {
       { key: "all-links", title: "All Links (Internal)", icon: <Link2 size={16} className="text-emerald-600" />, headers: ["Internal URL"], rows: listRows(data.allLinks || []) },
       { key: "external-links", title: "External Links", icon: <Link2 size={16} className="text-blue-600" />, headers: ["External URL"], rows: listRows(data.externalLinks || []) },
       { key: "missing-keywords", title: "Missing Keywords", icon: <Copy size={16} className="text-emerald-600" />, headers: ["Page URL"], rows: listRows(data.issues?.missingKeywords || []) },
-      { key: "duplicate-keywords", title: "Duplicate Keywords", icon: <Copy size={16} className="text-emerald-600" />, headers: ["Keyword", "Pages Count", "Pages"], rows: duplicateMapRows(data.issues?.duplicateKeywords || [], "keyword") },
       { key: "missing-headings", title: "Missing Headings (H1/H2/H3)", icon: <Heading size={16} className="text-emerald-600" />, headers: ["Page URL", "Missing H1", "Missing H2", "Missing H3"], rows: missingHeadingRows(data) },
       { key: "duplicate-h1", title: "Duplicate Headings (H1)", icon: <Heading size={16} className="text-emerald-600" />, headers: ["Heading", "Pages Count", "Pages"], rows: duplicateMapRows(data.issues?.duplicateHeadings?.h1 || [], "value") },
       { key: "duplicate-h2", title: "Duplicate Headings (H2)", icon: <Heading size={16} className="text-emerald-600" />, headers: ["Heading", "Pages Count", "Pages"], rows: duplicateMapRows(data.issues?.duplicateHeadings?.h2 || [], "value") },
