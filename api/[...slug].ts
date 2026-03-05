@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import axios from "axios";
+import * as cheerio from "cheerio";
+import { createHash } from "crypto";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma.js";
@@ -37,6 +39,11 @@ const registerBodySchema = z.object({
 
 const scanBodySchema = z.object({
   url: z.string().min(1),
+});
+
+const technicalAuditBodySchema = z.object({
+  url: z.string().min(1),
+  maxPages: z.number().int().min(1).max(100).optional(),
 });
 
 const blogBlockSchema = z.object({
@@ -125,6 +132,56 @@ const consumeOperationQuota = async (userId: string, resAny: VercelResponse) => 
     return resAny.status(403).json({ error: error?.message || "Usage limit reached. Upgrade required." });
   }
 };
+
+const STOP_WORDS = new Set([
+  "the", "and", "for", "with", "that", "this", "from", "your", "you", "are", "was", "were", "have", "has",
+  "had", "not", "but", "can", "all", "any", "our", "out", "about", "into", "over", "under", "what", "when",
+  "where", "which", "who", "will", "would", "could", "should", "a", "an", "to", "of", "in", "on", "at", "by",
+  "is", "it", "as", "or", "be", "we", "i", "they", "their", "them", "us", "more", "less", "new", "best",
+]);
+
+const toAbsoluteUrl = (href: string, base: string) => {
+  try {
+    return new URL(href, base).toString();
+  } catch {
+    return "";
+  }
+};
+
+const normalizePageUrl = (value: string) => {
+  try {
+    const parsed = new URL(value);
+    parsed.hash = "";
+    parsed.searchParams.sort();
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return value;
+  }
+};
+
+const tokenizeKeywords = (text: string) =>
+  String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 3 && !STOP_WORDS.has(token));
+
+const extractTopKeywords = (text: string, take = 10) => {
+  const freq = new Map<string, number>();
+  for (const token of tokenizeKeywords(text)) {
+    freq.set(token, (freq.get(token) || 0) + 1);
+  }
+  return [...freq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, take)
+    .map(([token]) => token);
+};
+
+const textFingerprint = (value: string) =>
+  createHash("sha1")
+    .update(String(value || "").replace(/\s+/g, " ").trim().toLowerCase())
+    .digest("hex");
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url || "", "http://localhost");
@@ -440,6 +497,267 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       } catch (error: any) {
         return resAny.status(500).json({ error: `Failed to scan site: ${error?.message || "unknown error"}` });
       }
+    });
+    return authed(req as any, res as any);
+  }
+
+  // Technical: deep crawl audit (protected, POST /api/technical-audit)
+  if (path === "/api/technical-audit") {
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.method !== "POST") return resAny.status(405).end();
+
+      const quotaFailure = await consumeOperationQuota(reqAny.user.id as string, resAny);
+      if (quotaFailure) return quotaFailure;
+
+      const parsed = technicalAuditBodySchema.safeParse(reqAny.body || {});
+      if (!parsed.success) {
+        return resAny.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+      }
+
+      const startInput = String(parsed.data.url || "").trim();
+      const maxPages = parsed.data.maxPages || 40;
+      const startUrl = normalizePageUrl(startInput.startsWith("http") ? startInput : `https://${startInput}`);
+
+      let startHost = "";
+      try {
+        startHost = new URL(startUrl).hostname;
+      } catch {
+        return resAny.status(400).json({ error: "Invalid URL" });
+      }
+
+      const toVisit: string[] = [startUrl];
+      const visited = new Set<string>();
+      const discoveredLinks = new Set<string>();
+      const linkSources: Array<{ from: string; to: string }> = [];
+
+      const pages: Array<{
+        url: string;
+        status: number;
+        title: string;
+        description: string;
+        h1: string[];
+        h2: string[];
+        h3: string[];
+        keywords: string[];
+        missing: { keywords: boolean; description: boolean; h1: boolean; h2: boolean; h3: boolean };
+        images: Array<{ src: string; alt: string; missingAlt: boolean }>;
+        htmlIssues: string[];
+        contentHash: string;
+      }> = [];
+
+      while (toVisit.length > 0 && visited.size < maxPages) {
+        const current = normalizePageUrl(toVisit.shift() || "");
+        if (!current || visited.has(current)) continue;
+        visited.add(current);
+
+        let status = 0;
+        let html = "";
+        let contentType = "";
+
+        try {
+          const response = await axios.get(current, {
+            timeout: 10000,
+            maxRedirects: 5,
+            validateStatus: () => true,
+          });
+          status = response.status;
+          contentType = String(response.headers?.["content-type"] || "");
+          html = typeof response.data === "string" ? response.data : "";
+        } catch {
+          status = 0;
+        }
+
+        if (status >= 400 || !contentType.includes("text/html") || !html) {
+          pages.push({
+            url: current,
+            status,
+            title: "",
+            description: "",
+            h1: [],
+            h2: [],
+            h3: [],
+            keywords: [],
+            missing: { keywords: true, description: true, h1: true, h2: true, h3: true },
+            images: [],
+            htmlIssues: [status >= 400 ? `HTTP status ${status}` : "Failed to load HTML content"],
+            contentHash: "",
+          });
+          continue;
+        }
+
+        const $ = cheerio.load(html);
+        const title = ($("title").first().text() || "").trim();
+        const description = ($('meta[name="description"]').attr("content") || "").trim();
+        const h1 = $("h1").map((_, el) => $(el).text().trim()).get().filter(Boolean);
+        const h2 = $("h2").map((_, el) => $(el).text().trim()).get().filter(Boolean);
+        const h3 = $("h3").map((_, el) => $(el).text().trim()).get().filter(Boolean);
+
+        const images = $("img")
+          .map((_, el) => {
+            const src = String($(el).attr("src") || "").trim();
+            const alt = String($(el).attr("alt") || "").trim();
+            return { src, alt, missingAlt: !alt };
+          })
+          .get()
+          .filter((img) => Boolean(img.src));
+
+        const pageText = $("body").text().replace(/\s+/g, " ").trim();
+        const keywords = extractTopKeywords(`${title} ${description} ${h1.join(" ")} ${pageText.slice(0, 4000)}`);
+
+        const htmlIssues: string[] = [];
+        if (!/<!doctype html>/i.test(html)) htmlIssues.push("Missing or invalid DOCTYPE");
+        if ($("html").length === 0) htmlIssues.push("Missing <html> tag");
+        if ($("head").length === 0) htmlIssues.push("Missing <head> tag");
+        if ($("body").length === 0) htmlIssues.push("Missing <body> tag");
+        if ($("title").length === 0) htmlIssues.push("Missing <title> tag");
+        if ($("title").length > 1) htmlIssues.push("Multiple <title> tags");
+        if (!description) htmlIssues.push("Missing meta description");
+        if (h1.length === 0) htmlIssues.push("Missing H1 heading");
+        if (h1.length > 1) htmlIssues.push("Multiple H1 headings");
+
+        $("a[href]").each((_, el) => {
+          const href = String($(el).attr("href") || "").trim();
+          if (!href || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("javascript:")) return;
+          const abs = normalizePageUrl(toAbsoluteUrl(href, current));
+          if (!abs) return;
+
+          discoveredLinks.add(abs);
+          linkSources.push({ from: current, to: abs });
+
+          try {
+            const host = new URL(abs).hostname;
+            if (host === startHost && !visited.has(abs) && !toVisit.includes(abs) && toVisit.length + visited.size < maxPages * 2) {
+              toVisit.push(abs);
+            }
+          } catch {
+            return;
+          }
+        });
+
+        pages.push({
+          url: current,
+          status,
+          title,
+          description,
+          h1,
+          h2,
+          h3,
+          keywords,
+          missing: {
+            keywords: keywords.length === 0,
+            description: !description,
+            h1: h1.length === 0,
+            h2: h2.length === 0,
+            h3: h3.length === 0,
+          },
+          images,
+          htmlIssues,
+          contentHash: textFingerprint(pageText.slice(0, 8000)),
+        });
+      }
+
+      const duplicateByField = (extractor: (p: (typeof pages)[number]) => string[]) => {
+        const map = new Map<string, string[]>();
+        for (const page of pages) {
+          for (const value of extractor(page).map((v) => v.trim()).filter(Boolean)) {
+            const arr = map.get(value) || [];
+            arr.push(page.url);
+            map.set(value, arr);
+          }
+        }
+        return [...map.entries()]
+          .filter(([, urls]) => urls.length > 1)
+          .map(([value, urls]) => ({ value, urls: [...new Set(urls)] }));
+      };
+
+      const keywordMap = new Map<string, string[]>();
+      for (const page of pages) {
+        for (const keyword of page.keywords) {
+          const urls = keywordMap.get(keyword) || [];
+          urls.push(page.url);
+          keywordMap.set(keyword, urls);
+        }
+      }
+
+      const duplicateKeywords = [...keywordMap.entries()]
+        .filter(([, urls]) => urls.length > 1)
+        .map(([keyword, urls]) => ({ keyword, urls: [...new Set(urls)] }));
+
+      const duplicateContentMap = new Map<string, string[]>();
+      for (const page of pages) {
+        if (!page.contentHash) continue;
+        const urls = duplicateContentMap.get(page.contentHash) || [];
+        urls.push(page.url);
+        duplicateContentMap.set(page.contentHash, urls);
+      }
+
+      const duplicateContents = [...duplicateContentMap.entries()]
+        .filter(([, urls]) => urls.length > 1)
+        .map(([hash, urls]) => ({ hash, urls: [...new Set(urls)] }));
+
+      const brokenLinks: Array<{ url: string; status: number; source: string }> = [];
+      const checkedBroken = new Set<string>();
+      for (const relation of linkSources.slice(0, 500)) {
+        if (checkedBroken.has(relation.to)) continue;
+        checkedBroken.add(relation.to);
+        try {
+          const response = await axios.get(relation.to, {
+            timeout: 7000,
+            maxRedirects: 3,
+            validateStatus: () => true,
+          });
+          if (response.status >= 400) {
+            brokenLinks.push({ url: relation.to, status: response.status, source: relation.from });
+          }
+        } catch {
+          brokenLinks.push({ url: relation.to, status: 0, source: relation.from });
+        }
+      }
+
+      const missingKeywords = pages.filter((p) => p.missing.keywords).map((p) => p.url);
+      const missingDescriptions = pages.filter((p) => p.missing.description).map((p) => p.url);
+      const missingH1 = pages.filter((p) => p.missing.h1).map((p) => p.url);
+      const missingH2 = pages.filter((p) => p.missing.h2).map((p) => p.url);
+      const missingH3 = pages.filter((p) => p.missing.h3).map((p) => p.url);
+
+      const missingAltText = pages
+        .flatMap((p) => p.images.filter((img) => img.missingAlt).map((img) => ({ page: p.url, image: img.src })));
+
+      const duplicateAltText = duplicateByField((p) => p.images.map((img) => img.alt));
+      const duplicateDescriptions = duplicateByField((p) => (p.description ? [p.description] : []));
+      const duplicateH1 = duplicateByField((p) => p.h1);
+      const duplicateH2 = duplicateByField((p) => p.h2);
+      const duplicateH3 = duplicateByField((p) => p.h3);
+
+      const htmlErrors = pages
+        .filter((p) => p.htmlIssues.length > 0)
+        .map((p) => ({ page: p.url, issues: p.htmlIssues }));
+
+      return resAny.json({
+        summary: {
+          startUrl,
+          crawledPages: pages.length,
+          discoveredLinks: discoveredLinks.size,
+          brokenLinks: brokenLinks.length,
+          htmlErrorPages: htmlErrors.length,
+          duplicateContentGroups: duplicateContents.length,
+        },
+        pages,
+        allLinks: [...discoveredLinks],
+        issues: {
+          missingKeywords,
+          duplicateKeywords,
+          missingHeadings: { h1: missingH1, h2: missingH2, h3: missingH3 },
+          duplicateHeadings: { h1: duplicateH1, h2: duplicateH2, h3: duplicateH3 },
+          missingAltText,
+          duplicateAltText,
+          missingDescriptions,
+          duplicateDescriptions,
+          brokenLinks,
+          htmlErrors,
+          duplicateContents,
+        },
+      });
     });
     return authed(req as any, res as any);
   }

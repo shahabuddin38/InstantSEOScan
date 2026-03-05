@@ -7,6 +7,7 @@ import {
   FileCode, List, Activity, Lock
 } from "lucide-react";
 import { apiRequest } from "../services/apiClient";
+import { addActivity } from "../services/activityHistory";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
@@ -37,6 +38,11 @@ export default function OnPageSEO() {
       });
       if (!res.ok) throw new Error(res.error || "Failed to generate AI insights.");
       setResult(res.data);
+      addActivity({
+        type: "on_page",
+        title: `On-Page SEO (${activeTab})`,
+        detail: inputData.keyword || inputData.topic || "AI on-page analysis",
+      });
     } catch (e: any) {
       console.error(e);
       setError(e.message || "Failed to generate AI insights.");
@@ -67,6 +73,11 @@ export default function OnPageSEO() {
         data.summary = { passed, failed, total: data.checks.length };
       }
       setAuditResult(data);
+      addActivity({
+        type: "audit",
+        title: "E-E-A-T Audit",
+        detail: url,
+      });
     } catch (e: any) {
       console.error(e);
       setError(e.message || "Failed to perform E-E-A-T audit.");

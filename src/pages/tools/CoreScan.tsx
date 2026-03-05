@@ -3,6 +3,7 @@ import { Zap, Globe, ArrowRight, Loader2, AlertCircle, CheckCircle2 } from "luci
 import { motion } from "motion/react";
 import { getAIInsights, calculateScore } from "../../services/geminiService";
 import { apiRequest } from "../../services/apiClient";
+import { addActivity } from "../../services/activityHistory";
 
 export default function CoreScan() {
   const [url, setUrl] = useState("");
@@ -66,6 +67,12 @@ export default function CoreScan() {
         ...data,
         ai: aiResponse,
         score
+      });
+
+      addActivity({
+        type: "audit",
+        title: "CoreScan Audit",
+        detail: targetUrl,
       });
     } catch (err: any) {
       setError(err.message);

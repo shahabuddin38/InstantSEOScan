@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Zap, ArrowRight, Loader2, AlertCircle, CheckCircle2, Code, Copy, Check } from "lucide-react";
 import { motion } from "motion/react";
 import { generateSchema } from "../../services/geminiService";
+import { addActivity } from "../../services/activityHistory";
 
 export default function SchemaGenerator() {
   const [type, setType] = useState("FAQ");
@@ -20,6 +21,11 @@ export default function SchemaGenerator() {
     try {
       const schema = await generateSchema(type, { input: data });
       setResult(schema);
+      addActivity({
+        type: "schema",
+        title: "Schema Generation",
+        detail: `${type} schema`,
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {

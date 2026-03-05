@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Zap, Globe, ArrowRight, Loader2, AlertCircle, CheckCircle2, Copy, Check } from "lucide-react";
 import { motion } from "motion/react";
 import { rewriteForSEO } from "../../services/geminiService";
+import { addActivity } from "../../services/activityHistory";
 
 export default function SEORewrite() {
   const [content, setContent] = useState("");
@@ -20,6 +21,11 @@ export default function SEORewrite() {
     try {
       const data = await rewriteForSEO(content, keyword);
       setResult(data);
+      addActivity({
+        type: "content_write",
+        title: "SEO Content Rewrite",
+        detail: keyword,
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {

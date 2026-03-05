@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Zap, ArrowRight, Loader2, AlertCircle, CheckCircle2, MessageSquare, Target, Lightbulb } from "lucide-react";
 import { motion } from "motion/react";
 import { optimizeForAIOverview } from "../../services/geminiService";
+import { addActivity } from "../../services/activityHistory";
 
 export default function AIOverview() {
   const [content, setContent] = useState("");
@@ -18,6 +19,11 @@ export default function AIOverview() {
     try {
       const data = await optimizeForAIOverview(content);
       setResult(data);
+      addActivity({
+        type: "ai_overview",
+        title: "AI Overview Optimization",
+        detail: `${content.slice(0, 60)}${content.length > 60 ? "..." : ""}`,
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {

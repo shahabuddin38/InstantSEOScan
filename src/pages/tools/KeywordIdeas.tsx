@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Search, ArrowRight, Loader2, AlertCircle, CheckCircle2, Hash, HelpCircle, Network } from "lucide-react";
 import { motion } from "motion/react";
 import { generateKeywords } from "../../services/geminiService";
+import { addActivity } from "../../services/activityHistory";
 
 export default function KeywordIdeas() {
   const [topic, setTopic] = useState("");
@@ -18,6 +19,11 @@ export default function KeywordIdeas() {
     try {
       const data = await generateKeywords(topic);
       setResult(data);
+      addActivity({
+        type: "keyword_research",
+        title: "Keyword Research",
+        detail: topic,
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {

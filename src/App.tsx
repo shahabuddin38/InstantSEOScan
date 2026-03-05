@@ -37,6 +37,7 @@ import MCPSupport from "./pages/tools/MCPSupport";
 import OnPageSEO from "./pages/OnPageSEO";
 import OffPageSEO from "./pages/OffPageSEO";
 import TechnicalAudit from "./pages/TechnicalAudit";
+import { clearActivityHistory } from "./services/activityHistory";
 
 const PAGE_SEO: Record<string, { title: string; description: string }> = {
   "/": {
@@ -291,6 +292,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    clearActivityHistory();
     setUser(null);
   };
 

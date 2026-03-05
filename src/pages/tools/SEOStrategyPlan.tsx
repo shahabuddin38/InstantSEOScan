@@ -3,6 +3,7 @@ import { Target, ArrowRight, Loader2, AlertCircle, CheckCircle2, CalendarClock, 
 import { motion } from "motion/react";
 import { generateSEOStrategyPlan } from "../../services/geminiService";
 import jsPDF from "jspdf";
+import { addActivity } from "../../services/activityHistory";
 
 export default function SEOStrategyPlan() {
   const [form, setForm] = useState({
@@ -89,6 +90,11 @@ export default function SEOStrategyPlan() {
     try {
       const data = await generateSEOStrategyPlan(form);
       setResult(data);
+      addActivity({
+        type: "strategy_plan",
+        title: "SEO Strategy Plan",
+        detail: form.website,
+      });
     } catch (err: any) {
       setError(err?.message || "Failed to generate strategy plan");
     } finally {

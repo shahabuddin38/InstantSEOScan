@@ -4,6 +4,7 @@ import { Search, Globe, History, BarChart3, Zap, ArrowRight, Loader2, AlertCircl
 import { motion } from "motion/react";
 import { getAIInsights, calculateScore } from "../services/geminiService";
 import { apiRequest } from "../services/apiClient";
+import { addActivity, getActivityHistory, type ActivityEntry } from "../services/activityHistory";
 
 export default function Dashboard({ user }: { user: any }) {
   const [searchParams] = useSearchParams();
@@ -11,6 +12,7 @@ export default function Dashboard({ user }: { user: any }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [history, setHistory] = useState<Array<{ id: string; url: string; score: number; createdAt: string }>>([]);
+  const [activityHistory, setActivityHistory] = useState<ActivityEntry[]>([]);
   const navigate = useNavigate();
 
   const formatRelativeDate = (iso: string) => {
@@ -35,6 +37,7 @@ export default function Dashboard({ user }: { user: any }) {
       handleScan();
     }
     loadHistory();
+    setActivityHistory(getActivityHistory());
   }, []);
 
   // Real stats computed from actual scan history
@@ -80,6 +83,13 @@ export default function Dashboard({ user }: { user: any }) {
         ai: aiResponse,
         score
       };
+
+      const activityUpdated = addActivity({
+        type: "audit",
+        title: "Website Audit",
+        detail: targetUrl,
+      });
+      setActivityHistory(activityUpdated);
 
       sessionStorage.setItem("lastScan", JSON.stringify(finalResults));
       await loadHistory();
@@ -185,6 +195,27 @@ export default function Dashboard({ user }: { user: any }) {
                 <div className="text-center py-8 text-neutral-400">
                   <Search size={24} className="mx-auto mb-2 opacity-40" />
                   <p className="text-sm">No scans yet. Run your first audit above!</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <History className="text-neutral-400" size={20} />
+              Tool Activity History
+            </h2>
+            <div className="space-y-4">
+              {activityHistory.length > 0 ? activityHistory.slice(0, 12).map((entry) => (
+                <div key={entry.id} className="p-3 rounded-xl bg-neutral-50 border border-neutral-100">
+                  <div className="font-bold text-sm text-neutral-800">{entry.title}</div>
+                  <div className="text-xs text-neutral-500 mt-1">{entry.detail || "No details"}</div>
+                  <div className="text-[11px] text-neutral-400 mt-1">{formatRelativeDate(entry.createdAt)}</div>
+                </div>
+              )) : (
+                <div className="text-center py-8 text-neutral-400">
+                  <History size={24} className="mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No tool activity yet.</p>
                 </div>
               )}
             </div>

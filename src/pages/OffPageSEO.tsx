@@ -3,6 +3,7 @@ import { Loader2, ArrowRight, FileText, CheckCircle2, Search, Zap, BarChart3, Li
 import { apiRequest } from "../services/apiClient";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import { addActivity } from "../services/activityHistory";
 
 export default function OffPageSEO() {
   const [activeTab, setActiveTab] = useState("backlinks");
@@ -24,6 +25,11 @@ export default function OffPageSEO() {
       });
       if (!res.ok) throw new Error(res.error || "Failed to generate insights.");
       setResult(res.data);
+      addActivity({
+        type: "off_page",
+        title: `Off-Page SEO (${activeTab})`,
+        detail: inputData.niche || inputData.topic || inputData.goal || "Off-page AI analysis",
+      });
     } catch (e: any) {
       console.error(e);
       alert(e.message || "Failed to generate insights.");

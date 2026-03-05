@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Zap, Globe, ArrowRight, Loader2, AlertCircle, CheckCircle2, FileText, Search } from "lucide-react";
 import { motion } from "motion/react";
 import { optimizeContent } from "../../services/geminiService";
+import { addActivity } from "../../services/activityHistory";
 
 export default function ContentScore() {
   const [content, setContent] = useState("");
@@ -19,6 +20,11 @@ export default function ContentScore() {
     try {
       const data = await optimizeContent(url || "User Content", content);
       setResult(data);
+      addActivity({
+        type: "content_check",
+        title: "Content Score Check",
+        detail: url || `${content.slice(0, 60)}${content.length > 60 ? "..." : ""}`,
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {
