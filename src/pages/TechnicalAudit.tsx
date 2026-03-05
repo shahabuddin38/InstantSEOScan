@@ -42,25 +42,70 @@ export default function TechnicalAudit() {
     }
   };
 
-  const IssueSection = ({ title, items, icon }: { title: string; items: any[]; icon: ReactNode }) => (
+  const TableSection = ({
+    title,
+    icon,
+    headers,
+    rows,
+  }: {
+    title: string;
+    icon: ReactNode;
+    headers: string[];
+    rows: string[][];
+  }) => (
     <div className="bg-white rounded-2xl border border-neutral-200 p-5">
       <h3 className="font-bold mb-3 flex items-center gap-2">
         {icon}
         {title}
       </h3>
-      {items && items.length > 0 ? (
-        <div className="space-y-2 max-h-72 overflow-y-auto pr-1 text-sm">
-          {items.map((item, idx) => (
-            <div key={idx} className="p-3 rounded-xl bg-neutral-50 border border-neutral-100 break-words">
-              {typeof item === "string" ? item : <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(item, null, 2)}</pre>}
-            </div>
-          ))}
+      {rows.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border border-neutral-200 rounded-xl overflow-hidden">
+            <thead className="bg-neutral-50">
+              <tr>
+                {headers.map((header) => (
+                  <th key={header} className="text-left px-3 py-2 font-bold text-neutral-700 border-b border-neutral-200">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={`${title}-${index}`} className="border-b border-neutral-100 last:border-b-0">
+                  {row.map((value, cellIndex) => (
+                    <td key={`${title}-${index}-${cellIndex}`} className="px-3 py-2 text-neutral-700 align-top break-words">
+                      {value}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
         <p className="text-sm text-neutral-500">No issues found.</p>
       )}
     </div>
   );
+
+  const listRows = (items: string[]) => items.map((item) => [item]);
+  const missingHeadingRows = () => {
+    const h1 = result?.issues?.missingHeadings?.h1 || [];
+    const h2 = result?.issues?.missingHeadings?.h2 || [];
+    const h3 = result?.issues?.missingHeadings?.h3 || [];
+    const all = new Set([...h1, ...h2, ...h3]);
+    return [...all].map((urlItem) => [urlItem, h1.includes(urlItem) ? "Yes" : "No", h2.includes(urlItem) ? "Yes" : "No", h3.includes(urlItem) ? "Yes" : "No"]);
+  };
+
+  const duplicateMapRows = (items: any[], valueKey: string) =>
+    (items || []).map((item: any) => [String(item[valueKey] || ""), String((item.urls || []).length), String((item.urls || []).join(" | "))]);
+
+  const htmlErrorRows = (items: any[]) =>
+    (items || []).map((item: any) => [String(item.page || ""), String((item.issues || []).join(" | "))]);
+
+  const brokenLinkRows = (items: any[]) =>
+    (items || []).map((item: any) => [String(item.url || ""), String(item.status || ""), String(item.source || "")]);
 
   const handleExportCSV = () => {
     if (!result) return;
@@ -220,25 +265,28 @@ export default function TechnicalAudit() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">Crawled Pages</div><div className="text-2xl font-black">{result.summary?.crawledPages || 0}</div></div>
-            <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">All Links</div><div className="text-2xl font-black">{result.summary?.discoveredLinks || 0}</div></div>
+            <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">All Links (Internal)</div><div className="text-2xl font-black">{result.summary?.discoveredLinks || 0}</div></div>
+            <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">External Links</div><div className="text-2xl font-black">{result.summary?.externalLinks || 0}</div></div>
             <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">Broken Links</div><div className="text-2xl font-black text-red-600">{result.summary?.brokenLinks || 0}</div></div>
             <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">HTML Error Pages</div><div className="text-2xl font-black text-orange-600">{result.summary?.htmlErrorPages || 0}</div></div>
             <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">Duplicate Content Groups</div><div className="text-2xl font-black text-indigo-600">{result.summary?.duplicateContentGroups || 0}</div></div>
-            <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">Missing Descriptions</div><div className="text-2xl font-black text-amber-600">{result.issues?.missingDescriptions?.length || 0}</div></div>
           </div>
 
-          <IssueSection title="All Links" items={result.allLinks || []} icon={<Link2 size={16} className="text-emerald-600" />} />
-          <IssueSection title="Missing Keywords" items={result.issues?.missingKeywords || []} icon={<Copy size={16} className="text-emerald-600" />} />
-          <IssueSection title="Duplicate Keywords" items={result.issues?.duplicateKeywords || []} icon={<Copy size={16} className="text-emerald-600" />} />
-          <IssueSection title="Missing Headings (H1/H2/H3)" items={[result.issues?.missingHeadings || {}]} icon={<Heading size={16} className="text-emerald-600" />} />
-          <IssueSection title="Duplicate Headings (H1/H2/H3)" items={[result.issues?.duplicateHeadings || {}]} icon={<Heading size={16} className="text-emerald-600" />} />
-          <IssueSection title="Missing Alt Text" items={result.issues?.missingAltText || []} icon={<Image size={16} className="text-emerald-600" />} />
-          <IssueSection title="Duplicate Alt Text" items={result.issues?.duplicateAltText || []} icon={<Image size={16} className="text-emerald-600" />} />
-          <IssueSection title="Missing Descriptions" items={result.issues?.missingDescriptions || []} icon={<FileWarning size={16} className="text-emerald-600" />} />
-          <IssueSection title="Duplicate Descriptions" items={result.issues?.duplicateDescriptions || []} icon={<FileWarning size={16} className="text-emerald-600" />} />
-          <IssueSection title="Broken Links (4xx/5xx)" items={result.issues?.brokenLinks || []} icon={<AlertCircle size={16} className="text-red-600" />} />
-          <IssueSection title="HTML Errors" items={result.issues?.htmlErrors || []} icon={<FileWarning size={16} className="text-orange-600" />} />
-          <IssueSection title="Duplicate Contents" items={result.issues?.duplicateContents || []} icon={<Copy size={16} className="text-indigo-600" />} />
+          <TableSection title="All Links (Internal)" icon={<Link2 size={16} className="text-emerald-600" />} headers={["Internal URL"]} rows={listRows(result.allLinks || [])} />
+          <TableSection title="External Links" icon={<Link2 size={16} className="text-blue-600" />} headers={["External URL"]} rows={listRows(result.externalLinks || [])} />
+          <TableSection title="Missing Keywords" icon={<Copy size={16} className="text-emerald-600" />} headers={["Page URL"]} rows={listRows(result.issues?.missingKeywords || [])} />
+          <TableSection title="Duplicate Keywords" icon={<Copy size={16} className="text-emerald-600" />} headers={["Keyword", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateKeywords || [], "keyword")} />
+          <TableSection title="Missing Headings (H1/H2/H3)" icon={<Heading size={16} className="text-emerald-600" />} headers={["Page URL", "Missing H1", "Missing H2", "Missing H3"]} rows={missingHeadingRows()} />
+          <TableSection title="Duplicate Headings (H1)" icon={<Heading size={16} className="text-emerald-600" />} headers={["Heading", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateHeadings?.h1 || [], "value")} />
+          <TableSection title="Duplicate Headings (H2)" icon={<Heading size={16} className="text-emerald-600" />} headers={["Heading", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateHeadings?.h2 || [], "value")} />
+          <TableSection title="Duplicate Headings (H3)" icon={<Heading size={16} className="text-emerald-600" />} headers={["Heading", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateHeadings?.h3 || [], "value")} />
+          <TableSection title="Missing Alt Text" icon={<Image size={16} className="text-emerald-600" />} headers={["Page", "Image URL"]} rows={(result.issues?.missingAltText || []).map((item: any) => [String(item.page || ""), String(item.image || "")])} />
+          <TableSection title="Duplicate Alt Text" icon={<Image size={16} className="text-emerald-600" />} headers={["Alt Text", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateAltText || [], "value")} />
+          <TableSection title="Missing Descriptions" icon={<FileWarning size={16} className="text-amber-600" />} headers={["Page URL"]} rows={listRows(result.issues?.missingDescriptions || [])} />
+          <TableSection title="Duplicate Descriptions" icon={<FileWarning size={16} className="text-amber-600" />} headers={["Description", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateDescriptions || [], "value")} />
+          <TableSection title="Broken Links (4xx/5xx)" icon={<AlertCircle size={16} className="text-red-600" />} headers={["Broken URL", "Status", "Source Page"]} rows={brokenLinkRows(result.issues?.brokenLinks || [])} />
+          <TableSection title="HTML Errors" icon={<FileWarning size={16} className="text-orange-600" />} headers={["Page URL", "Issues"]} rows={htmlErrorRows(result.issues?.htmlErrors || [])} />
+          <TableSection title="Duplicate Contents" icon={<Copy size={16} className="text-indigo-600" />} headers={["Content Hash", "Pages Count", "Pages"]} rows={(result.issues?.duplicateContents || []).map((item: any) => [String(item.hash || ""), String((item.urls || []).length), String((item.urls || []).join(" | "))])} />
         </div>
       )}
     </div>

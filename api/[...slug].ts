@@ -528,6 +528,8 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       const toVisit: string[] = [startUrl];
       const visited = new Set<string>();
       const discoveredLinks = new Set<string>();
+      const internalLinks = new Set<string>();
+      const externalLinks = new Set<string>();
       const linkSources: Array<{ from: string; to: string }> = [];
 
       const pages: Array<{
@@ -626,6 +628,12 @@ Include at least 10 checks covering: author credentials, about page, contact inf
 
           try {
             const host = new URL(abs).hostname;
+            if (host === startHost) {
+              internalLinks.add(abs);
+            } else {
+              externalLinks.add(abs);
+            }
+
             if (host === startHost && !visited.has(abs) && !toVisit.includes(abs) && toVisit.length + visited.size < maxPages * 2) {
               toVisit.push(abs);
             }
@@ -737,13 +745,15 @@ Include at least 10 checks covering: author credentials, about page, contact inf
         summary: {
           startUrl,
           crawledPages: pages.length,
-          discoveredLinks: discoveredLinks.size,
+          discoveredLinks: internalLinks.size,
+          externalLinks: externalLinks.size,
           brokenLinks: brokenLinks.length,
           htmlErrorPages: htmlErrors.length,
           duplicateContentGroups: duplicateContents.length,
         },
         pages,
-        allLinks: [...discoveredLinks],
+        allLinks: [...internalLinks],
+        externalLinks: [...externalLinks],
         issues: {
           missingKeywords,
           duplicateKeywords,
