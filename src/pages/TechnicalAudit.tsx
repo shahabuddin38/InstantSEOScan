@@ -1,10 +1,18 @@
 import { useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Loader2, AlertCircle, Globe, Link2, Image, Heading, FileWarning, Copy, Download, Share2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, AlertCircle, Globe, Link2, Image, Heading, FileWarning, Copy, Download, Share2, ChevronDown, ChevronUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../services/apiClient";
 import { addActivity } from "../services/activityHistory";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
+type AuditSection = {
+  key: string;
+  title: string;
+  icon: ReactNode;
+  headers: string[];
+  rows: string[][];
+};
 
 export default function TechnicalAudit() {
   const [url, setUrl] = useState("");
@@ -12,6 +20,50 @@ export default function TechnicalAudit() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  const listRows = (items: string[]) => items.map((item) => [item]);
+
+  const duplicateMapRows = (items: any[], valueKey: string) =>
+    (items || []).map((item: any) => [String(item[valueKey] || ""), String((item.urls || []).length), String((item.urls || []).join(" | "))]);
+
+  const htmlErrorRows = (items: any[]) =>
+    (items || []).map((item: any) => [String(item.page || ""), String((item.issues || []).join(" | "))]);
+
+  const brokenLinkRows = (items: any[]) =>
+    (items || []).map((item: any) => [String(item.url || ""), String(item.status || ""), String(item.source || "")]);
+
+  const missingHeadingRows = (data: any) => {
+    const h1 = data?.issues?.missingHeadings?.h1 || [];
+    const h2 = data?.issues?.missingHeadings?.h2 || [];
+    const h3 = data?.issues?.missingHeadings?.h3 || [];
+    const all = new Set([...h1, ...h2, ...h3]);
+    return [...all].map((urlItem) => [urlItem, h1.includes(urlItem) ? "Yes" : "No", h2.includes(urlItem) ? "Yes" : "No", h3.includes(urlItem) ? "Yes" : "No"]);
+  };
+
+  const buildSections = (data: any): AuditSection[] => {
+    if (!data) return [];
+
+    return [
+      { key: "all-links", title: "All Links (Internal)", icon: <Link2 size={16} className="text-emerald-600" />, headers: ["Internal URL"], rows: listRows(data.allLinks || []) },
+      { key: "external-links", title: "External Links", icon: <Link2 size={16} className="text-blue-600" />, headers: ["External URL"], rows: listRows(data.externalLinks || []) },
+      { key: "missing-keywords", title: "Missing Keywords", icon: <Copy size={16} className="text-emerald-600" />, headers: ["Page URL"], rows: listRows(data.issues?.missingKeywords || []) },
+      { key: "duplicate-keywords", title: "Duplicate Keywords", icon: <Copy size={16} className="text-emerald-600" />, headers: ["Keyword", "Pages Count", "Pages"], rows: duplicateMapRows(data.issues?.duplicateKeywords || [], "keyword") },
+      { key: "missing-headings", title: "Missing Headings (H1/H2/H3)", icon: <Heading size={16} className="text-emerald-600" />, headers: ["Page URL", "Missing H1", "Missing H2", "Missing H3"], rows: missingHeadingRows(data) },
+      { key: "duplicate-h1", title: "Duplicate Headings (H1)", icon: <Heading size={16} className="text-emerald-600" />, headers: ["Heading", "Pages Count", "Pages"], rows: duplicateMapRows(data.issues?.duplicateHeadings?.h1 || [], "value") },
+      { key: "duplicate-h2", title: "Duplicate Headings (H2)", icon: <Heading size={16} className="text-emerald-600" />, headers: ["Heading", "Pages Count", "Pages"], rows: duplicateMapRows(data.issues?.duplicateHeadings?.h2 || [], "value") },
+      { key: "duplicate-h3", title: "Duplicate Headings (H3)", icon: <Heading size={16} className="text-emerald-600" />, headers: ["Heading", "Pages Count", "Pages"], rows: duplicateMapRows(data.issues?.duplicateHeadings?.h3 || [], "value") },
+      { key: "missing-alt", title: "Missing Alt Text", icon: <Image size={16} className="text-emerald-600" />, headers: ["Page", "Image URL"], rows: (data.issues?.missingAltText || []).map((item: any) => [String(item.page || ""), String(item.image || "")]) },
+      { key: "duplicate-alt", title: "Duplicate Alt Text", icon: <Image size={16} className="text-emerald-600" />, headers: ["Alt Text", "Pages Count", "Pages"], rows: duplicateMapRows(data.issues?.duplicateAltText || [], "value") },
+      { key: "missing-descriptions", title: "Missing Descriptions", icon: <FileWarning size={16} className="text-amber-600" />, headers: ["Page URL"], rows: listRows(data.issues?.missingDescriptions || []) },
+      { key: "duplicate-descriptions", title: "Duplicate Descriptions", icon: <FileWarning size={16} className="text-amber-600" />, headers: ["Description", "Pages Count", "Pages"], rows: duplicateMapRows(data.issues?.duplicateDescriptions || [], "value") },
+      { key: "broken-links", title: "Broken Links (4xx/5xx)", icon: <AlertCircle size={16} className="text-red-600" />, headers: ["Broken URL", "Status", "Source Page"], rows: brokenLinkRows(data.issues?.brokenLinks || []) },
+      { key: "html-errors", title: "HTML Errors", icon: <FileWarning size={16} className="text-orange-600" />, headers: ["Page URL", "Issues"], rows: htmlErrorRows(data.issues?.htmlErrors || []) },
+      { key: "duplicate-content", title: "Duplicate Contents", icon: <Copy size={16} className="text-indigo-600" />, headers: ["Content Hash", "Pages Count", "Pages"], rows: (data.issues?.duplicateContents || []).map((item: any) => [String(item.hash || ""), String((item.urls || []).length), String((item.urls || []).join(" | "))]) },
+    ];
+  };
+
+  const sections = buildSections(result);
 
   const handleRun = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +82,8 @@ export default function TechnicalAudit() {
 
       if (!res.ok || !res.data) throw new Error(res.error || "Technical audit failed.");
       setResult(res.data);
+      const initialCollapsed = Object.fromEntries(buildSections(res.data).map((section) => [section.key, true]));
+      setCollapsedSections(initialCollapsed);
       addActivity({
         type: "audit",
         title: "Technical Crawl Audit",
@@ -42,39 +96,40 @@ export default function TechnicalAudit() {
     }
   };
 
-  const TableSection = ({
-    title,
-    icon,
-    headers,
-    rows,
-  }: {
-    title: string;
-    icon: ReactNode;
-    headers: string[];
-    rows: string[][];
-  }) => (
+  const TableSection = ({ section }: { section: AuditSection }) => {
+    const isCollapsed = Boolean(collapsedSections[section.key]);
+
+    return (
     <div className="bg-white rounded-2xl border border-neutral-200 p-5">
-      <h3 className="font-bold mb-3 flex items-center gap-2">
-        {icon}
-        {title}
-      </h3>
-      {rows.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border border-neutral-200 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setCollapsedSections((prev) => ({ ...prev, [section.key]: !prev[section.key] }))}
+        className="w-full flex items-center justify-between mb-3"
+      >
+        <h3 className="font-bold flex items-center gap-2">
+          {section.icon}
+          {section.title}
+          <span className="text-xs font-semibold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">{section.rows.length}</span>
+        </h3>
+        {isCollapsed ? <ChevronDown size={18} className="text-neutral-500" /> : <ChevronUp size={18} className="text-neutral-500" />}
+      </button>
+
+      {!isCollapsed && (section.rows.length > 0 ? (
+        <div className="overflow-x-auto max-h-[480px] overflow-y-auto rounded-xl border border-neutral-200">
+          <table className="w-full text-sm">
             <thead className="bg-neutral-50">
               <tr>
-                {headers.map((header) => (
-                  <th key={header} className="text-left px-3 py-2 font-bold text-neutral-700 border-b border-neutral-200">
+                {section.headers.map((header) => (
+                  <th key={`${section.key}-${header}`} className="text-left px-3 py-2 font-bold text-neutral-700 border-b border-neutral-200 sticky top-0 bg-neutral-50">
                     {header}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, index) => (
-                <tr key={`${title}-${index}`} className="border-b border-neutral-100 last:border-b-0">
+              {section.rows.map((row, index) => (
+                <tr key={`${section.key}-${index}`} className={`border-b border-neutral-100 last:border-b-0 ${index % 2 === 0 ? "bg-white" : "bg-neutral-50/40"}`}>
                   {row.map((value, cellIndex) => (
-                    <td key={`${title}-${index}-${cellIndex}`} className="px-3 py-2 text-neutral-700 align-top break-words">
+                    <td key={`${section.key}-${index}-${cellIndex}`} className="px-3 py-2 text-neutral-700 align-top break-words">
                       {value}
                     </td>
                   ))}
@@ -85,44 +140,44 @@ export default function TechnicalAudit() {
         </div>
       ) : (
         <p className="text-sm text-neutral-500">No issues found.</p>
-      )}
+      ))}
     </div>
-  );
-
-  const listRows = (items: string[]) => items.map((item) => [item]);
-  const missingHeadingRows = () => {
-    const h1 = result?.issues?.missingHeadings?.h1 || [];
-    const h2 = result?.issues?.missingHeadings?.h2 || [];
-    const h3 = result?.issues?.missingHeadings?.h3 || [];
-    const all = new Set([...h1, ...h2, ...h3]);
-    return [...all].map((urlItem) => [urlItem, h1.includes(urlItem) ? "Yes" : "No", h2.includes(urlItem) ? "Yes" : "No", h3.includes(urlItem) ? "Yes" : "No"]);
-  };
-
-  const duplicateMapRows = (items: any[], valueKey: string) =>
-    (items || []).map((item: any) => [String(item[valueKey] || ""), String((item.urls || []).length), String((item.urls || []).join(" | "))]);
-
-  const htmlErrorRows = (items: any[]) =>
-    (items || []).map((item: any) => [String(item.page || ""), String((item.issues || []).join(" | "))]);
-
-  const brokenLinkRows = (items: any[]) =>
-    (items || []).map((item: any) => [String(item.url || ""), String(item.status || ""), String(item.source || "")]);
+  )};
 
   const handleExportCSV = () => {
     if (!result) return;
 
     const rows: string[] = [];
-    rows.push("type,page_or_key,value,extra");
+    rows.push("section,row,column,value");
 
-    (result.allLinks || []).forEach((link: string) => {
-      rows.push(`"all_link","${link.replace(/"/g, '""')}","",\"\"`);
+    const summaryRows = [
+      ["startUrl", String(result.summary?.startUrl || "")],
+      ["crawledPages", String(result.summary?.crawledPages || 0)],
+      ["internalLinks", String(result.summary?.discoveredLinks || 0)],
+      ["externalLinks", String(result.summary?.externalLinks || 0)],
+      ["brokenLinks", String(result.summary?.brokenLinks || 0)],
+      ["htmlErrorPages", String(result.summary?.htmlErrorPages || 0)],
+      ["duplicateContentGroups", String(result.summary?.duplicateContentGroups || 0)],
+    ];
+
+    summaryRows.forEach(([metric, value], index) => {
+      rows.push(`"Summary","${index + 1}","${metric}","${String(value).replace(/"/g, '""')}"`);
     });
 
-    (result.issues?.brokenLinks || []).forEach((item: any) => {
-      rows.push(`"broken_link","${String(item.url || "").replace(/"/g, '""')}","${String(item.status || "")}","${String(item.source || "").replace(/"/g, '""')}"`);
-    });
+    sections.forEach((section) => {
+      if (section.rows.length === 0) {
+        rows.push(`"${section.title.replace(/"/g, '""')}","0","status","No issues found"`);
+        return;
+      }
 
-    (result.issues?.missingDescriptions || []).forEach((page: string) => {
-      rows.push(`"missing_description","${String(page).replace(/"/g, '""')}","",\"\"`);
+      section.rows.forEach((row, rowIndex) => {
+        row.forEach((cell, cellIndex) => {
+          const columnName = section.headers[cellIndex] || `Column ${cellIndex + 1}`;
+          rows.push(
+            `"${section.title.replace(/"/g, '""')}","${rowIndex + 1}","${String(columnName).replace(/"/g, '""')}","${String(cell).replace(/"/g, '""')}"`
+          );
+        });
+      });
     });
 
     const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
@@ -147,7 +202,8 @@ export default function TechnicalAudit() {
 
     const summaryRows = [
       ["Crawled Pages", String(result.summary?.crawledPages || 0)],
-      ["All Links", String(result.summary?.discoveredLinks || 0)],
+      ["All Links (Internal)", String(result.summary?.discoveredLinks || 0)],
+      ["External Links", String(result.summary?.externalLinks || 0)],
       ["Broken Links", String(result.summary?.brokenLinks || 0)],
       ["HTML Error Pages", String(result.summary?.htmlErrorPages || 0)],
       ["Duplicate Content Groups", String(result.summary?.duplicateContentGroups || 0)],
@@ -160,14 +216,28 @@ export default function TechnicalAudit() {
       body: summaryRows,
     });
 
-    const broken = (result.issues?.brokenLinks || []).slice(0, 30).map((b: any) => [String(b.url || ""), String(b.status || ""), String(b.source || "")]);
-    if (broken.length > 0) {
+    let startY = (doc as any).lastAutoTable.finalY + 12;
+    sections.forEach((section) => {
+      if (section.rows.length === 0) return;
+
+      if (startY > 250) {
+        doc.addPage();
+        startY = 20;
+      }
+
+      doc.setFontSize(12);
+      doc.text(section.title, 14, startY);
+
       autoTable(doc, {
-        startY: (doc as any).lastAutoTable.finalY + 10,
-        head: [["Broken URL", "Status", "Source"]],
-        body: broken,
+        startY: startY + 4,
+        head: [section.headers],
+        body: section.rows,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [240, 240, 240], textColor: [33, 33, 33] },
       });
-    }
+
+      startY = (doc as any).lastAutoTable.finalY + 10;
+    });
 
     doc.save(`technical-audit-${Date.now()}.pdf`);
   };
@@ -252,6 +322,24 @@ export default function TechnicalAudit() {
       {result && (
         <div className="space-y-6">
           <div className="flex flex-wrap gap-3 justify-end">
+            <button
+              onClick={() => {
+                const expanded = Object.fromEntries(sections.map((section) => [section.key, false]));
+                setCollapsedSections(expanded);
+              }}
+              className="px-4 py-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold hover:bg-neutral-50"
+            >
+              Expand All
+            </button>
+            <button
+              onClick={() => {
+                const collapsed = Object.fromEntries(sections.map((section) => [section.key, true]));
+                setCollapsedSections(collapsed);
+              }}
+              className="px-4 py-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold hover:bg-neutral-50"
+            >
+              Collapse All
+            </button>
             <button onClick={handleExportPDF} className="px-4 py-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold hover:bg-neutral-50 inline-flex items-center gap-2">
               <Download size={16} /> Export PDF
             </button>
@@ -272,21 +360,20 @@ export default function TechnicalAudit() {
             <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">Duplicate Content Groups</div><div className="text-2xl font-black text-indigo-600">{result.summary?.duplicateContentGroups || 0}</div></div>
           </div>
 
-          <TableSection title="All Links (Internal)" icon={<Link2 size={16} className="text-emerald-600" />} headers={["Internal URL"]} rows={listRows(result.allLinks || [])} />
-          <TableSection title="External Links" icon={<Link2 size={16} className="text-blue-600" />} headers={["External URL"]} rows={listRows(result.externalLinks || [])} />
-          <TableSection title="Missing Keywords" icon={<Copy size={16} className="text-emerald-600" />} headers={["Page URL"]} rows={listRows(result.issues?.missingKeywords || [])} />
-          <TableSection title="Duplicate Keywords" icon={<Copy size={16} className="text-emerald-600" />} headers={["Keyword", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateKeywords || [], "keyword")} />
-          <TableSection title="Missing Headings (H1/H2/H3)" icon={<Heading size={16} className="text-emerald-600" />} headers={["Page URL", "Missing H1", "Missing H2", "Missing H3"]} rows={missingHeadingRows()} />
-          <TableSection title="Duplicate Headings (H1)" icon={<Heading size={16} className="text-emerald-600" />} headers={["Heading", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateHeadings?.h1 || [], "value")} />
-          <TableSection title="Duplicate Headings (H2)" icon={<Heading size={16} className="text-emerald-600" />} headers={["Heading", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateHeadings?.h2 || [], "value")} />
-          <TableSection title="Duplicate Headings (H3)" icon={<Heading size={16} className="text-emerald-600" />} headers={["Heading", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateHeadings?.h3 || [], "value")} />
-          <TableSection title="Missing Alt Text" icon={<Image size={16} className="text-emerald-600" />} headers={["Page", "Image URL"]} rows={(result.issues?.missingAltText || []).map((item: any) => [String(item.page || ""), String(item.image || "")])} />
-          <TableSection title="Duplicate Alt Text" icon={<Image size={16} className="text-emerald-600" />} headers={["Alt Text", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateAltText || [], "value")} />
-          <TableSection title="Missing Descriptions" icon={<FileWarning size={16} className="text-amber-600" />} headers={["Page URL"]} rows={listRows(result.issues?.missingDescriptions || [])} />
-          <TableSection title="Duplicate Descriptions" icon={<FileWarning size={16} className="text-amber-600" />} headers={["Description", "Pages Count", "Pages"]} rows={duplicateMapRows(result.issues?.duplicateDescriptions || [], "value")} />
-          <TableSection title="Broken Links (4xx/5xx)" icon={<AlertCircle size={16} className="text-red-600" />} headers={["Broken URL", "Status", "Source Page"]} rows={brokenLinkRows(result.issues?.brokenLinks || [])} />
-          <TableSection title="HTML Errors" icon={<FileWarning size={16} className="text-orange-600" />} headers={["Page URL", "Issues"]} rows={htmlErrorRows(result.issues?.htmlErrors || [])} />
-          <TableSection title="Duplicate Contents" icon={<Copy size={16} className="text-indigo-600" />} headers={["Content Hash", "Pages Count", "Pages"]} rows={(result.issues?.duplicateContents || []).map((item: any) => [String(item.hash || ""), String((item.urls || []).length), String((item.urls || []).join(" | "))])} />
+          <div className="bg-white rounded-2xl border border-neutral-200 p-5">
+            <h3 className="font-bold mb-3">Quick Reading Summary</h3>
+            <ul className="text-sm text-neutral-700 space-y-2 list-disc pl-5">
+              <li>{result.summary?.crawledPages || 0} pages crawled and analyzed.</li>
+              <li>{result.summary?.discoveredLinks || 0} internal links and {result.summary?.externalLinks || 0} external links discovered.</li>
+              <li>{result.summary?.brokenLinks || 0} broken links and {result.summary?.htmlErrorPages || 0} pages with HTML issues detected.</li>
+              <li>{result.summary?.duplicateContentGroups || 0} duplicate content groups found.</li>
+              <li>Use each collapsible section below for detailed per-URL diagnostics.</li>
+            </ul>
+          </div>
+
+          {sections.map((section) => (
+            <TableSection key={section.key} section={section} />
+          ))}
         </div>
       )}
     </div>
