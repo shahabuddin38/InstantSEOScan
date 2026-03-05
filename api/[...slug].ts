@@ -515,7 +515,7 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       }
 
       const startInput = String(parsed.data.url || "").trim();
-      const maxPages = parsed.data.maxPages || 40;
+      const maxPages = parsed.data.maxPages || 100;
       const startUrl = normalizePageUrl(startInput.startsWith("http") ? startInput : `https://${startInput}`);
 
       let startHost = "";

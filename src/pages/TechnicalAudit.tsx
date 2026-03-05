@@ -1,12 +1,14 @@
 import { useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Loader2, AlertCircle, Globe, Link2, Image, Heading, FileWarning, Copy } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, AlertCircle, Globe, Link2, Image, Heading, FileWarning, Copy, Download, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../services/apiClient";
 import { addActivity } from "../services/activityHistory";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function TechnicalAudit() {
   const [url, setUrl] = useState("");
-  const [maxPages, setMaxPages] = useState(40);
+  const [maxPages, setMaxPages] = useState(100);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);
@@ -59,6 +61,90 @@ export default function TechnicalAudit() {
       )}
     </div>
   );
+
+  const handleExportCSV = () => {
+    if (!result) return;
+
+    const rows: string[] = [];
+    rows.push("type,page_or_key,value,extra");
+
+    (result.allLinks || []).forEach((link: string) => {
+      rows.push(`"all_link","${link.replace(/"/g, '""')}","",\"\"`);
+    });
+
+    (result.issues?.brokenLinks || []).forEach((item: any) => {
+      rows.push(`"broken_link","${String(item.url || "").replace(/"/g, '""')}","${String(item.status || "")}","${String(item.source || "").replace(/"/g, '""')}"`);
+    });
+
+    (result.issues?.missingDescriptions || []).forEach((page: string) => {
+      rows.push(`"missing_description","${String(page).replace(/"/g, '""')}","",\"\"`);
+    });
+
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const downloadUrl = URL.createObjectURL(blob);
+    link.setAttribute("href", downloadUrl);
+    link.setAttribute("download", `technical-audit-${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    if (!result) return;
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text("Technical Crawl Audit Report", 14, 18);
+    doc.setFontSize(11);
+    doc.text(`URL: ${url}`, 14, 26);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 32);
+
+    const summaryRows = [
+      ["Crawled Pages", String(result.summary?.crawledPages || 0)],
+      ["All Links", String(result.summary?.discoveredLinks || 0)],
+      ["Broken Links", String(result.summary?.brokenLinks || 0)],
+      ["HTML Error Pages", String(result.summary?.htmlErrorPages || 0)],
+      ["Duplicate Content Groups", String(result.summary?.duplicateContentGroups || 0)],
+      ["Missing Descriptions", String(result.issues?.missingDescriptions?.length || 0)],
+    ];
+
+    autoTable(doc, {
+      startY: 40,
+      head: [["Metric", "Value"]],
+      body: summaryRows,
+    });
+
+    const broken = (result.issues?.brokenLinks || []).slice(0, 30).map((b: any) => [String(b.url || ""), String(b.status || ""), String(b.source || "")]);
+    if (broken.length > 0) {
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 10,
+        head: [["Broken URL", "Status", "Source"]],
+        body: broken,
+      });
+    }
+
+    doc.save(`technical-audit-${Date.now()}.pdf`);
+  };
+
+  const handleShare = async () => {
+    if (!result) return;
+    const shareData = {
+      title: "Technical Audit Report",
+      text: `Technical audit summary for ${url}: ${result.summary?.crawledPages || 0} pages crawled, ${result.summary?.brokenLinks || 0} broken links found.`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+      }
+    } catch {
+      await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+    }
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -120,6 +206,18 @@ export default function TechnicalAudit() {
 
       {result && (
         <div className="space-y-6">
+          <div className="flex flex-wrap gap-3 justify-end">
+            <button onClick={handleExportPDF} className="px-4 py-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold hover:bg-neutral-50 inline-flex items-center gap-2">
+              <Download size={16} /> Export PDF
+            </button>
+            <button onClick={handleExportCSV} className="px-4 py-2 rounded-xl border border-neutral-200 bg-white text-sm font-bold hover:bg-neutral-50 inline-flex items-center gap-2">
+              <Download size={16} /> Export CSV
+            </button>
+            <button onClick={handleShare} className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 inline-flex items-center gap-2">
+              <Share2 size={16} /> Share
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">Crawled Pages</div><div className="text-2xl font-black">{result.summary?.crawledPages || 0}</div></div>
             <div className="bg-white rounded-2xl p-4 border border-neutral-200"><div className="text-xs text-neutral-500">All Links</div><div className="text-2xl font-black">{result.summary?.discoveredLinks || 0}</div></div>
