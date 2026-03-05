@@ -20,6 +20,12 @@ export default function Blog() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const getAuthorLabel = (author?: string) => {
+    const value = (author || "").trim();
+    if (!value) return "Admin";
+    return value.toLowerCase() === "ai writer" ? "Admin" : value;
+  };
+
   useEffect(() => {
     const fallbackPosts: BlogPost[] = [
       { id: "1", title: "10 Technical SEO Mistakes That Are Killing Your Rankings", slug: "technical-seo-mistakes", content: "Learn how to fix the most common issues...", author: "SEO Expert", created_at: "2024-03-20" },
@@ -94,7 +100,7 @@ export default function Blog() {
                   </div>
                   <div className="flex items-center gap-1">
                     <User size={14} />
-                    {post.author}
+                    {getAuthorLabel(post.author)}
                   </div>
                 </div>
                 <h2 className="text-xl font-bold mb-4 group-hover:text-emerald-600 transition-colors leading-tight">

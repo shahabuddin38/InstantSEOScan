@@ -13,6 +13,7 @@ import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { REPORT_BRAND, REPORT_NAP_TEXT } from "../constants/reportBrand";
 
 export default function OnPageSEO() {
   const [activeTab, setActiveTab] = useState("audit");
@@ -91,7 +92,7 @@ export default function OnPageSEO() {
     if (!data) return;
 
     const doc = new jsPDF();
-    const siteName = "InstantSEOScan";
+    const siteName = REPORT_BRAND.websiteName;
 
     // Header
     doc.setFontSize(22);
@@ -103,18 +104,20 @@ export default function OnPageSEO() {
     doc.text("Professional SEO Intelligence Report", 14, 30);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 37);
     doc.text(`Target URL: ${url || "AI Analysis"}`, 14, 44);
+    doc.text(`Website: ${REPORT_BRAND.websiteName} (${REPORT_BRAND.websiteUrl})`, 14, 51);
+    doc.text(`NAP: ${REPORT_NAP_TEXT}`, 14, 58);
 
     doc.setDrawColor(200);
-    doc.line(14, 50, 196, 50);
+    doc.line(14, 64, 196, 64);
 
     if (auditResult) {
       doc.setFontSize(16);
       doc.setTextColor(0);
-      doc.text(`E-E-A-T Audit Score: ${auditResult.score}%`, 14, 65);
+      doc.text(`E-E-A-T Audit Score: ${auditResult.score}%`, 14, 78);
 
       const tableData = auditResult.checks.map((c: any) => [c.name, c.status, c.detail]);
       autoTable(doc, {
-        startY: 75,
+        startY: 88,
         head: [['Check Name', 'Status', 'Details']],
         body: tableData,
         headStyles: { fillColor: [5, 150, 105] },
@@ -140,9 +143,9 @@ export default function OnPageSEO() {
     } else if (result) {
       doc.setFontSize(16);
       doc.setTextColor(0);
-      doc.text("AI SEO Analysis Results", 14, 65);
+      doc.text("AI SEO Analysis Results", 14, 78);
 
-      let currentY = 75;
+      let currentY = 88;
       Object.entries(result).forEach(([key, value]: any) => {
         if (currentY > 260) { doc.addPage(); currentY = 20; }
         doc.setFont(undefined, 'bold');
@@ -174,10 +177,12 @@ export default function OnPageSEO() {
     try {
       let csv = "";
       if (auditResult) {
-        csv = "Name,Status,Detail\n" +
+        csv = `Report,Value\n"Website","${REPORT_BRAND.websiteName} (${REPORT_BRAND.websiteUrl})"\n"NAP","${REPORT_NAP_TEXT}"\n\n` +
+          "Name,Status,Detail\n" +
           auditResult.checks.map((c: any) => `"${c.name}","${c.status}","${c.detail.replace(/"/g, '""')}"`).join("\n");
       } else {
-        csv = "Key,Value\n" +
+        csv = `Report,Value\n"Website","${REPORT_BRAND.websiteName} (${REPORT_BRAND.websiteUrl})"\n"NAP","${REPORT_NAP_TEXT}"\n\n` +
+          "Key,Value\n" +
           Object.entries(result).map(([k, v]: any) => `"${k}","${String(v).replace(/"/g, '""')}"`).join("\n");
       }
 
@@ -250,6 +255,11 @@ export default function OnPageSEO() {
               <p className="text-xl text-neutral-500 max-w-2xl">
                 Comprehensive site auditing and content optimization generate by instanseoscan ai.
               </p>
+              <div className="mt-4 bg-neutral-50 border border-neutral-200 rounded-2xl p-3 max-w-2xl">
+                <div className="text-xs uppercase tracking-widest text-neutral-400 mb-1">Report Identity</div>
+                <div className="text-sm font-bold text-neutral-900">Website: {REPORT_BRAND.websiteName} ({REPORT_BRAND.websiteUrl})</div>
+                <div className="text-xs text-neutral-500 mt-1">NAP: {REPORT_NAP_TEXT}</div>
+              </div>
             </div>
             <div className="flex gap-3">
               <button

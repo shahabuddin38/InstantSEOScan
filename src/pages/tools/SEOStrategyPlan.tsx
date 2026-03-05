@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { generateSEOStrategyPlan } from "../../services/geminiService";
 import jsPDF from "jspdf";
 import { addActivity } from "../../services/activityHistory";
+import { REPORT_BRAND, REPORT_NAP_TEXT } from "../../constants/reportBrand";
 
 export default function SEOStrategyPlan() {
   const [form, setForm] = useState({
@@ -32,9 +33,11 @@ export default function SEOStrategyPlan() {
     doc.text(`Niche: ${form.niche || "N/A"}`, 14, 32);
     doc.text(`Timeline: ${form.timeline || "N/A"}`, 14, 38);
     doc.text(`Generated: ${generatedAt}`, 14, 44);
-    doc.text("generate by instanseoscan ai", 14, 50);
+    doc.text(`Brand: ${REPORT_BRAND.websiteName} (${REPORT_BRAND.websiteUrl})`, 14, 50);
+    doc.text(`NAP: ${REPORT_NAP_TEXT}`, 14, 56);
+    doc.text("generate by instanseoscan ai", 14, 62);
 
-    let y = 60;
+    let y = 72;
 
     const addSection = (title: string, content: string) => {
       doc.setFontSize(12);
@@ -109,6 +112,11 @@ export default function SEOStrategyPlan() {
           <div className="mb-12">
             <h1 className="text-3xl font-bold mb-2">SEO Strategy Plan</h1>
             <p className="text-neutral-500">Generate a complete SEO roadmap for your website with priorities, milestones, and action items.</p>
+            <div className="mt-4 bg-white rounded-2xl border border-neutral-200 p-4 max-w-3xl">
+              <div className="text-xs uppercase tracking-widest text-neutral-400 mb-1">Report Identity</div>
+              <div className="text-sm font-bold text-neutral-900">Website: {REPORT_BRAND.websiteName} ({REPORT_BRAND.websiteUrl})</div>
+              <div className="text-xs text-neutral-500 mt-1">NAP: {REPORT_NAP_TEXT}</div>
+            </div>
           </div>
 
           <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8 mb-8">

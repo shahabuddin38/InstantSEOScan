@@ -187,6 +187,7 @@ export default function Admin() {
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTargetBlock, setUploadTargetBlock] = useState<string | null>(null);
+  const [interlinkDrafts, setInterlinkDrafts] = useState<Record<string, { text: string; href: string; target: "_self" | "_blank" }>>({});
 
   const [postForm, setPostForm] = useState({
     title: "",
@@ -379,6 +380,7 @@ export default function Admin() {
     });
     setEditingPostId(null);
     setIsCreatingPost(true);
+    setInterlinkDrafts({});
   };
 
   const createBlock = (type: BlogBlock["type"]): BlogBlock => ({
@@ -403,6 +405,42 @@ export default function Admin() {
 
   const removeBlock = (blockId: string) => {
     setPostForm((prev) => ({ ...prev, blocks: prev.blocks.filter((block) => block.id !== blockId) }));
+    setInterlinkDrafts((prev) => {
+      const next = { ...prev };
+      delete next[blockId];
+      return next;
+    });
+  };
+
+  const setInterlinkDraft = (blockId: string, patch: Partial<{ text: string; href: string; target: "_self" | "_blank" }>) => {
+    setInterlinkDrafts((prev) => ({
+      ...prev,
+      [blockId]: {
+        text: prev[blockId]?.text || "",
+        href: prev[blockId]?.href || "",
+        target: prev[blockId]?.target || "_self",
+        ...patch,
+      },
+    }));
+  };
+
+  const insertInterlink = (blockId: string) => {
+    const draft = interlinkDrafts[blockId];
+    const linkText = (draft?.text || "").trim();
+    const href = (draft?.href || "").trim();
+    const target = draft?.target || "_self";
+
+    if (!linkText || !href) {
+      setError("Interlink text and href are required.");
+      return;
+    }
+
+    const anchorTag = `<a href="${href}" target="${target}">${linkText}</a>`;
+    const currentBlock = postForm.blocks.find((block) => block.id === blockId);
+    const nextText = currentBlock?.text?.trim() ? `${currentBlock.text} ${anchorTag}` : anchorTag;
+
+    updateBlock(blockId, { text: nextText });
+    setInterlinkDraft(blockId, { text: "", href: "", target: "_self" });
   };
 
   const moveBlock = (fromBlockId: string, toBlockId: string) => {
@@ -431,7 +469,7 @@ export default function Admin() {
       content: post.content || "",
       excerpt: post.excerpt || "",
       coverImage: post.coverImage || "",
-      author: post.author || "",
+      author: (post.author || "").toLowerCase() === "ai writer" ? "Admin" : (post.author || ""),
       blocks: parsedBlocks,
     });
   };
@@ -581,7 +619,7 @@ export default function Admin() {
       content: "",
       excerpt: result.data.excerpt || "",
       coverImage: result.data.coverImage || "",
-      author: "AI Writer",
+      author: "Admin",
       blocks: result.data.blocks || [],
     });
     setAiTopic("");
@@ -982,13 +1020,52 @@ export default function Admin() {
                               {block.url && <img src={block.url} className="mt-2 rounded max-h-32 object-contain bg-white border" alt="preview" />}
                             </div>
                           ) : (
-                            <textarea
-                              value={block.text}
-                              onChange={(e) => updateBlock(block.id, { text: e.target.value })}
-                              placeholder={`${block.type}...`}
-                              rows={block.type === "paragraph" ? 4 : 2}
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none resize-y min-h-[60px]"
-                            />
+                            <>
+                              <textarea
+                                value={block.text}
+                                onChange={(e) => updateBlock(block.id, { text: e.target.value })}
+                                placeholder={`${block.type}...`}
+                                rows={block.type === "paragraph" ? 4 : 2}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none resize-y min-h-[60px]"
+                              />
+
+                              <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Interlink (href + target)</div>
+                                <div className="grid grid-cols-1 gap-2">
+                                  <input
+                                    type="text"
+                                    value={interlinkDrafts[block.id]?.text || ""}
+                                    onChange={(e) => setInterlinkDraft(block.id, { text: e.target.value })}
+                                    placeholder="Link text"
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={interlinkDrafts[block.id]?.href || ""}
+                                    onChange={(e) => setInterlinkDraft(block.id, { href: e.target.value })}
+                                    placeholder="Href (e.g. /pricing or https://example.com)"
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none"
+                                  />
+                                  <div className="flex gap-2">
+                                    <select
+                                      value={interlinkDrafts[block.id]?.target || "_self"}
+                                      onChange={(e) => setInterlinkDraft(block.id, { target: e.target.value as "_self" | "_blank" })}
+                                      className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none"
+                                    >
+                                      <option value="_self">Open in same tab (_self)</option>
+                                      <option value="_blank">Open in new tab (_blank)</option>
+                                    </select>
+                                    <button
+                                      type="button"
+                                      onClick={() => insertInterlink(block.id)}
+                                      className="px-3 py-2 bg-emerald-100 text-[#10B981] rounded-lg text-xs font-bold hover:bg-emerald-200 transition-colors"
+                                    >
+                                      Insert Link
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
                           )}
                         </div>
                       ))}

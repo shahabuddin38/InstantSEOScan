@@ -19,6 +19,7 @@ import { Link } from "react-router-dom";
 import { apiRequest } from "../services/apiClient";
 import { addActivity } from "../services/activityHistory";
 import jsPDF from "jspdf";
+import { REPORT_BRAND, REPORT_NAP_TEXT } from "../constants/reportBrand";
 
 
 type CountSection = {
@@ -189,6 +190,8 @@ export default function TechnicalAudit() {
 
     const rows: string[] = [];
     rows.push("section,count,detail");
+    rows.push(`"Report Brand","","${REPORT_BRAND.websiteName} (${REPORT_BRAND.websiteUrl})"`);
+    rows.push(`"NAP","","${REPORT_NAP_TEXT}"`);
     sections.forEach((section) => {
       rows.push(
         `"${section.title.replace(/"/g, '""')}","${section.count}","${String(section.detail || "").replace(/"/g, '""')}"`
@@ -219,6 +222,8 @@ export default function TechnicalAudit() {
     doc.setFontSize(10);
     doc.text(`URL: ${url}`, 14, 40);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 46);
+    doc.text(`Website: ${REPORT_BRAND.websiteName} (${REPORT_BRAND.websiteUrl})`, 14, 52);
+    doc.text(`NAP: ${REPORT_NAP_TEXT}`, 14, 58);
 
     const boxColors: Array<[number, number, number]> = [
       [16, 185, 129],
@@ -230,7 +235,7 @@ export default function TechnicalAudit() {
     ];
 
     let x = 14;
-    let y = 56;
+    let y = 70;
     const boxW = 58;
     const boxH = 26;
 
@@ -256,7 +261,7 @@ export default function TechnicalAudit() {
 
     doc.setTextColor(75, 85, 99);
     doc.setFontSize(9);
-    doc.text("Count-only export for quick review", 14, 287);
+    doc.text(`Count-only export for quick review | ${REPORT_BRAND.websiteName}`, 14, 287);
 
     doc.save(`technical-audit-short-${Date.now()}.pdf`);
   };
@@ -317,6 +322,12 @@ export default function TechnicalAudit() {
       <div className="mb-8">
         <h1 className="text-4xl font-black text-neutral-900 mb-2 tracking-tight">Technical Audit</h1>
         <p className="text-neutral-500">Crawl your website and review clear count-based technical SEO diagnostics.</p>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-neutral-200 p-4 mb-8">
+        <div className="text-xs uppercase tracking-widest text-neutral-400 mb-1">Report Identity</div>
+        <div className="text-sm font-bold text-neutral-900">Website: {REPORT_BRAND.websiteName} ({REPORT_BRAND.websiteUrl})</div>
+        <div className="text-xs text-neutral-500 mt-1">NAP: {REPORT_NAP_TEXT}</div>
       </div>
 
       <div className="bg-white rounded-3xl p-6 border border-neutral-200 shadow-sm mb-8">

@@ -6,6 +6,7 @@ import ScoreCircle from "../components/ScoreCircle";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { apiRequest } from "../services/apiClient";
+import { REPORT_BRAND, REPORT_NAP_TEXT } from "../constants/reportBrand";
 
 export default function Report() {
   const { id } = useParams();
@@ -84,10 +85,12 @@ export default function Report() {
     doc.text(`URL: ${data.technical.title}`, 14, 32);
     doc.text(`Score: ${data.score}/100`, 14, 40);
     doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 48);
+    doc.text(`Website: ${REPORT_BRAND.websiteName} (${REPORT_BRAND.websiteUrl})`, 14, 56);
+    doc.text(`NAP: ${REPORT_NAP_TEXT}`, 14, 64);
 
     const auditData = audits.map(a => [a.title, a.status, a.value]);
     autoTable(doc, {
-      startY: 60,
+      startY: 74,
       head: [['Check', 'Status', 'Result']],
       body: auditData,
     });
@@ -105,6 +108,10 @@ export default function Report() {
     ]);
 
     const csvContent = [
+      'Report,Value',
+      `"Website","${REPORT_BRAND.websiteName} (${REPORT_BRAND.websiteUrl})"`,
+      `"NAP","${REPORT_NAP_TEXT}"`,
+      '',
       headers.join(','),
       ...rows.map(r => r.join(','))
     ].join('\n');
@@ -141,6 +148,8 @@ export default function Report() {
         <p><strong>URL:</strong> ${data.technical.title}</p>
         <p><strong>Score:</strong> ${data.score}/100</p>
         <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+        <p><strong>Website:</strong> ${REPORT_BRAND.websiteName} (${REPORT_BRAND.websiteUrl})</p>
+        <p><strong>NAP:</strong> ${REPORT_NAP_TEXT}</p>
         <table>
           <tr><th>Check</th><th>Status</th><th>Result</th><th>Description</th></tr>
           ${audits.map(a => `
@@ -249,6 +258,12 @@ export default function Report() {
       </div>
 
       <div className="mb-12">
+        <div className="bg-white rounded-2xl border border-neutral-200 p-4 mb-6 max-w-3xl mx-auto text-left">
+          <div className="text-xs uppercase tracking-widest text-neutral-400 mb-1">Report Identity</div>
+          <div className="text-sm font-bold text-neutral-900">Website: {REPORT_BRAND.websiteName} ({REPORT_BRAND.websiteUrl})</div>
+          <div className="text-xs text-neutral-500 mt-1">NAP: {REPORT_NAP_TEXT}</div>
+        </div>
+
         {/* Score Card */}
         <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8 flex flex-col items-center justify-center text-center max-w-3xl mx-auto">
           <ScoreCircle score={data.score} />

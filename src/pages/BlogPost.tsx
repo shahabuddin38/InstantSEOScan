@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, User, Clock, Share2, Facebook, Twitter, Linkedin } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -30,6 +30,50 @@ export default function BlogPost() {
   const [post, setPost] = useState<BlogPostType | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const getAuthorLabel = (author?: string) => {
+    const value = (author || "").trim();
+    if (!value) return "Admin";
+    return value.toLowerCase() === "ai writer" ? "Admin" : value;
+  };
+
+  const renderInlineAnchors = (text: string) => {
+    const pattern = /<a\s+href=["']([^"']+)["'](?:\s+target=["']([^"']+)["'])?[^>]*>(.*?)<\/a>/gi;
+    const nodes: ReactNode[] = [];
+    let cursor = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = pattern.exec(text)) !== null) {
+      const [full, href, target, label] = match;
+      const start = match.index;
+      const end = start + full.length;
+
+      if (start > cursor) {
+        nodes.push(text.slice(cursor, start));
+      }
+
+      const safeTarget = target === "_blank" ? "_blank" : "_self";
+      nodes.push(
+        <a
+          key={`${href}-${start}`}
+          href={href}
+          target={safeTarget}
+          rel={safeTarget === "_blank" ? "noopener noreferrer" : undefined}
+          className="text-emerald-600 hover:text-emerald-700 underline"
+        >
+          {label}
+        </a>
+      );
+
+      cursor = end;
+    }
+
+    if (cursor < text.length) {
+      nodes.push(text.slice(cursor));
+    }
+
+    return nodes.length > 0 ? nodes : [text];
+  };
+
   useEffect(() => {
     const loadPost = async () => {
       if (!slug) {
@@ -55,15 +99,15 @@ export default function BlogPost() {
     const key = block.id || `${block.type}-${index}`;
     const text = block.text || "";
 
-    if (block.type === "h1") return <h1 key={key} className="text-3xl md:text-4xl font-black text-neutral-900 mt-8 mb-4">{text}</h1>;
-    if (block.type === "h2") return <h2 key={key} className="text-2xl md:text-3xl font-bold text-neutral-900 mt-8 mb-4">{text}</h2>;
-    if (block.type === "h3") return <h3 key={key} className="text-xl md:text-2xl font-bold text-neutral-900 mt-6 mb-3">{text}</h3>;
-    if (block.type === "quote") return <blockquote key={key} className="border-l-4 border-emerald-500 pl-4 italic text-neutral-700 my-6">{text}</blockquote>;
+    if (block.type === "h1") return <h1 key={key} className="text-3xl md:text-4xl font-black text-neutral-900 mt-8 mb-4">{renderInlineAnchors(text)}</h1>;
+    if (block.type === "h2") return <h2 key={key} className="text-2xl md:text-3xl font-bold text-neutral-900 mt-8 mb-4">{renderInlineAnchors(text)}</h2>;
+    if (block.type === "h3") return <h3 key={key} className="text-xl md:text-2xl font-bold text-neutral-900 mt-6 mb-3">{renderInlineAnchors(text)}</h3>;
+    if (block.type === "quote") return <blockquote key={key} className="border-l-4 border-emerald-500 pl-4 italic text-neutral-700 my-6">{renderInlineAnchors(text)}</blockquote>;
     if (block.type === "list") {
       const items = text.split("\n").map((item) => item.trim()).filter(Boolean);
       return (
         <ul key={key} className="list-disc pl-6 my-4 space-y-1 text-neutral-700">
-          {items.map((item, itemIndex) => <li key={`${key}-${itemIndex}`}>{item}</li>)}
+          {items.map((item, itemIndex) => <li key={`${key}-${itemIndex}`}>{renderInlineAnchors(item)}</li>)}
         </ul>
       );
     }
@@ -83,7 +127,7 @@ export default function BlogPost() {
         </div>
       );
     }
-    return <p key={key} className="text-neutral-700 leading-relaxed mb-4">{text}</p>;
+    return <p key={key} className="text-neutral-700 leading-relaxed mb-4">{renderInlineAnchors(text)}</p>;
   };
 
   if (loading) {
@@ -130,7 +174,7 @@ export default function BlogPost() {
                 <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600">
                   <User size={14} />
                 </div>
-                <span className="font-medium text-neutral-900">{post.author}</span>
+                <span className="font-medium text-neutral-900">{getAuthorLabel(post.author)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar size={16} />
