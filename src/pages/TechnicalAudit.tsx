@@ -32,7 +32,7 @@ type CountSection = {
 
 export default function TechnicalAudit() {
   const [url, setUrl] = useState("");
-  const [maxPages, setMaxPages] = useState(100);
+  const [maxPages, setMaxPages] = useState(30);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);

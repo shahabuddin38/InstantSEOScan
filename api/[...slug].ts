@@ -8,7 +8,7 @@ import { prisma } from "../lib/prisma.js";
 import { signToken } from "../lib/auth.js";
 import { withAuth } from "../middleware/withAuth.js";
 import { checkQuota } from "../lib/quota.js";
-import { generateAI } from "../lib/gemini.js";
+import { generateAI, getGeminiApiKeyStats } from "../lib/gemini.js";
 import { stripe } from "../lib/stripe.js";
 
 const cleanUrl = (url: string) =>
@@ -43,7 +43,7 @@ const scanBodySchema = z.object({
 
 const technicalAuditBodySchema = z.object({
   url: z.string().min(1),
-  maxPages: z.number().int().min(1).max(100).optional(),
+  maxPages: z.number().int().min(1).max(60).optional(),
 });
 
 const blogBlockSchema = z.object({
@@ -182,6 +182,68 @@ const textFingerprint = (value: string) =>
   createHash("sha1")
     .update(String(value || "").replace(/\s+/g, " ").trim().toLowerCase())
     .digest("hex");
+
+const syncableVercelKeys = new Set([
+  "CMS_API_KEY",
+  "GEMINI_API_KEY_1",
+  "GEMINI_API_KEY_2",
+  "GEMINI_API_KEY_3",
+  "GEMINI_API_KEY_1_LIMIT",
+  "GEMINI_API_KEY_2_LIMIT",
+  "GEMINI_API_KEY_3_LIMIT",
+]);
+
+const syncSingleVercelEnv = async (key: string, value: string) => {
+  const token = process.env.VERCEL_ACCESS_TOKEN || process.env.VERCEL_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  const teamId = process.env.VERCEL_TEAM_ID;
+
+  if (!token || !projectId) {
+    return { key, synced: false, reason: "missing_vercel_credentials" };
+  }
+
+  try {
+    const query = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
+    const endpoint = `https://api.vercel.com/v10/projects/${encodeURIComponent(projectId)}/env${query}`;
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        key,
+        value,
+        type: "encrypted",
+        target: ["production", "preview", "development"],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { key, synced: false, reason: errorText || `http_${response.status}` };
+    }
+
+    return { key, synced: true };
+  } catch (error: any) {
+    return { key, synced: false, reason: error?.message || "vercel_sync_failed" };
+  }
+};
+
+const syncSettingsToVercel = async (body: Record<string, any>) => {
+  const entries = Object.entries(body)
+    .filter(([key]) => syncableVercelKeys.has(key))
+    .map(([key, value]) => [key, String(value || "")] as const);
+
+  if (entries.length === 0) return [];
+
+  const results = [] as Array<{ key: string; synced: boolean; reason?: string }>;
+  for (const [key, value] of entries) {
+    results.push(await syncSingleVercelEnv(key, value));
+  }
+  return results;
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url || "", "http://localhost");
@@ -515,8 +577,11 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       }
 
       const startInput = String(parsed.data.url || "").trim();
-      const maxPages = parsed.data.maxPages || 100;
+      const maxPages = parsed.data.maxPages || 30;
       const startUrl = normalizePageUrl(startInput.startsWith("http") ? startInput : `https://${startInput}`);
+      const crawlStartedAt = Date.now();
+      const crawlBudgetMs = 18000;
+      const withinBudget = () => Date.now() - crawlStartedAt < crawlBudgetMs;
 
       let startHost = "";
       try {
@@ -547,7 +612,7 @@ Include at least 10 checks covering: author credentials, about page, contact inf
         contentHash: string;
       }> = [];
 
-      while (toVisit.length > 0 && visited.size < maxPages) {
+      while (toVisit.length > 0 && visited.size < maxPages && withinBudget()) {
         const current = normalizePageUrl(toVisit.shift() || "");
         if (!current || visited.has(current)) continue;
         visited.add(current);
@@ -706,6 +771,7 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       const brokenLinks: Array<{ url: string; status: number; source: string }> = [];
       const checkedBroken = new Set<string>();
       for (const relation of linkSources.slice(0, 500)) {
+        if (!withinBudget()) break;
         if (checkedBroken.has(relation.to)) continue;
         checkedBroken.add(relation.to);
         try {
@@ -750,6 +816,7 @@ Include at least 10 checks covering: author credentials, about page, contact inf
           brokenLinks: brokenLinks.length,
           htmlErrorPages: htmlErrors.length,
           duplicateContentGroups: duplicateContents.length,
+          truncated: toVisit.length > 0 || !withinBudget(),
         },
         pages,
         allLinks: [...internalLinks],
@@ -1126,7 +1193,8 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
       if (reqAny.method === "GET") {
         const settings = await prisma.setting.findMany();
         const config = settings.reduce((acc: any, s: any) => ({ ...acc, [s.key]: s.value }), {});
-        return resAny.json(config);
+        const geminiStats = await getGeminiApiKeyStats();
+        return resAny.json({ ...config, _geminiKeyStats: geminiStats });
       }
 
       if (reqAny.method === "POST") {
@@ -1138,7 +1206,9 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
             create: { key, value: String(value) },
           });
         }
-        return resAny.json({ success: true, message: "Settings updated" });
+        const vercelSync = await syncSettingsToVercel(body as Record<string, any>);
+        const geminiStats = await getGeminiApiKeyStats();
+        return resAny.json({ success: true, message: "Settings updated", vercelSync, _geminiKeyStats: geminiStats });
       }
 
       return resAny.status(405).end();

@@ -96,6 +96,16 @@ type ContactMessage = {
   createdAt: string;
 };
 
+type GeminiKeyStat = {
+  slot: number;
+  key: string;
+  configured: boolean;
+  usage: number;
+  limit: number | null;
+  remaining: number | null;
+  status: "available" | "limited" | "missing";
+};
+
 const tokenHeaders = () => ({});
 
 // --- UI Components ---
@@ -200,12 +210,17 @@ export default function Admin() {
   });
 
   const [settingsForm, setSettingsForm] = useState({
+    CMS_API_KEY: "",
     GEMINI_API_KEY_1: "",
+    GEMINI_API_KEY_1_LIMIT: "",
     GEMINI_API_KEY_2: "",
+    GEMINI_API_KEY_2_LIMIT: "",
     GEMINI_API_KEY_3: "",
+    GEMINI_API_KEY_3_LIMIT: "",
     POSTGRES_URL: "",
     PRISMA_DATABASE_URL: "",
   });
+  const [geminiKeyStats, setGeminiKeyStats] = useState<GeminiKeyStat[]>([]);
   const [savingSettings, setSavingSettings] = useState(false);
 
   const navigate = useNavigate();
@@ -244,12 +259,17 @@ export default function Admin() {
     const result = await apiRequest<any>("/api/admin/settings", { headers: tokenHeaders() });
     if (result.ok && result.data) {
       setSettingsForm({
+        CMS_API_KEY: result.data.CMS_API_KEY || "",
         GEMINI_API_KEY_1: result.data.GEMINI_API_KEY_1 || "",
+        GEMINI_API_KEY_1_LIMIT: result.data.GEMINI_API_KEY_1_LIMIT || "",
         GEMINI_API_KEY_2: result.data.GEMINI_API_KEY_2 || "",
+        GEMINI_API_KEY_2_LIMIT: result.data.GEMINI_API_KEY_2_LIMIT || "",
         GEMINI_API_KEY_3: result.data.GEMINI_API_KEY_3 || "",
+        GEMINI_API_KEY_3_LIMIT: result.data.GEMINI_API_KEY_3_LIMIT || "",
         POSTGRES_URL: result.data.POSTGRES_URL || "",
         PRISMA_DATABASE_URL: result.data.PRISMA_DATABASE_URL || "",
       });
+      setGeminiKeyStats(Array.isArray(result.data._geminiKeyStats) ? result.data._geminiKeyStats : []);
     }
   };
 
@@ -265,6 +285,9 @@ export default function Admin() {
     if (!result.ok) {
       setError(result.error || "Failed to save settings");
     } else {
+      if (result.data?._geminiKeyStats) {
+        setGeminiKeyStats(result.data._geminiKeyStats);
+      }
       alert("Settings saved successfully!");
     }
   };
@@ -1291,18 +1314,34 @@ export default function Admin() {
               Gemini API Keys
             </h2>
             <p className="text-xs text-neutral-500 mb-6">
-              Configure your Gemini AI Keys and Database Configuration.
+              Configure CMS and Gemini API keys, per-key limits, and database configuration.
             </p>
 
             <div className="space-y-8">
+              <div className="space-y-4">
+                <h3 className="font-bold text-sm text-neutral-800 border-b pb-2">CMS Configuration</h3>
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-neutral-700">CMS_API_KEY</label>
+                  <input
+                    type="password"
+                    value={settingsForm.CMS_API_KEY}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, CMS_API_KEY: e.target.value })}
+                    placeholder="cms_..."
+                    className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                  />
+                </div>
+              </div>
+
               {/* Gemini Section */}
               <div className="space-y-4">
                 <h3 className="font-bold text-sm text-neutral-800 border-b pb-2">AI Configuration</h3>
                 {[
-                  { key: "GEMINI_API_KEY_1" as const, label: "Primary Key (Key 1)", color: "emerald", type: "password" },
-                  { key: "GEMINI_API_KEY_2" as const, label: "Secondary Key (Key 2)", color: "blue", type: "password" },
-                  { key: "GEMINI_API_KEY_3" as const, label: "Tertiary Key (Key 3)", color: "purple", type: "password" },
-                ].map(({ key, label, color, type }) => (
+                  { key: "GEMINI_API_KEY_1" as const, limitKey: "GEMINI_API_KEY_1_LIMIT" as const, label: "Primary Key (Key 1)", color: "emerald", type: "password", slot: 1 },
+                  { key: "GEMINI_API_KEY_2" as const, limitKey: "GEMINI_API_KEY_2_LIMIT" as const, label: "Secondary Key (Key 2)", color: "blue", type: "password", slot: 2 },
+                  { key: "GEMINI_API_KEY_3" as const, limitKey: "GEMINI_API_KEY_3_LIMIT" as const, label: "Tertiary Key (Key 3)", color: "purple", type: "password", slot: 3 },
+                ].map(({ key, limitKey, label, color, type, slot }) => {
+                  const stat = geminiKeyStats.find((item) => item.slot === slot);
+                  return (
                   <div key={key} className="space-y-1">
                     <label className="text-sm font-bold text-neutral-700 flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full bg-${color}-500`} />
@@ -1315,8 +1354,35 @@ export default function Admin() {
                       placeholder="AIzaSy..."
                       className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
                     />
+                    <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <div className="space-y-1 md:col-span-1">
+                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Limit</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={settingsForm[limitKey]}
+                          onChange={(e) => setSettingsForm({ ...settingsForm, [limitKey]: e.target.value })}
+                          placeholder="0 = unlimited"
+                          className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+                      <div className="md:col-span-2 grid grid-cols-3 gap-2 text-xs">
+                        <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
+                          <div className="text-neutral-500">Usage</div>
+                          <div className="font-bold text-neutral-800">{stat?.usage ?? 0}</div>
+                        </div>
+                        <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
+                          <div className="text-neutral-500">Remaining</div>
+                          <div className="font-bold text-neutral-800">{stat?.remaining === null ? "Unlimited" : stat?.remaining ?? "-"}</div>
+                        </div>
+                        <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
+                          <div className="text-neutral-500">Status</div>
+                          <div className="font-bold text-neutral-800 capitalize">{stat?.status || "missing"}</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                )})}
               </div>
 
               {/* Database Section */}
@@ -1345,7 +1411,7 @@ export default function Admin() {
               </div>
 
               <p className="text-xs text-neutral-400 pt-2">
-                Keys are stored securely in the database (never in git). Leave a slot empty to skip it.
+                Keys are stored in the database and then synced to Vercel project env vars when credentials are configured.
               </p>
 
               <div className="pt-4 flex justify-end">
