@@ -372,6 +372,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: user.status,
           verified: user.verified,
         },
+        token,
       });
     } catch (dbError: any) {
       console.error("Login DB Error:", dbError);

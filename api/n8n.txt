@@ -134,6 +134,10 @@
         "headerParameters": {
           "parameters": [
             {
+              "name": "Authorization",
+              "value": "={{ $('Extract Token from Cookies').item.json.authHeader }}"
+            },
+            {
               "name": "Cookie",
               "value": "={{ $('Extract Token from Cookies').item.json.cookieHeader }}"
             }
@@ -178,7 +182,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const setCookieHeader = $input.first().json.headers['set-cookie'] || $input.first().json.headers['Set-Cookie'] || [];\nconst cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];\nconst tokenCookie = cookies.find(c => c && c.startsWith('token='));\nif (!tokenCookie) throw new Error('Login token cookie not found in response');\nconst token = tokenCookie.split(';')[0];\nreturn [{ json: { cookieHeader: token } }];"
+        "jsCode": "const first = $input.first().json || {};\nconst body = first.body || first;\nconst tokenFromBody = body.token ? String(body.token) : '';\nconst setCookieHeader = first.headers?.['set-cookie'] || first.headers?.['Set-Cookie'] || [];\nconst cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];\nconst tokenCookie = cookies.find(c => c && c.startsWith('token='));\nconst cookieHeader = tokenCookie ? tokenCookie.split(';')[0] : '';\nconst bearer = tokenFromBody || (cookieHeader.startsWith('token=') ? cookieHeader.slice('token='.length) : '');\nif (!bearer) throw new Error('Login token not found in response body or cookies');\nreturn [{ json: { cookieHeader, authHeader: `Bearer ${bearer}` } }];"
       },
       "id": "99205d63-1dff-4e5d-ae88-c853579114da",
       "name": "Extract Token from Cookies",

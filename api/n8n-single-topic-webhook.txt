@@ -98,6 +98,10 @@
         "headerParameters": {
           "parameters": [
             {
+              "name": "Authorization",
+              "value": "={{ $json.authHeader }}"
+            },
+            {
               "name": "Cookie",
               "value": "={{ $json.cookieHeader }}"
             }
@@ -110,7 +114,7 @@
           "timeout": 60000
         }
       },
-      "id": "auto-post-1",
+            "jsCode": "const first = $input.first().json || {};\nconst body = first.body || first;\nconst tokenFromBody = body.token ? String(body.token) : '';\nconst raw = first.headers?.['set-cookie'] || first.headers?.['Set-Cookie'] || [];\nconst cookies = Array.isArray(raw) ? raw : [raw];\nconst tokenCookie = cookies.find(c => c && c.startsWith('token='));\nconst cookieHeader = tokenCookie ? tokenCookie.split(';')[0] : '';\nconst bearer = tokenFromBody || (cookieHeader.startsWith('token=') ? cookieHeader.slice('token='.length) : '');\nif (!bearer) throw new Error('Login token not found in response body or cookies');\nreturn [{ json: { cookieHeader, authHeader: `Bearer ${bearer}` } }];"
       "name": "Auto Post via Anthropic API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
