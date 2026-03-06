@@ -13,14 +13,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
   const toLocalized = (path: string) => localizedPath(path, locale);
 
   const seoToolMenu = [
-    {
-      label: "Site Audit",
-      links: [
-        { name: "CoreScan Engine", path: "/tools/corescan" },
-        { name: "Technical Audit Tool", path: "/tools/technical" },
-        { name: "InfraSEO Analysis", path: "/tools/infra" },
-      ],
-    },
+    
     {
       label: "On-Page SEO",
       links: [
@@ -33,12 +26,14 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
       ],
     },
     {
-      label: "Off-Page SEO",
+      label: "Site Audit",
       links: [
-        { name: "Off-Page SEO AI", path: "/tools/off-page" },
-        { name: "Authority Radar", path: "/tools/authority" },
+        { name: "CoreScan Engine", path: "/tools/corescan" },
+        { name: "Technical Audit Tool", path: "/tools/technical" },
+        { name: "InfraSEO Analysis", path: "/tools/infra" },
       ],
     },
+    
     {
       label: "Keyword Section",
       links: [
@@ -48,6 +43,13 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
         { name: "Keyword Cannibalization Checker", path: "/tools/keyword-cannibalization" },
         { name: "SERP Intent Analyzer", path: "/tools/serp-intent-analyzer" },
         { name: "Free SERP Database", path: "/tools/free-serp-database" },
+      ],
+    },
+    {
+      label: "Off-Page SEO",
+      links: [
+        { name: "Off-Page SEO AI", path: "/tools/off-page" },
+        { name: "Authority Radar", path: "/tools/authority" },
       ],
     },
     
