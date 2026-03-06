@@ -12,6 +12,29 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
   const { t, locale } = useI18n();
   const toLocalized = (path: string) => localizedPath(path, locale);
 
+  const seoToolMenu = [
+    {
+      label: "Keyword & SERP Tools",
+      links: [
+        { name: "Google Keyword Rank Checker", path: "/tools/google-keyword-rank-checker" },
+        { name: "SERP Comparison Tool", path: "/tools/serp-comparison" },
+        { name: "Keyword Cannibalization Checker", path: "/tools/keyword-cannibalization" },
+        { name: "SERP Intent Analyzer", path: "/tools/serp-intent-analyzer" },
+        { name: "Free SERP Database", path: "/tools/free-serp-database" },
+      ],
+    },
+    {
+      label: "Core SEO Tools",
+      links: [
+        { name: "Technical Audit Tool", path: "/tools/technical" },
+        { name: "AI Keyword Ideas", path: "/ai-keyword-ideas-tool" },
+        { name: "SEO Statistics", path: "/seo-statistics" },
+      ],
+    },
+  ];
+
+  const seoToolMobileLinks = seoToolMenu.flatMap((section) => section.links);
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -32,19 +55,27 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
                 {t("nav.seo_tools")}
                 <Menu size={14} />
               </button>
-              <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-neutral-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2 grid grid-cols-1 gap-1">
-                <Link to={toLocalized("/tools/corescan")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.corescan")}</Link>
-                <Link to={toLocalized("/tools/on-page")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.on_page")}</Link>
-                <Link to={toLocalized("/tools/off-page")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.off_page")}</Link>
-                <Link to={toLocalized("/tools/technical")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.technical")}</Link>
-                <Link to={toLocalized("/tools/infra")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.infra")}</Link>
-                <Link to={toLocalized("/ai-seo-content-score")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.content_score")}</Link>
-                <Link to={toLocalized("/ai-seo-rewrite-tool")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.seo_rewrite")}</Link>
-                <Link to={toLocalized("/ai-keyword-ideas-tool")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.keyword_ideas")}</Link>
-                <Link to={toLocalized("/ai-overview-optimizer")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.ai_overview")}</Link>
-                <Link to={toLocalized("/tools/strategy-plan")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">SEO Strategy Plan</Link>
-                <Link to={toLocalized("/schema-generator")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.schema_generator")}</Link>
-                <Link to={toLocalized("/tools/authority")} className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("tools.authority")}</Link>
+              <div className="absolute top-full left-0 mt-2 w-80 bg-white border border-neutral-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2">
+                <div className="space-y-2">
+                  {seoToolMenu.map((section) => (
+                    <div key={section.label} className="border border-neutral-100 rounded-lg p-2">
+                      <div className="px-2 py-1 text-[10px] uppercase tracking-widest font-bold text-neutral-400">
+                        {section.label}
+                      </div>
+                      <div className="grid grid-cols-1 gap-1">
+                        {section.links.map((item) => (
+                          <Link
+                            key={item.path}
+                            to={toLocalized(item.path)}
+                            className="p-2 hover:bg-emerald-50 rounded-lg text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors"
+                          >
+                            {item.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             <Link to={toLocalized("/pricing")} className="text-sm font-medium text-neutral-600 hover:text-emerald-600 transition-colors">{t("nav.pricing")}</Link>
@@ -96,6 +127,21 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
             {user?.role === 'admin' && <GeminiStatusButton />}
             <Link to={toLocalized("/pricing")} className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>{t("nav.pricing")}</Link>
             <Link to={toLocalized("/blog")} className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>{t("nav.blog")}</Link>
+            <div className="pt-2 border-t border-neutral-100">
+              <div className="text-xs uppercase tracking-widest text-neutral-400 font-bold mb-2">SEO Tools</div>
+              <div className="space-y-2">
+                {seoToolMobileLinks.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={toLocalized(item.path)}
+                    className="block text-base font-medium text-neutral-900"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
             <Link to={toLocalized("/tools/strategy-plan")} className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>SEO Strategy Plan</Link>
             {user ? (
               <>
