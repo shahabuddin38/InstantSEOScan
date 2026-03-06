@@ -1,0 +1,176 @@
+{
+  "name": "InstantSEOScan Single Topic Webhook Publisher",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "instantseoscan-single-topic",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "topic",
+              "value": "={{ $json.body.topic || $json.query.topic || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "author",
+              "value": "={{ $json.body.author || 'Automation Bot' }}",
+              "type": "string"
+            },
+            {
+              "name": "coverImage",
+              "value": "={{ $json.body.coverImage || '' }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-input-1",
+      "name": "Prepare Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.topic }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "if-topic-1",
+      "name": "Topic Provided?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.instantseoscan.com/api/auth/login",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"email\": \"{{ $env.CMS_EMAIL }}\",\n  \"password\": \"{{ $env.CMS_PASSWORD }}\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "login-1",
+      "name": "Login to CMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [960, 210]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.headers?.['set-cookie'] || $input.first().json.headers?.['Set-Cookie'] || [];\nconst cookies = Array.isArray(raw) ? raw : [raw];\nconst tokenCookie = cookies.find(c => c && c.startsWith('token='));\nif (!tokenCookie) throw new Error('Login token cookie not found');\nreturn [{ json: { cookieHeader: tokenCookie.split(';')[0] } }];"
+      },
+      "id": "extract-cookie-1",
+      "name": "Extract Token Cookie",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1180, 210]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.instantseoscan.com/api/admin/blog/auto-post-anthropic",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $json.cookieHeader }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"topic\": \"{{ $('Prepare Input').item.json.topic }}\",\n  \"author\": \"{{ $('Prepare Input').item.json.author }}\",\n  \"coverImage\": \"{{ $('Prepare Input').item.json.coverImage }}\"\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "auto-post-1",
+      "name": "Auto Post via Anthropic API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1400, 210]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, topic: $('Prepare Input').item.json.topic, result: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ok-1",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1620, 210]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: 'topic is required in body.topic or query.topic' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-bad-1",
+      "name": "Respond Missing Topic",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 390]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Prepare Input", "type": "main", "index": 0 }]]
+    },
+    "Prepare Input": {
+      "main": [[{ "node": "Topic Provided?", "type": "main", "index": 0 }]]
+    },
+    "Topic Provided?": {
+      "main": [
+        [{ "node": "Login to CMS", "type": "main", "index": 0 }],
+        [{ "node": "Respond Missing Topic", "type": "main", "index": 0 }]
+      ]
+    },
+    "Login to CMS": {
+      "main": [[{ "node": "Extract Token Cookie", "type": "main", "index": 0 }]]
+    },
+    "Extract Token Cookie": {
+      "main": [[{ "node": "Auto Post via Anthropic API", "type": "main", "index": 0 }]]
+    },
+    "Auto Post via Anthropic API": {
+      "main": [[{ "node": "Respond Success", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["blog", "anthropic", "webhook", "single-topic"]
+}
