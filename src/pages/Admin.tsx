@@ -705,6 +705,14 @@ export default function Admin() {
       .map((l) => l.trim())
       .filter((l) => l.length >= 3);
 
+    const normalizedSeen = new Set<string>();
+    const uniqueLines = lines.filter((line) => {
+      const key = line.toLowerCase().replace(/\s+/g, " ").trim();
+      if (!key || normalizedSeen.has(key)) return false;
+      normalizedSeen.add(key);
+      return true;
+    });
+
     if (lines.length === 0) {
       setError("Enter at least one topic (one per line).");
       return;
@@ -718,24 +726,30 @@ export default function Admin() {
     setError("");
     setBulkResult(null);
 
-    const result = await apiRequest<any>("/api/admin/blog/auto-post-anthropic?action=bulk", {
-      method: "POST",
-      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({
-        topics: lines,
-        author: autoPostAuthor || "Admin",
-      }),
-    });
+    try {
+      const result = await apiRequest<any>("/api/admin/blog/auto-post-anthropic?action=bulk", {
+        method: "POST",
+        headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topics: uniqueLines,
+          author: autoPostAuthor || "Admin",
+        }),
+      });
 
-    setBulkPosting(false);
+      if (!result.ok || !result.data) {
+        setError(result.error || "Bulk post failed.");
+        return;
+      }
 
-    if (!result.ok || !result.data) {
-      setError(result.error || "Bulk post failed.");
-      return;
+      setBulkResult({
+        ...result.data,
+        entered: lines.length,
+        dedupedBeforeSubmit: lines.length - uniqueLines.length,
+      });
+      await Promise.all([fetchBlogPosts(), fetchStats()]);
+    } finally {
+      setBulkPosting(false);
     }
-
-    setBulkResult(result.data);
-    await Promise.all([fetchBlogPosts(), fetchStats()]);
   };
 
   const activeSubscriptions = useMemo(() => users.filter((u) => u.plan !== "free").length, [users]);
@@ -1524,8 +1538,16 @@ export default function Admin() {
                 <div className="mt-6 space-y-3">
                   <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-blue-800">
                     <p className="font-bold text-sm mb-2">
-                      Bulk complete: {bulkResult.count} published{bulkResult.failed > 0 ? `, ${bulkResult.failed} failed` : ""}
+                      {bulkResult.message || `Bulk complete: ${bulkResult.count} published`}
                     </p>
+                    <div className="text-xs space-y-1 opacity-80">
+                      <p>Entered: {bulkResult.entered ?? bulkResult.requested ?? bulkResult.count}</p>
+                      <p>Processed unique topics: {bulkResult.processed ?? bulkResult.count}</p>
+                      <p>Published: {bulkResult.count}</p>
+                      {typeof bulkResult.skipped === "number" && bulkResult.skipped > 0 && <p>Skipped: {bulkResult.skipped}</p>}
+                      {typeof bulkResult.failed === "number" && bulkResult.failed > 0 && <p>Failed: {bulkResult.failed}</p>}
+                      {bulkResult.dedupedBeforeSubmit > 0 && <p>Removed duplicate lines before submit: {bulkResult.dedupedBeforeSubmit}</p>}
+                    </div>
                   </div>
                   {bulkResult.posts?.map((post: any, i: number) => (
                     <div key={post.id || i} className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800 flex gap-3 items-start">
@@ -1536,6 +1558,11 @@ export default function Admin() {
                         <p className="font-bold text-sm">{post.title}</p>
                         <p className="text-xs opacity-70">/{post.slug}</p>
                       </div>
+                    </div>
+                  ))}
+                  {bulkResult.skippedItems?.map((item: any, i: number) => (
+                    <div key={`skip-${i}`} className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-amber-800 text-sm">
+                      <span className="font-bold">{item.topic}:</span> {item.reason}
                     </div>
                   ))}
                   {bulkResult.errors?.map((err: any, i: number) => (

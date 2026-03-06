@@ -233,6 +233,50 @@ const keywordToImagePath = (keyword: string) =>
 const resolveKeywordImage = (keyword: string, width = 1200, height = 630) =>
   `https://loremflickr.com/${width}/${height}/${keywordToImagePath(keyword)}`;
 
+const stripHtml = (value: string) =>
+  String(value || "")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const isUsableGeneratedContent = (value: string) => {
+  const plainText = stripHtml(value);
+  const wordCount = plainText.split(/\s+/).filter(Boolean).length;
+  return plainText.length >= 300 && wordCount >= 60;
+};
+
+const normalizeTopicKey = (value: string) => slugify(String(value || "")).replace(/-/g, " ");
+
+const findDuplicateBlogPost = async (topic: string, title: string, slug: string, content: string) => {
+  const topicKey = normalizeTopicKey(topic);
+  const titleKey = normalizeTopicKey(title);
+  const slugKey = slugify(slug || title || topic);
+  const contentHash = textFingerprint(stripHtml(content));
+
+  const recentPosts = await prisma.blogPost.findMany({
+    select: { title: true, slug: true, content: true },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+
+  return recentPosts.find((post) => {
+    const postTitleKey = normalizeTopicKey(post.title);
+    const postSlugKey = slugify(post.slug);
+    const postContentHash = textFingerprint(stripHtml(post.content || ""));
+
+    return (
+      postSlugKey === slugKey ||
+      postSlugKey === slugify(topic) ||
+      postTitleKey === titleKey ||
+      postTitleKey === topicKey ||
+      (contentHash.length > 0 && postContentHash === contentHash)
+    );
+  });
+};
+
 const generateAnthropicBlogDraft = async (topic: string) => {
   const apiKey = await getAnthropicApiKey();
   if (!apiKey) {
@@ -252,58 +296,68 @@ Return STRICT JSON only (no markdown fences, no extra text) with this exact shap
 }
 IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
-      max_tokens: 4000,
-      temperature: 0.7,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
+        max_tokens: 4000,
+        temperature: 0.7,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `Anthropic request failed (${response.status})`);
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `Anthropic request failed (${response.status})`);
+    }
+
+    const payload = await response.json();
+    const outputText = Array.isArray(payload?.content)
+      ? payload.content
+          .filter((chunk: any) => chunk?.type === "text")
+          .map((chunk: any) => String(chunk?.text || ""))
+          .join("\n")
+      : "";
+
+    const parsed = parseAiJson(outputText, null);
+    if (!parsed || typeof parsed !== "object") {
+      if (attempt === 2) throw new Error("Anthropic did not return valid JSON.");
+      continue;
+    }
+
+    const coverKeyword = String((parsed as any).coverImageKeyword || topic).trim();
+    const coverImageUrl = resolveKeywordImage(coverKeyword, 1200, 630);
+    const coverAlt = String((parsed as any).coverImageAlt || `Cover image for ${topic}`).trim();
+
+    let content = String((parsed as any).content || "").trim();
+    if (content.includes("PLACEHOLDER_IMG")) {
+      content = content.replace(/PLACEHOLDER_IMG/g, resolveKeywordImage(`${coverKeyword} technology`, 800, 450));
+    }
+
+    if (!isUsableGeneratedContent(content)) {
+      if (attempt === 2) throw new Error("Anthropic returned empty or too-short content.");
+      continue;
+    }
+
+    return {
+      title: String((parsed as any).title || topic).trim(),
+      slug: String((parsed as any).slug || topic).trim(),
+      metaDescription: String((parsed as any).metaDescription || "").trim(),
+      excerpt: String((parsed as any).excerpt || "").trim(),
+      content,
+      coverImage: coverImageUrl,
+      coverImageAlt: coverAlt,
+      coverImageKeyword: coverKeyword,
+    };
   }
 
-  const payload = await response.json();
-  const outputText = Array.isArray(payload?.content)
-    ? payload.content
-        .filter((chunk: any) => chunk?.type === "text")
-        .map((chunk: any) => String(chunk?.text || ""))
-        .join("\n")
-    : "";
-
-  const parsed = parseAiJson(outputText, null);
-  if (!parsed || typeof parsed !== "object") {
-    throw new Error("Anthropic did not return valid JSON.");
-  }
-
-  const coverKeyword = String((parsed as any).coverImageKeyword || topic).trim();
-  const coverImageUrl = resolveKeywordImage(coverKeyword, 1200, 630);
-  const coverAlt = String((parsed as any).coverImageAlt || `Cover image for ${topic}`).trim();
-
-  let content = String((parsed as any).content || "").trim();
-  if (content.includes("PLACEHOLDER_IMG")) {
-    content = content.replace(/PLACEHOLDER_IMG/g, resolveKeywordImage(`${coverKeyword} technology`, 800, 450));
-  }
-
-  return {
-    title: String((parsed as any).title || topic).trim(),
-    slug: String((parsed as any).slug || topic).trim(),
-    metaDescription: String((parsed as any).metaDescription || "").trim(),
-    excerpt: String((parsed as any).excerpt || "").trim(),
-    content,
-    coverImage: coverImageUrl,
-    coverImageAlt: coverAlt,
-    coverImageKeyword: coverKeyword,
-  };
+  throw new Error("Anthropic did not return a usable draft.");
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -1188,11 +1242,34 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
         const { topics, author: bulkAuthor } = bulkParsed.data;
         const results: any[] = [];
         const errors: any[] = [];
+        const skipped: any[] = [];
+        const uniqueTopics: string[] = [];
+        const seenTopicKeys = new Set<string>();
+
+        for (const rawTopic of topics) {
+          const topic = String(rawTopic || "").trim();
+          const topicKey = normalizeTopicKey(topic);
+          if (!topicKey) continue;
+          if (seenTopicKeys.has(topicKey)) {
+            skipped.push({ topic, reason: "Duplicate topic in the same request" });
+            continue;
+          }
+          seenTopicKeys.add(topicKey);
+          uniqueTopics.push(topic);
+        }
 
         const createBulkPost = async (topic: string) => {
           const draft = await generateAnthropicBlogDraft(topic);
-          const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
           const normalizedContent = String(draft.content || "").trim();
+          const duplicatePost = await findDuplicateBlogPost(topic, draft.title, draft.slug || draft.title, normalizedContent);
+          if (duplicatePost) {
+            return {
+              status: "skipped" as const,
+              payload: { topic, reason: `Duplicate of existing post /blog/${duplicatePost.slug}` },
+            };
+          }
+
+          const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
           const resolvedCover = String(draft.coverImage || "").trim() || null;
 
           const blocks: any[] = [];
@@ -1220,25 +1297,32 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
           });
 
           return {
-            id: post.id,
-            title: post.title,
-            slug: post.slug,
-            excerpt: post.excerpt,
-            coverImage: post.coverImage,
-            author: post.author,
-            created_at: post.createdAt,
+            status: "created" as const,
+            payload: {
+              id: post.id,
+              title: post.title,
+              slug: post.slug,
+              excerpt: post.excerpt,
+              coverImage: post.coverImage,
+              author: post.author,
+              created_at: post.createdAt,
+            },
           };
         };
 
-        const batchSize = 3;
-        for (let index = 0; index < topics.length; index += batchSize) {
-          const batch = topics.slice(index, index + batchSize);
+        const batchSize = 2;
+        for (let index = 0; index < uniqueTopics.length; index += batchSize) {
+          const batch = uniqueTopics.slice(index, index + batchSize);
           const settled = await Promise.allSettled(batch.map((topic) => createBulkPost(topic)));
 
           settled.forEach((entry, batchIndex) => {
             const topic = batch[batchIndex];
             if (entry.status === "fulfilled") {
-              results.push(entry.value);
+              if (entry.value.status === "created") {
+                results.push(entry.value.payload);
+              } else {
+                skipped.push(entry.value.payload);
+              }
               return;
             }
 
@@ -1252,10 +1336,15 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
 
         return resAny.status(200).json({
           success: true,
+          requested: topics.length,
+          processed: uniqueTopics.length,
           count: results.length,
+          skipped: skipped.length,
           failed: errors.length,
           posts: results,
+          skippedItems: skipped.length > 0 ? skipped : undefined,
           errors: errors.length > 0 ? errors : undefined,
+          message: `Bulk auto-post finished. ${results.length} published${skipped.length ? `, ${skipped.length} skipped` : ""}${errors.length ? `, ${errors.length} failed` : ""}.`,
         });
       }
 
@@ -1269,8 +1358,13 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
 
       try {
         const draft = await generateAnthropicBlogDraft(topic);
-        const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
         const normalizedContent = String(draft.content || "").trim();
+        const duplicatePost = await findDuplicateBlogPost(topic, draft.title, draft.slug || draft.title, normalizedContent);
+        if (duplicatePost) {
+          return resAny.status(409).json({ error: `Duplicate topic detected. Existing post found at /blog/${duplicatePost.slug}` });
+        }
+
+        const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
         const resolvedCover = String(coverImage || draft.coverImage || "").trim() || null;
 
         const blocks: any[] = [];

@@ -219,11 +219,30 @@ export default function BlogPost() {
           {Array.isArray(post.blocks) && post.blocks.length > 0 ? (
             <div className="max-w-none">
               {post.blocks.map((block, index) => renderBlock(block, index))}
+              {post.content?.trim() && (
+                /<\/?[a-z][\s\S]*>/i.test(post.content) ? (
+                  <div
+                    className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700"
+                    dangerouslySetInnerHTML={{ __html: post.content }}
+                  />
+                ) : (
+                  <div className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700">
+                    <ReactMarkdown>{post.content}</ReactMarkdown>
+                  </div>
+                )
+              )}
             </div>
           ) : (
-            <div className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700">
-              <ReactMarkdown>{post.content}</ReactMarkdown>
-            </div>
+            /<\/?[a-z][\s\S]*>/i.test(post.content) ? (
+              <div
+                className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700"
+                dangerouslySetInnerHTML={{ __html: post.content }}
+              />
+            ) : (
+              <div className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700">
+                <ReactMarkdown>{post.content}</ReactMarkdown>
+              </div>
+            )
           )}
 
           <div className="mt-12 pt-8 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-4">
