@@ -233,6 +233,26 @@ const keywordToImagePath = (keyword: string) =>
 const resolveKeywordImage = (keyword: string, width = 1200, height = 630) =>
   `https://loremflickr.com/${width}/${height}/${keywordToImagePath(keyword)}`;
 
+const resolveStableKeywordImage = async (keyword: string, width = 1200, height = 630) => {
+  const sourceUrl = resolveKeywordImage(keyword, width, height);
+
+  try {
+    const response = await fetch(sourceUrl, {
+      method: "HEAD",
+      redirect: "manual",
+    });
+
+    const location = response.headers.get("location");
+    if (location) {
+      return new URL(location, sourceUrl).toString();
+    }
+  } catch {
+    // Fall back to the source URL if the provider does not expose redirects.
+  }
+
+  return sourceUrl;
+};
+
 const stripHtml = (value: string) =>
   String(value || "")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -274,6 +294,25 @@ const findDuplicateBlogPost = async (topic: string, title: string, slug: string,
       postTitleKey === topicKey ||
       (contentHash.length > 0 && postContentHash === contentHash)
     );
+  });
+};
+
+const findDuplicateBlogPostByTopic = async (topic: string) => {
+  const topicKey = normalizeTopicKey(topic);
+  const topicSlug = slugify(topic);
+
+  if (!topicKey && !topicSlug) return null;
+
+  const recentPosts = await prisma.blogPost.findMany({
+    select: { title: true, slug: true },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+
+  return recentPosts.find((post) => {
+    const postTitleKey = normalizeTopicKey(post.title);
+    const postSlugKey = slugify(post.slug);
+    return postTitleKey === topicKey || postSlugKey === topicSlug;
   });
 };
 
@@ -332,12 +371,13 @@ IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
     }
 
     const coverKeyword = String((parsed as any).coverImageKeyword || topic).trim();
-    const coverImageUrl = resolveKeywordImage(coverKeyword, 1200, 630);
+    const coverImageUrl = await resolveStableKeywordImage(coverKeyword, 1200, 630);
     const coverAlt = String((parsed as any).coverImageAlt || `Cover image for ${topic}`).trim();
 
     let content = String((parsed as any).content || "").trim();
     if (content.includes("PLACEHOLDER_IMG")) {
-      content = content.replace(/PLACEHOLDER_IMG/g, resolveKeywordImage(`${coverKeyword} technology`, 800, 450));
+      const inlineImageUrl = await resolveStableKeywordImage(`${coverKeyword} technology`, 800, 450);
+      content = content.replace(/PLACEHOLDER_IMG/g, inlineImageUrl);
     }
 
     if (!isUsableGeneratedContent(content)) {
@@ -1259,6 +1299,14 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
         }
 
         const createBulkPost = async (topic: string) => {
+          const duplicateByTopic = await findDuplicateBlogPostByTopic(topic);
+          if (duplicateByTopic) {
+            return {
+              status: "skipped" as const,
+              payload: { topic, reason: `Duplicate topic already exists at /blog/${duplicateByTopic.slug}` },
+            };
+          }
+
           const draft = await generateAnthropicBlogDraft(topic);
           const normalizedContent = String(draft.content || "").trim();
           const duplicatePost = await findDuplicateBlogPost(topic, draft.title, draft.slug || draft.title, normalizedContent);
@@ -1310,13 +1358,10 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
           };
         };
 
-        const batchSize = 2;
-        for (let index = 0; index < uniqueTopics.length; index += batchSize) {
-          const batch = uniqueTopics.slice(index, index + batchSize);
-          const settled = await Promise.allSettled(batch.map((topic) => createBulkPost(topic)));
+        for (const topic of uniqueTopics) {
+          const settled = await Promise.allSettled([createBulkPost(topic)]);
 
-          settled.forEach((entry, batchIndex) => {
-            const topic = batch[batchIndex];
+          settled.forEach((entry) => {
             if (entry.status === "fulfilled") {
               if (entry.value.status === "created") {
                 results.push(entry.value.payload);
@@ -1357,6 +1402,11 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
       const { topic, author, coverImage } = parsed.data;
 
       try {
+        const duplicateByTopic = await findDuplicateBlogPostByTopic(topic);
+        if (duplicateByTopic) {
+          return resAny.status(409).json({ error: `Duplicate topic detected. Existing post found at /blog/${duplicateByTopic.slug}` });
+        }
+
         const draft = await generateAnthropicBlogDraft(topic);
         const normalizedContent = String(draft.content || "").trim();
         const duplicatePost = await findDuplicateBlogPost(topic, draft.title, draft.slug || draft.title, normalizedContent);
