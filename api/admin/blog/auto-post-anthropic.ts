@@ -84,7 +84,7 @@ Return STRICT JSON only (no markdown, no extra text) with this exact shape:
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-3-5-sonnet-latest",
+      model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022",
       max_tokens: 2500,
       temperature: 0.3,
       messages: [{ role: "user", content: prompt }],
