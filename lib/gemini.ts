@@ -74,6 +74,8 @@ const parsePositiveInt = (value: string | undefined | null): number | null => {
 async function loadGeminiSettings() {
   const keys = [
     "GEMINI_API_KEY",
+    "CLAUDE_API_KEY",
+    "ANTHROPIC_API_KEY",
     ...keySlots.flatMap((slot) => [keyNameForSlot(slot), usageKeyForSlot(slot), limitKeyForSlot(slot)]),
   ];
   const settings: Array<{ key: string; value: string }> = await (prisma as any).setting.findMany({
@@ -160,6 +162,46 @@ async function tryGenerate(apiKey: string, prompt: string, fallback: any) {
   return safeParseJSON(response.text, fallback);
 }
 
+async function getClaudeApiKey() {
+  const settings = await loadGeminiSettings();
+  const fromDb = settings.get("CLAUDE_API_KEY") || settings.get("ANTHROPIC_API_KEY");
+  const fromEnv = process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
+  const key = String(fromDb || fromEnv || "").trim();
+  return key || null;
+}
+
+async function tryGenerateWithClaude(apiKey: string, prompt: string, fallback: any) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-3-5-sonnet-latest",
+      max_tokens: 2048,
+      temperature: 0.2,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Claude request failed: ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const text = Array.isArray(payload?.content)
+    ? payload.content
+        .filter((chunk: any) => chunk?.type === "text")
+        .map((chunk: any) => String(chunk?.text || ""))
+        .join("\n")
+    : "";
+
+  return safeParseJSON(text, fallback);
+}
+
 export async function generateAI(prompt: string, fallback: any = {}) {
   const candidates = await getGeminiCandidates();
   const fallbackKeys = await getApiKeys();
@@ -170,11 +212,6 @@ export async function generateAI(prompt: string, fallback: any = {}) {
       .filter((key) => !candidateValues.has(key))
       .map((apiKey) => ({ apiKey, usageKey: null as string | null })),
   ];
-
-  if (keys.length === 0) {
-    console.error("generateAI: No Gemini API keys configured.");
-    return fallback;
-  }
 
   for (let i = 0; i < keys.length; i++) {
     try {
@@ -190,6 +227,21 @@ export async function generateAI(prompt: string, fallback: any = {}) {
     }
   }
 
-  console.error("generateAI: All keys exhausted, returning fallback.");
+  const claudeApiKey = await getClaudeApiKey();
+  if (claudeApiKey) {
+    try {
+      const result = await tryGenerateWithClaude(claudeApiKey, prompt, fallback);
+      return result;
+    } catch (error: any) {
+      const msg = error?.message || String(error);
+      console.error("generateAI: Claude fallback failed:", msg.substring(0, 160));
+    }
+  }
+
+  if (keys.length === 0 && !claudeApiKey) {
+    console.error("generateAI: No Gemini or Claude API key configured.");
+  } else {
+    console.error("generateAI: All providers exhausted, returning fallback.");
+  }
   return fallback;
 }

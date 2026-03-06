@@ -222,6 +222,7 @@ export default function Admin() {
     KEYWORD_API_KEY: "",
     BACKLINK_API_KEY: "",
     AI_API_KEY: "",
+    CLAUDE_API_KEY: "",
     POSTGRES_URL: "",
     PRISMA_DATABASE_URL: "",
   });
@@ -276,6 +277,7 @@ export default function Admin() {
         KEYWORD_API_KEY: result.data.KEYWORD_API_KEY || "",
         BACKLINK_API_KEY: result.data.BACKLINK_API_KEY || "",
         AI_API_KEY: result.data.AI_API_KEY || "",
+        CLAUDE_API_KEY: result.data.CLAUDE_API_KEY || "",
         POSTGRES_URL: result.data.POSTGRES_URL || "",
         PRISMA_DATABASE_URL: result.data.PRISMA_DATABASE_URL || "",
       });
@@ -1404,6 +1406,7 @@ export default function Admin() {
                   { key: "KEYWORD_API_KEY" as const, label: "Keyword API Key" },
                   { key: "BACKLINK_API_KEY" as const, label: "Backlink API Key" },
                   { key: "AI_API_KEY" as const, label: "AI API Key" },
+                  { key: "CLAUDE_API_KEY" as const, label: "Claude API Key" },
                 ].map(({ key, label }) => (
                   <div className="space-y-1" key={key}>
                     <label className="text-sm font-bold text-neutral-700">{label}</label>

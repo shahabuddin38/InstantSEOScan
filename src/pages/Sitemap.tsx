@@ -1,22 +1,21 @@
-import { Link } from "react-router-dom";
-
 export default function Sitemap() {
+  const base = "https://instantseoscan.com";
   const links = [
     { title: "Main Pages", items: [
-      { name: "Home", path: "/" },
-      { name: "Pricing", path: "/pricing" },
-      { name: "Blog", path: "/blog" },
-      { name: "About Us", path: "/about" },
-      { name: "Contact", path: "/contact" },
+      { name: "Home", path: `${base}/` },
+      { name: "Pricing", path: `${base}/pricing` },
+      { name: "Blog", path: `${base}/blog` },
+      { name: "About Us", path: `${base}/about` },
+      { name: "Contact", path: `${base}/contact` },
     ]},
     { title: "Platform", items: [
-      { name: "Dashboard", path: "/dashboard" },
-      { name: "Login", path: "/login" },
-      { name: "Register", path: "/login" },
+      { name: "Dashboard", path: `${base}/dashboard` },
+      { name: "Login", path: `${base}/login` },
+      { name: "Register", path: `${base}/login` },
     ]},
     { title: "Legal", items: [
-      { name: "Privacy Policy", path: "/privacy" },
-      { name: "Terms of Service", path: "/terms" },
+      { name: "Privacy Policy", path: `${base}/privacy` },
+      { name: "Terms of Service", path: `${base}/terms` },
     ]}
   ];
 
@@ -30,9 +29,9 @@ export default function Sitemap() {
             <ul className="space-y-4">
               {section.items.map((item, j) => (
                 <li key={j}>
-                  <Link to={item.path} className="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">
+                  <a href={item.path} className="text-neutral-600 hover:text-emerald-600 transition-colors font-medium">
                     {item.name}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
