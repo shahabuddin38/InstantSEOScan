@@ -8,11 +8,7 @@ import {
 export default function Sidebar() {
   const location = useLocation();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    'Site Audit': true,
-    'Technical SEO': false,
-    'On Page SEO': false,
-    'Off Page SEO': false,
-    'Keyword Research': false
+    'SEO Tools': true,
   });
 
   const toggleMenu = (menu: string) => {
@@ -25,53 +21,63 @@ export default function Sidebar() {
 
   const collapsibleMenus = [
     {
-      name: "Site Audit",
-      icon: <Globe size={20} />,
-      items: [
-        { name: "CoreScan Engine", path: "/tools/corescan" }
-      ]
-    },
-    {
-      name: "Technical SEO",
-      icon: <Settings size={20} />,
-      items: [
-        { name: "Technical Audit", path: "/tools/technical" },
-        { name: "InfraSEO Analysis", path: "/tools/infra" },
-        { name: "Schema Generator", path: "/schema-generator" }
-      ]
-    },
-    {
-      name: "On Page SEO",
-      icon: <FileText size={20} />,
-      items: [
-        { name: "On-Page SEO AI", path: "/tools/on-page" },
-        { name: "Content Score", path: "/ai-seo-content-score" },
-        { name: "SEO Rewriter", path: "/ai-seo-rewrite-tool" },
-        { name: "AI Overview", path: "/ai-overview-optimizer" },
-        { name: "SEO Strategy Plan", path: "/tools/strategy-plan" }
-      ]
-    },
-    {
-      name: "Off Page SEO",
-      icon: <Link2 size={20} />,
-      items: [
-        { name: "Off-Page SEO AI", path: "/tools/off-page" },
-        { name: "Authority Radar", path: "/tools/authority" }
-      ]
-    },
-    {
-      name: "Keyword Research",
+      name: "SEO Tools",
       icon: <Search size={20} />,
-      items: [
-        { name: "Keyword Ideas", path: "/ai-keyword-ideas-tool" },
-        { name: "Rank Checker", path: "/tools/google-keyword-rank-checker" },
-        { name: "SERP Comparison", path: "/tools/serp-comparison" },
-        { name: "Cannibalization", path: "/tools/keyword-cannibalization" },
-        { name: "SERP Intent", path: "/tools/serp-intent-analyzer" },
-        { name: "SERP Database", path: "/tools/free-serp-database" },
-        { name: "SEO Statistics", path: "/seo-statistics" }
-      ]
-    }
+      sections: [
+        {
+          label: "Site Audit",
+          items: [
+            { name: "CoreScan Engine", path: "/tools/corescan" },
+            { name: "Technical Audit", path: "/tools/technical" },
+            { name: "InfraSEO Analysis", path: "/tools/infra" },
+          ],
+        },
+        {
+          label: "On-Page SEO",
+          items: [
+            { name: "On-Page SEO AI", path: "/tools/on-page" },
+            { name: "Content Score", path: "/ai-seo-content-score" },
+            { name: "SEO Rewriter", path: "/ai-seo-rewrite-tool" },
+            { name: "AI Overview", path: "/ai-overview-optimizer" },
+            { name: "SEO Strategy Plan", path: "/tools/strategy-plan" },
+            { name: "Schema Generator", path: "/schema-generator" },
+          ],
+        },
+        {
+          label: "Off-Page SEO",
+          items: [
+            { name: "Off-Page SEO AI", path: "/tools/off-page" },
+            { name: "Authority Radar", path: "/tools/authority" },
+          ],
+        },
+        {
+          label: "Keyword & SERP",
+          items: [
+            { name: "Keyword Ideas", path: "/ai-keyword-ideas-tool" },
+            { name: "Rank Checker", path: "/tools/google-keyword-rank-checker" },
+            { name: "SERP Comparison", path: "/tools/serp-comparison" },
+            { name: "Cannibalization", path: "/tools/keyword-cannibalization" },
+            { name: "SERP Intent", path: "/tools/serp-intent-analyzer" },
+            { name: "SERP Database", path: "/tools/free-serp-database" },
+          ],
+        },
+        {
+          label: "Programmatic SEO",
+          items: [
+            { name: "SEO Statistics", path: "/seo-statistics" },
+            { name: "AI SEO Statistics", path: "/ai-seo-statistics" },
+            { name: "Link Building Stats", path: "/link-building-statistics" },
+            { name: "Local SEO Stats", path: "/local-seo-statistics" },
+            { name: "Content Marketing Stats", path: "/content-marketing-statistics" },
+            { name: "Google Ranking Stats", path: "/google-ranking-statistics" },
+            { name: "Keyword Data Pages", path: "/keyword-data/seo-tools" },
+            { name: "SERP Analysis Pages", path: "/serp-analysis/seo-tools" },
+            { name: "Ranking Pages", path: "/ranking/seo-tools" },
+            { name: "Compare Pages", path: "/compare/seo-tools-vs-keyword-research" },
+          ],
+        },
+      ],
+    },
   ];
 
   const bottomMenuItems = [
@@ -80,7 +86,8 @@ export default function Sidebar() {
   ];
 
   const isItemActive = (path: string) => location.pathname === path;
-  const isMenuActive = (items: any[]) => items.some(item => isItemActive(item.path));
+  const isMenuActive = (menu: any) =>
+    (menu.sections || []).some((section: any) => section.items.some((item: any) => isItemActive(item.path)));
 
   return (
     <aside className="w-72 bg-white border-r border-neutral-200 h-[calc(100vh-64px)] hidden lg:flex flex-col sticky top-16 overflow-y-auto custom-scrollbar shrink-0">
@@ -110,7 +117,7 @@ export default function Sidebar() {
         {/* Collapsible Menus */}
         <nav className="space-y-1 mb-6">
           {collapsibleMenus.map((menu) => {
-            const active = isMenuActive(menu.items);
+            const active = isMenuActive(menu);
             const isOpen = openMenus[menu.name] || active;
 
             return (
@@ -132,18 +139,25 @@ export default function Sidebar() {
                 </button>
 
                 {isOpen && (
-                  <div className="mt-1 ml-4 pl-4 border-l-2 border-neutral-100 space-y-1">
-                    {menu.items.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isItemActive(item.path)
-                            ? "bg-indigo-50 text-indigo-700 font-bold"
-                            : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
-                          }`}
-                      >
-                        {item.name}
-                      </Link>
+                  <div className="mt-1 ml-4 pl-4 border-l-2 border-neutral-100 space-y-3">
+                    {(menu.sections || []).map((section: any) => (
+                      <div key={section.label} className="space-y-1">
+                        <div className="px-4 pt-1 pb-1 text-[10px] uppercase tracking-widest font-bold text-neutral-400">
+                          {section.label}
+                        </div>
+                        {section.items.map((item: any) => (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isItemActive(item.path)
+                                ? "bg-indigo-50 text-indigo-700 font-bold"
+                                : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                              }`}
+                          >
+                            {item.name}
+                          </Link>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 )}
