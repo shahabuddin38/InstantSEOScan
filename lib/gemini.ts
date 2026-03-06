@@ -179,7 +179,7 @@ async function tryGenerateWithClaude(apiKey: string, prompt: string, fallback: a
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022",
+      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
       max_tokens: 2048,
       temperature: 0.2,
       messages: [{ role: "user", content: prompt }],
