@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  InstantSEOScan – Page Sitemap
+  All static pages, SEO tools, AI tools, statistics, and localized pages.
+  Blog posts are in a separate dynamic sitemap at /api/sitemap/posts
+  Last updated: 2026-03-07
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <!-- ╔══════════════════════════════════════════════════════════════╗
+       ║  SECTION 1 — HOME PAGE (multilingual hreflang)              ║
+       ╚══════════════════════════════════════════════════════════════╝ -->
+  <url>
+    <loc>https://instantseoscan.com/</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://instantseoscan.com/" />
+    <xhtml:link rel="alternate" hreflang="hi"        href="https://instantseoscan.com/hi" />
+    <xhtml:link rel="alternate" hreflang="es"        href="https://instantseoscan.com/es" />
+    <xhtml:link rel="alternate" hreflang="ru"        href="https://instantseoscan.com/ru" />
+    <xhtml:link rel="alternate" hreflang="fr"        href="https://instantseoscan.com/fr" />
+    <xhtml:link rel="alternate" hreflang="de"        href="https://instantseoscan.com/de" />
+    <xhtml:link rel="alternate" hreflang="it"        href="https://instantseoscan.com/it" />
+    <xhtml:link rel="alternate" hreflang="pt"        href="https://instantseoscan.com/pt" />
+    <xhtml:link rel="alternate" hreflang="bn"        href="https://instantseoscan.com/bn" />
+    <xhtml:link rel="alternate" hreflang="ja"        href="https://instantseoscan.com/ja" />
+    <xhtml:link rel="alternate" hreflang="ko"        href="https://instantseoscan.com/ko" />
+    <xhtml:link rel="alternate" hreflang="ms"        href="https://instantseoscan.com/ms" />
+    <xhtml:link rel="alternate" hreflang="pl"        href="https://instantseoscan.com/pl" />
+    <xhtml:link rel="alternate" hreflang="id"        href="https://instantseoscan.com/id" />
+    <xhtml:link rel="alternate" hreflang="ar"        href="https://instantseoscan.com/ar" />
+    <xhtml:link rel="alternate" hreflang="bg"        href="https://instantseoscan.com/bg" />
+    <xhtml:link rel="alternate" hreflang="tr"        href="https://instantseoscan.com/tr" />
+    <xhtml:link rel="alternate" hreflang="sv"        href="https://instantseoscan.com/sv" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://instantseoscan.com/" />
+  </url>
+
+  <!-- ╔══════════════════════════════════════════════════════════════╗
+       ║  SECTION 2 — CORE PAGES                                     ║
+       ╚══════════════════════════════════════════════════════════════╝ -->
+  <url>
+    <loc>https://instantseoscan.com/pricing</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/blog</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/about</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/contact</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/login</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/sitemap</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/privacy</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/terms</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- ╔══════════════════════════════════════════════════════════════╗
+       ║  SECTION 3 — SEO SCANNER TOOLS                              ║
+       ╚══════════════════════════════════════════════════════════════╝ -->
+  <url>
+    <loc>https://instantseoscan.com/tools/corescan</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/on-page</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/off-page</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/technical</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/infra</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/authority</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- ╔══════════════════════════════════════════════════════════════╗
+       ║  SECTION 4 — AI-POWERED SEO TOOLS                           ║
+       ╚══════════════════════════════════════════════════════════════╝ -->
+  <url>
+    <loc>https://instantseoscan.com/ai-seo-content-score</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/ai-seo-rewrite-tool</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/ai-keyword-ideas-tool</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/ai-overview-optimizer</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/schema-generator</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/strategy-plan</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/mcp</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- ╔══════════════════════════════════════════════════════════════╗
+       ║  SECTION 5 — SERP & KEYWORD RESEARCH TOOLS                  ║
+       ╚══════════════════════════════════════════════════════════════╝ -->
+  <url>
+    <loc>https://instantseoscan.com/tools/google-keyword-rank-checker</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/serp-comparison</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/keyword-cannibalization</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/serp-intent-analyzer</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/tools/free-serp-database</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- ╔══════════════════════════════════════════════════════════════╗
+       ║  SECTION 6 — SEO STATISTICS & DATA PAGES                    ║
+       ╚══════════════════════════════════════════════════════════════╝ -->
+  <url>
+    <loc>https://instantseoscan.com/seo-statistics</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/ai-seo-statistics</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/link-building-statistics</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/local-seo-statistics</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/content-marketing-statistics</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://instantseoscan.com/google-ranking-statistics</loc>
+    <lastmod>2026-03-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- ╔══════════════════════════════════════════════════════════════╗
+       ║  SECTION 7 — LOCALIZED HOME PAGES (18 languages)            ║
+       ╚══════════════════════════════════════════════════════════════╝ -->
+  <url><loc>https://instantseoscan.com/hi</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/es</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/ru</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/fr</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/de</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/it</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/pt</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/bn</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/ja</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/ko</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/ms</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/pl</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/id</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/ar</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/bg</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/tr</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://instantseoscan.com/sv</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- ╔══════════════════════════════════════════════════════════════╗
+       ║  SECTION 8 — LOCALIZED SUBPAGES (top 10 languages)          ║
+       ╚══════════════════════════════════════════════════════════════╝ -->
+
+  <!-- Spanish -->
+  <url><loc>https://instantseoscan.com/es/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/es/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/es/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/es/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- French -->
+  <url><loc>https://instantseoscan.com/fr/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/fr/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/fr/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/fr/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- German -->
+  <url><loc>https://instantseoscan.com/de/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/de/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/de/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/de/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Arabic -->
+  <url><loc>https://instantseoscan.com/ar/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/ar/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/ar/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/ar/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Japanese -->
+  <url><loc>https://instantseoscan.com/ja/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/ja/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/ja/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/ja/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Hindi -->
+  <url><loc>https://instantseoscan.com/hi/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/hi/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/hi/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/hi/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Portuguese -->
+  <url><loc>https://instantseoscan.com/pt/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/pt/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/pt/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/pt/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Korean -->
+  <url><loc>https://instantseoscan.com/ko/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/ko/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/ko/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/ko/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Turkish -->
+  <url><loc>https://instantseoscan.com/tr/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/tr/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/tr/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/tr/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Russian -->
+  <url><loc>https://instantseoscan.com/ru/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/ru/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/ru/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/ru/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Italian -->
+  <url><loc>https://instantseoscan.com/it/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/it/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/it/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/it/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Indonesian -->
+  <url><loc>https://instantseoscan.com/id/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/id/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://instantseoscan.com/id/about</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://instantseoscan.com/id/contact</loc><lastmod>2026-03-07</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Swedish -->
+  <url><loc>https://instantseoscan.com/sv/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://instantseoscan.com/sv/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.6</priority></url>
+
+  <!-- Bengali -->
+  <url><loc>https://instantseoscan.com/bn/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://instantseoscan.com/bn/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.6</priority></url>
+
+  <!-- Malay -->
+  <url><loc>https://instantseoscan.com/ms/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://instantseoscan.com/ms/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.6</priority></url>
+
+  <!-- Polish -->
+  <url><loc>https://instantseoscan.com/pl/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://instantseoscan.com/pl/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.6</priority></url>
+
+  <!-- Bulgarian -->
+  <url><loc>https://instantseoscan.com/bg/pricing</loc><lastmod>2026-03-07</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://instantseoscan.com/bg/blog</loc><lastmod>2026-03-07</lastmod><changefreq>daily</changefreq><priority>0.6</priority></url>
+
+</urlset>

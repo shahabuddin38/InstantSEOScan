@@ -1,12 +1,22 @@
+# ─────────────────────────────────────────────
+#  InstantSEOScan – robots.txt
+#  https://instantseoscan.com
+# ─────────────────────────────────────────────
+
 User-agent: *
 Allow: /
 
-# Disallow private/admin areas
+# Private / admin areas
 Disallow: /admin
 Disallow: /adminaceess
-Disallow: /api/
 Disallow: /dashboard
 Disallow: /report/
 
-# Sitemap
+# API (except public sitemaps)
+Disallow: /api/
+Allow: /api/sitemap/
+
+# Sitemaps (index + sub-sitemaps)
 Sitemap: https://instantseoscan.com/sitemap.xml
+Sitemap: https://instantseoscan.com/page-sitemap.xml
+Sitemap: https://instantseoscan.com/api/sitemap/posts
