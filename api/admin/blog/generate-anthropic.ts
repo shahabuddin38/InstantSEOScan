@@ -46,6 +46,17 @@ const keywordToImagePath = (keyword: string) =>
 const resolveKeywordImage = (keyword: string, width = 1200, height = 630): string =>
   `https://loremflickr.com/${width}/${height}/${keywordToImagePath(keyword)}`;
 
+const resolveStableKeywordImage = async (keyword: string, width = 1200, height = 630) => {
+  const sourceUrl = resolveKeywordImage(keyword, width, height);
+  try {
+    const response = await fetch(sourceUrl, { method: "HEAD", redirect: "follow" });
+    if (response.url && response.url !== sourceUrl) {
+      return response.url;
+    }
+  } catch { }
+  return sourceUrl;
+};
+
 const generateDraft = async (topic: string) => {
   const apiKey = await getAnthropicApiKey();
   if (!apiKey) {
@@ -88,9 +99,9 @@ IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
   const payload = await response.json();
   const outputText = Array.isArray(payload?.content)
     ? payload.content
-        .filter((chunk: any) => chunk?.type === "text")
-        .map((chunk: any) => String(chunk?.text || ""))
-        .join("\n")
+      .filter((chunk: any) => chunk?.type === "text")
+      .map((chunk: any) => String(chunk?.text || ""))
+      .join("\n")
     : "";
 
   const parsed = parseAiJson(outputText, null);
@@ -99,12 +110,12 @@ IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
   }
 
   const coverKeyword = String((parsed as any).coverImageKeyword || topic).trim();
-  const coverImageUrl = resolveKeywordImage(coverKeyword, 1200, 630);
+  const coverImageUrl = await resolveStableKeywordImage(coverKeyword, 1200, 630);
   const coverAlt = String((parsed as any).coverImageAlt || `Cover image for ${topic}`).trim();
 
   let content = String((parsed as any).content || "").trim();
   if (content.includes("PLACEHOLDER_IMG")) {
-    content = content.replace(/PLACEHOLDER_IMG/g, resolveKeywordImage(`${coverKeyword} technology`, 800, 450));
+    content = content.replace(/PLACEHOLDER_IMG/g, await resolveStableKeywordImage(`${coverKeyword} technology`, 800, 450));
   }
 
   return {
