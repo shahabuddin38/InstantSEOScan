@@ -323,7 +323,7 @@ const generateAnthropicBlogDraft = async (topic: string) => {
     throw new Error("Anthropic API key missing. Set CLAUDE_API_KEY or ANTHROPIC_API_KEY in Admin Settings.");
   }
 
-  const prompt = `You are an expert SEO content writer. Create a complete blog draft about: "${topic}".
+  const prompt = `You are an expert SEO content writer forming an article for InstantSEOScan. Create a complete blog draft about: "${topic}".
 Return STRICT JSON only (no markdown fences, no extra text) with this exact shape:
 {
   "title": "Unique SEO-friendly title (do NOT just repeat the topic)",
@@ -332,7 +332,7 @@ Return STRICT JSON only (no markdown fences, no extra text) with this exact shap
   "excerpt": "Engaging summary under 160 chars for blog listing cards",
   "coverImageKeyword": "1-3 word keyword for sourcing a relevant cover photo (e.g. 'seo analytics')",
   "coverImageAlt": "Descriptive alt text for the cover image (accessibility + SEO)",
-  "content": "Full blog content in HTML with <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em> tags. Minimum 800 words. Include an <img> tag in the middle with src=PLACEHOLDER_IMG and a descriptive alt attribute."
+  "content": "Full blog content in HTML with <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em> tags. Minimum 800 words. Include an <img> tag in the middle with src=PLACEHOLDER_IMG and a descriptive alt attribute. MUST INCLUDE at least 2 contextual <a> tags pointing to relevant internal tool pages on https://instantseoscan.com (e.g. https://instantseoscan.com/tools/corescan, https://instantseoscan.com/tools/on-page, https://instantseoscan.com/schema-generator, etc)."
 }
 IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
 
@@ -1209,7 +1209,7 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       if (!topic) return resAny.status(400).json({ error: "Topic is required" });
 
       try {
-        const prompt = `You are an expert SEO content writer. Generate a highly optimized blog post about: "${topic}".
+        const prompt = `You are an expert SEO content writer forming an article for InstantSEOScan. Generate a highly optimized blog post about: "${topic}".
 Output must be a STRICT JSON object matching this schema:
 {
   "title": "A catchy, SEO-friendly H1 title",
@@ -1217,7 +1217,7 @@ Output must be a STRICT JSON object matching this schema:
   "blocks": [
     { "type": "paragraph", "text": "Introduction paragraph..." },
     { "type": "h2", "text": "First Main Point" },
-    { "type": "paragraph", "text": "Details about the first main point..." },
+    { "type": "paragraph", "text": "Details about the first main point... Include <a href='https://instantseoscan.com/...'>contextual internal link</a> here." },
     { "type": "list", "text": "1. Point one\n2. Point two\n3. Point three" },
     { "type": "h2", "text": "Second Main Point" },
     { "type": "paragraph", "text": "More details..." },
@@ -1226,7 +1226,8 @@ Output must be a STRICT JSON object matching this schema:
     { "type": "cta", "text": "Call to action text at the bottom" }
   ]
 }
-Make sure to include at least 8-10 blocks total for a comprehensive article. Do not use markdown syntax for code fencing around the JSON output, return raw JSON JSON.`;
+Make sure to include at least 8-10 blocks total for a comprehensive article. Must include at least 2 internal links to InstantSEOScan tools like https://instantseoscan.com/tools/corescan or https://instantseoscan.com/tools/on-page inside paragraph tags. Do not use markdown syntax for code fencing around the JSON output, return raw JSON JSON.`;
+
 
         const fallback = {
           title: `Generated Draft: ${topic}`,

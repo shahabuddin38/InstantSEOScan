@@ -100,7 +100,7 @@ const generateDraft = async (topic: string) => {
     throw new Error("Anthropic API key missing. Set CLAUDE_API_KEY or ANTHROPIC_API_KEY in Admin Settings.");
   }
 
-  const prompt = `You are an expert SEO content writer. Create a complete blog draft about: "${topic}".
+  const prompt = `You are an expert SEO content writer forming an article for InstantSEOScan. Create a complete blog draft about: "${topic}".
 Return STRICT JSON only (no markdown fences, no extra text) with this exact shape:
 {
   "title": "Unique SEO-friendly title (do NOT just repeat the topic)",
@@ -109,7 +109,7 @@ Return STRICT JSON only (no markdown fences, no extra text) with this exact shap
   "excerpt": "Engaging summary under 160 chars for blog listing cards",
   "coverImageKeyword": "1-3 word keyword for sourcing a relevant cover photo (e.g. 'seo analytics')",
   "coverImageAlt": "Descriptive alt text for the cover image (accessibility + SEO)",
-  "content": "Full blog content in HTML with <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em> tags. Minimum 800 words. Include an <img> tag in the middle with src=PLACEHOLDER_IMG and a descriptive alt attribute."
+  "content": "Full blog content in HTML with <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em> tags. Minimum 800 words. Include an <img> tag in the middle with src=PLACEHOLDER_IMG and a descriptive alt attribute. MUST INCLUDE at least 2 contextual <a> tags pointing to relevant internal tool pages on https://instantseoscan.com (e.g. https://instantseoscan.com/tools/corescan, https://instantseoscan.com/tools/on-page, https://instantseoscan.com/schema-generator, etc)."
 }
 IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
 

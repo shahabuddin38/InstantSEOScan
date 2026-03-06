@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, User, Clock, Share2, Facebook, Twitter, Linkedin } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { apiRequest } from "../services/apiClient";
+import PageSEO from "../components/seo/PageSEO";
 
 type BlogBlock = {
   id?: string;
@@ -92,23 +93,9 @@ export default function BlogPost() {
 
       setPost(result.data);
       setLoading(false);
-
-      // Set meta description if excerpt exists
-      if (result.data.excerpt) {
-        let metaDesc = document.querySelector('meta[name="description"]') as HTMLMetaElement;
-        if (!metaDesc) {
-          metaDesc = document.createElement('meta');
-          metaDesc.name = 'description';
-          document.head.appendChild(metaDesc);
-        }
-        metaDesc.content = result.data.excerpt;
-      }
-      // Set page title
-      if (result.data.title) {
-        document.title = `${result.data.title} | InstantSEOScan Blog`;
-      }
     };
 
+    // Meta description tag rendering is now handled centrally by PageSEO below.
     loadPost();
   }, [slug]);
 
@@ -169,8 +156,38 @@ export default function BlogPost() {
 
   const shareUrl = window.location.href;
 
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    image: post.coverImage ? [post.coverImage] : [],
+    datePublished: new Date(post.createdAt || post.created_at || new Date().toISOString()).toISOString(),
+    author: [{
+      "@type": "Person",
+      name: getAuthorLabel(post.author),
+    }],
+    publisher: {
+      "@type": "Organization",
+      name: "InstantSEOScan",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://instantseoscan.com/logo.png"
+      }
+    },
+    description: post.excerpt || `Read ${post.title} on InstantSEOScan.`,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": window.location.href
+    }
+  };
+
   return (
     <div className="bg-neutral-50 min-h-screen pt-24 pb-16">
+      <PageSEO
+        title={`${post.title} | InstantSEOScan Blog`}
+        description={post.excerpt || `Read an in-depth SEO guide and thoughts about ${post.title} on InstantSEOScan.`}
+        schema={articleSchema}
+      />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <Link to="/blog" className="inline-flex items-center text-sm font-bold text-emerald-600 hover:text-emerald-700 mb-8 transition-colors">
           <ArrowLeft size={16} className="mr-2" />
@@ -197,7 +214,7 @@ export default function BlogPost() {
             <h1 className="text-3xl md:text-5xl font-black text-neutral-900 tracking-tight leading-tight mb-6">
               {post.title}
             </h1>
-            
+
             <div className="flex flex-wrap items-center gap-6 text-sm text-neutral-500 border-b border-neutral-100 pb-8">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600">
