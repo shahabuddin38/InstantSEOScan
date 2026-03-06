@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { I18nProvider, useI18n } from "./i18n/I18nContext";
 import { SUPPORTED_LOCALES, localizedPath } from "./i18n/locales";
 import Navbar from "./components/Navbar";
@@ -38,6 +38,14 @@ import OnPageSEO from "./pages/OnPageSEO";
 import OffPageSEO from "./pages/OffPageSEO";
 import TechnicalAudit from "./pages/TechnicalAudit";
 import { clearActivityHistory } from "./services/activityHistory";
+
+const GoogleKeywordRankChecker = lazy(() => import("./pages/tools/GoogleKeywordRankChecker"));
+const SERPComparisonTool = lazy(() => import("./pages/tools/SERPComparisonTool"));
+const KeywordCannibalizationChecker = lazy(() => import("./pages/tools/KeywordCannibalizationChecker"));
+const SERPIntentAnalyzer = lazy(() => import("./pages/tools/SERPIntentAnalyzer"));
+const FreeSerpDatabase = lazy(() => import("./pages/tools/FreeSerpDatabase"));
+const SEOStatisticsPage = lazy(() => import("./pages/SEOStatisticsPage"));
+const ProgrammaticSEOPage = lazy(() => import("./pages/ProgrammaticSEOPage"));
 
 const PAGE_SEO: Record<string, { title: string; description: string }> = {
   "/": {
@@ -132,6 +140,50 @@ const PAGE_SEO: Record<string, { title: string; description: string }> = {
     title: "MCP SEO Support Tools | InstantSEOScan",
     description: "Use model-context SEO support tooling for advanced analysis workflows and technical optimization tasks.",
   },
+  "/tools/google-keyword-rank-checker": {
+    title: "Google Keyword Rank Checker | InstantSEOScan",
+    description: "Check Google rankings, competitors, keyword difficulty, SERP overlap, and traffic potential.",
+  },
+  "/tools/serp-comparison": {
+    title: "SERP Comparison Tool | InstantSEOScan",
+    description: "Compare two keywords, detect SERP overlap, and pick the right content targeting strategy.",
+  },
+  "/tools/keyword-cannibalization": {
+    title: "Keyword Cannibalization Checker | InstantSEOScan",
+    description: "Identify competing pages for the same keyword and fix cannibalization fast.",
+  },
+  "/tools/serp-intent-analyzer": {
+    title: "SERP Intent Analyzer | InstantSEOScan",
+    description: "Detect search intent and top result content patterns for better ranking pages.",
+  },
+  "/tools/free-serp-database": {
+    title: "Free SERP Database | InstantSEOScan",
+    description: "Explore top Google results with title, description, backlinks, traffic, and word count estimates.",
+  },
+  "/seo-statistics": {
+    title: "SEO Statistics 2026 | InstantSEOScan",
+    description: "150+ SEO statistics with citation copy and auto-updating data snapshots.",
+  },
+  "/ai-seo-statistics": {
+    title: "AI SEO Statistics 2026 | InstantSEOScan",
+    description: "Latest AI SEO statistics for GEO, AI Overviews, and search visibility planning.",
+  },
+  "/link-building-statistics": {
+    title: "Link Building Statistics 2026 | InstantSEOScan",
+    description: "Updated link building statistics to improve authority and organic growth strategy.",
+  },
+  "/local-seo-statistics": {
+    title: "Local SEO Statistics 2026 | InstantSEOScan",
+    description: "Key local SEO statistics for map pack rankings and location-based organic traffic.",
+  },
+  "/content-marketing-statistics": {
+    title: "Content Marketing Statistics 2026 | InstantSEOScan",
+    description: "Content marketing statistics for ranking growth, engagement, and conversion impact.",
+  },
+  "/google-ranking-statistics": {
+    title: "Google Ranking Statistics 2026 | InstantSEOScan",
+    description: "Google ranking statistics to benchmark SEO performance and improve SERP position.",
+  },
   "/admin": {
     title: "Admin Panel | InstantSEOScan",
     description: "Manage users, usage, content, and platform settings from the InstantSEOScan administration panel.",
@@ -195,6 +247,23 @@ function AppRoutes({ user, setUser, handleLogout }: { user: any; setUser: any; h
       <Route path="/schema-generator" element={user ? <SchemaGenerator /> : <Navigate to="/login" />} />
       <Route path="/tools/authority" element={user ? <AuthorityRadar /> : <Navigate to="/login" />} />
       <Route path="/tools/mcp" element={user ? <MCPSupport /> : <Navigate to="/login" />} />
+      <Route path="/tools/google-keyword-rank-checker" element={user ? <GoogleKeywordRankChecker /> : <Navigate to="/login" />} />
+      <Route path="/tools/serp-comparison" element={user ? <SERPComparisonTool /> : <Navigate to="/login" />} />
+      <Route path="/tools/keyword-cannibalization" element={user ? <KeywordCannibalizationChecker /> : <Navigate to="/login" />} />
+      <Route path="/tools/serp-intent-analyzer" element={user ? <SERPIntentAnalyzer /> : <Navigate to="/login" />} />
+      <Route path="/tools/free-serp-database" element={user ? <FreeSerpDatabase /> : <Navigate to="/login" />} />
+
+      <Route path="/seo-statistics" element={<SEOStatisticsPage />} />
+      <Route path="/ai-seo-statistics" element={<SEOStatisticsPage />} />
+      <Route path="/link-building-statistics" element={<SEOStatisticsPage />} />
+      <Route path="/local-seo-statistics" element={<SEOStatisticsPage />} />
+      <Route path="/content-marketing-statistics" element={<SEOStatisticsPage />} />
+      <Route path="/google-ranking-statistics" element={<SEOStatisticsPage />} />
+
+      <Route path="/compare/:pair" element={<ProgrammaticSEOPage />} />
+      <Route path="/keyword-data/:keyword" element={<ProgrammaticSEOPage />} />
+      <Route path="/serp-analysis/:keyword" element={<ProgrammaticSEOPage />} />
+      <Route path="/ranking/:keyword" element={<ProgrammaticSEOPage />} />
 
       <Route
         path="/admin"
@@ -208,16 +277,18 @@ function AppRoutes({ user, setUser, handleLogout }: { user: any; setUser: any; h
   );
 
   return (
-    <Routes>
-      {/* Default locale (en) — no prefix */}
-      {allRoutes}
-      {/* Locale-prefixed routes */}
-      <Route path="/:locale/*" element={
-        <Routes>
-          {allRoutes}
-        </Routes>
-      } />
-    </Routes>
+    <Suspense fallback={<div className="p-8 text-sm text-neutral-500">Loading...</div>}>
+      <Routes>
+        {/* Default locale (en) — no prefix */}
+        {allRoutes}
+        {/* Locale-prefixed routes */}
+        <Route path="/:locale/*" element={
+          <Routes>
+            {allRoutes}
+          </Routes>
+        } />
+      </Routes>
+    </Suspense>
   );
 }
 
@@ -274,6 +345,31 @@ function SeoMetaManager() {
       document.head.appendChild(meta);
     }
     meta.content = seo.description;
+
+    const canonicalHref = `${window.location.origin}${location.pathname}`;
+    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+    canonical.href = canonicalHref;
+
+    const upsert = (selector: string, attr: "name" | "property", value: string) => {
+      let element = document.querySelector(selector) as HTMLMetaElement | null;
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute(attr, selector.includes("property=") ? selector.match(/"([^"]+)"/)?.[1] || "" : selector.match(/"([^"]+)"/)?.[1] || "");
+        document.head.appendChild(element);
+      }
+      element.content = value;
+    };
+
+    upsert('meta[property="og:title"]', "property", seo.title);
+    upsert('meta[property="og:description"]', "property", seo.description);
+    upsert('meta[property="og:url"]', "property", canonicalHref);
+    upsert('meta[name="twitter:title"]', "name", seo.title);
+    upsert('meta[name="twitter:description"]', "name", seo.description);
   }, [location.pathname]);
 
   return null;

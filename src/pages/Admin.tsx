@@ -217,6 +217,11 @@ export default function Admin() {
     GEMINI_API_KEY_2_LIMIT: "",
     GEMINI_API_KEY_3: "",
     GEMINI_API_KEY_3_LIMIT: "",
+    SERP_API_KEY: "",
+    DATAFORSEO_API_KEY: "",
+    KEYWORD_API_KEY: "",
+    BACKLINK_API_KEY: "",
+    AI_API_KEY: "",
     POSTGRES_URL: "",
     PRISMA_DATABASE_URL: "",
   });
@@ -266,6 +271,11 @@ export default function Admin() {
         GEMINI_API_KEY_2_LIMIT: result.data.GEMINI_API_KEY_2_LIMIT || "",
         GEMINI_API_KEY_3: result.data.GEMINI_API_KEY_3 || "",
         GEMINI_API_KEY_3_LIMIT: result.data.GEMINI_API_KEY_3_LIMIT || "",
+        SERP_API_KEY: result.data.SERP_API_KEY || "",
+        DATAFORSEO_API_KEY: result.data.DATAFORSEO_API_KEY || "",
+        KEYWORD_API_KEY: result.data.KEYWORD_API_KEY || "",
+        BACKLINK_API_KEY: result.data.BACKLINK_API_KEY || "",
+        AI_API_KEY: result.data.AI_API_KEY || "",
         POSTGRES_URL: result.data.POSTGRES_URL || "",
         PRISMA_DATABASE_URL: result.data.PRISMA_DATABASE_URL || "",
       });
@@ -1383,6 +1393,29 @@ export default function Admin() {
                     </div>
                   </div>
                 )})}
+              </div>
+
+              {/* Database Section */}
+              <div className="space-y-4">
+                <h3 className="font-bold text-sm text-neutral-800 border-b pb-2">SEO API Settings</h3>
+                {[
+                  { key: "SERP_API_KEY" as const, label: "SERP API Key" },
+                  { key: "DATAFORSEO_API_KEY" as const, label: "DataForSEO API Key" },
+                  { key: "KEYWORD_API_KEY" as const, label: "Keyword API Key" },
+                  { key: "BACKLINK_API_KEY" as const, label: "Backlink API Key" },
+                  { key: "AI_API_KEY" as const, label: "AI API Key" },
+                ].map(({ key, label }) => (
+                  <div className="space-y-1" key={key}>
+                    <label className="text-sm font-bold text-neutral-700">{label}</label>
+                    <input
+                      type="password"
+                      value={settingsForm[key]}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, [key]: e.target.value })}
+                      placeholder="Paste API key"
+                      className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                    />
+                  </div>
+                ))}
               </div>
 
               {/* Database Section */}

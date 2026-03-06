@@ -63,7 +63,13 @@ export default function Sidebar() {
       name: "Keyword Research",
       icon: <Search size={20} />,
       items: [
-        { name: "Keyword Ideas", path: "/ai-keyword-ideas-tool" }
+        { name: "Keyword Ideas", path: "/ai-keyword-ideas-tool" },
+        { name: "Rank Checker", path: "/tools/google-keyword-rank-checker" },
+        { name: "SERP Comparison", path: "/tools/serp-comparison" },
+        { name: "Cannibalization", path: "/tools/keyword-cannibalization" },
+        { name: "SERP Intent", path: "/tools/serp-intent-analyzer" },
+        { name: "SERP Database", path: "/tools/free-serp-database" },
+        { name: "SEO Statistics", path: "/seo-statistics" }
       ]
     }
   ];
