@@ -14,8 +14,35 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
 
   const seoToolMenu = [
     {
+      label: "Site Audit",
+      links: [
+        { name: "CoreScan Engine", path: "/tools/corescan" },
+        { name: "Technical Audit Tool", path: "/tools/technical" },
+        { name: "InfraSEO Analysis", path: "/tools/infra" },
+      ],
+    },
+    {
+      label: "On-Page SEO",
+      links: [
+        { name: "On-Page SEO AI", path: "/tools/on-page" },
+        { name: "Content Score", path: "/ai-seo-content-score" },
+        { name: "SEO Rewriter", path: "/ai-seo-rewrite-tool" },
+        { name: "AI Overview", path: "/ai-overview-optimizer" },
+        { name: "SEO Strategy Plan", path: "/tools/strategy-plan" },
+        { name: "Schema Generator", path: "/schema-generator" },
+      ],
+    },
+    {
+      label: "Off-Page SEO",
+      links: [
+        { name: "Off-Page SEO AI", path: "/tools/off-page" },
+        { name: "Authority Radar", path: "/tools/authority" },
+      ],
+    },
+    {
       label: "Keyword & SERP Tools",
       links: [
+        { name: "AI Keyword Ideas", path: "/ai-keyword-ideas-tool" },
         { name: "Google Keyword Rank Checker", path: "/tools/google-keyword-rank-checker" },
         { name: "SERP Comparison Tool", path: "/tools/serp-comparison" },
         { name: "Keyword Cannibalization Checker", path: "/tools/keyword-cannibalization" },
@@ -24,16 +51,17 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
       ],
     },
     {
-      label: "Core SEO Tools",
+      label: "Programmatic SEO",
       links: [
-        { name: "Technical Audit Tool", path: "/tools/technical" },
-        { name: "AI Keyword Ideas", path: "/ai-keyword-ideas-tool" },
         { name: "SEO Statistics", path: "/seo-statistics" },
+        { name: "AI SEO Statistics", path: "/ai-seo-statistics" },
+        { name: "Link Building Statistics", path: "/link-building-statistics" },
+        { name: "Local SEO Statistics", path: "/local-seo-statistics" },
+        { name: "Content Marketing Statistics", path: "/content-marketing-statistics" },
+        { name: "Google Ranking Statistics", path: "/google-ranking-statistics" },
       ],
     },
   ];
-
-  const seoToolMobileLinks = seoToolMenu.flatMap((section) => section.links);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-200">
@@ -55,7 +83,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
                 {t("nav.seo_tools")}
                 <Menu size={14} />
               </button>
-              <div className="absolute top-full left-0 mt-2 w-80 bg-white border border-neutral-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2">
+              <div className="absolute top-full left-0 mt-2 w-[22rem] max-h-[70vh] overflow-auto bg-white border border-neutral-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2">
                 <div className="space-y-2">
                   {seoToolMenu.map((section) => (
                     <div key={section.label} className="border border-neutral-100 rounded-lg p-2">
@@ -129,20 +157,28 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
             <Link to={toLocalized("/blog")} className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>{t("nav.blog")}</Link>
             <div className="pt-2 border-t border-neutral-100">
               <div className="text-xs uppercase tracking-widest text-neutral-400 font-bold mb-2">SEO Tools</div>
-              <div className="space-y-2">
-                {seoToolMobileLinks.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={toLocalized(item.path)}
-                    className="block text-base font-medium text-neutral-900"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
+              <div className="space-y-3 max-h-[50vh] overflow-auto pr-1">
+                {seoToolMenu.map((section) => (
+                  <div key={section.label} className="border border-neutral-100 rounded-lg p-2">
+                    <div className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold mb-1">
+                      {section.label}
+                    </div>
+                    <div className="space-y-1">
+                      {section.links.map((item) => (
+                        <Link
+                          key={item.path}
+                          to={toLocalized(item.path)}
+                          className="block text-sm font-medium text-neutral-900"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
-            <Link to={toLocalized("/tools/strategy-plan")} className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>SEO Strategy Plan</Link>
             {user ? (
               <>
                 <Link to={toLocalized("/dashboard")} className="block text-lg font-medium text-neutral-900" onClick={() => setIsOpen(false)}>{t("nav.dashboard")}</Link>
