@@ -237,17 +237,18 @@ const resolveStableKeywordImage = async (keyword: string, width = 1200, height =
   const sourceUrl = resolveKeywordImage(keyword, width, height);
 
   try {
+    // Use HEAD + redirect:follow so Node.js follows the loremflickr→Flickr CDN
+    // redirect chain and response.url holds the final, stable direct-image URL.
     const response = await fetch(sourceUrl, {
       method: "HEAD",
-      redirect: "manual",
+      redirect: "follow",
     });
 
-    const location = response.headers.get("location");
-    if (location) {
-      return new URL(location, sourceUrl).toString();
+    if (response.url && response.url !== sourceUrl) {
+      return response.url;
     }
   } catch {
-    // Fall back to the source URL if the provider does not expose redirects.
+    // Fall back to the source URL if the fetch fails.
   }
 
   return sourceUrl;
@@ -1359,24 +1360,17 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
         };
 
         for (const topic of uniqueTopics) {
-          const settled = await Promise.allSettled([createBulkPost(topic)]);
-
-          settled.forEach((entry) => {
-            if (entry.status === "fulfilled") {
-              if (entry.value.status === "created") {
-                results.push(entry.value.payload);
-              } else {
-                skipped.push(entry.value.payload);
-              }
-              return;
+          try {
+            const result = await createBulkPost(topic);
+            if (result.status === "created") {
+              results.push(result.payload);
+            } else {
+              skipped.push(result.payload);
             }
-
-            console.error(`Bulk auto-post error for topic "${topic}":`, entry.reason);
-            errors.push({
-              topic,
-              error: entry.reason?.message || "Failed",
-            });
-          });
+          } catch (err: any) {
+            console.error(`Bulk auto-post error for topic "${topic}":`, err);
+            errors.push({ topic, error: err?.message || "Failed" });
+          }
         }
 
         return resAny.status(200).json({
