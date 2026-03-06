@@ -50,21 +50,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
         { name: "Free SERP Database", path: "/tools/free-serp-database" },
       ],
     },
-    {
-      label: "New Tools & Pages",
-      links: [
-        { name: "SEO Statistics", path: "/seo-statistics" },
-        { name: "AI SEO Statistics", path: "/ai-seo-statistics" },
-        { name: "Link Building Statistics", path: "/link-building-statistics" },
-        { name: "Local SEO Statistics", path: "/local-seo-statistics" },
-        { name: "Content Marketing Statistics", path: "/content-marketing-statistics" },
-        { name: "Google Ranking Statistics", path: "/google-ranking-statistics" },
-        { name: "Keyword Data Page", path: "/keyword-data/seo-tools" },
-        { name: "SERP Analysis Page", path: "/serp-analysis/seo-tools" },
-        { name: "Ranking Page", path: "/ranking/seo-tools" },
-        { name: "Compare Page", path: "/compare/seo-tools-vs-keyword-research" },
-      ],
-    },
+    
   ];
 
   return (
@@ -87,10 +73,10 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
                 {t("nav.seo_tools")}
                 <Menu size={14} />
               </button>
-              <div className="absolute top-full left-0 mt-2 w-[24rem] max-h-[70vh] overflow-auto bg-white border border-neutral-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2">
-                <div className="space-y-2">
+              <div className="absolute top-full left-0 mt-2 w-[52rem] max-h-[72vh] overflow-auto bg-white border border-neutral-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-3">
+                <div className="grid grid-cols-2 gap-3">
                   {seoToolMenu.map((section) => (
-                    <div key={section.label} className="border border-neutral-100 rounded-lg p-2">
+                    <div key={section.label} className="border border-neutral-100 rounded-lg p-2 bg-white">
                       <div className="px-2 py-1 text-[10px] uppercase tracking-widest font-bold text-neutral-400">
                         {section.label}
                       </div>
