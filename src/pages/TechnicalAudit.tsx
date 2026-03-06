@@ -31,6 +31,25 @@ type CountSection = {
 };
 
 export default function TechnicalAudit() {
+  const currentUser = (() => {
+    try {
+      const raw = localStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const userRole = String(currentUser?.role || "").toLowerCase();
+  const userPlan = String(currentUser?.plan || "").toLowerCase();
+  const allowedMaxPages =
+    userRole === "admin"
+      ? null
+      : userPlan === "agency"
+        ? 200
+        : userPlan === "pro"
+          ? 100
+          : 60;
+
   const [url, setUrl] = useState("");
   const [maxPages, setMaxPages] = useState(30);
   const [loading, setLoading] = useState(false);
@@ -163,10 +182,12 @@ export default function TechnicalAudit() {
     setResult(null);
 
     try {
+      const requestedPages = Math.max(1, Number(maxPages) || 30);
+      const safeMaxPages = allowedMaxPages === null ? requestedPages : Math.min(allowedMaxPages, requestedPages);
       const res = await apiRequest<any>("/api/technical-audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, maxPages }),
+        body: JSON.stringify({ url, maxPages: safeMaxPages }),
       });
 
       if (!res.ok || !res.data) throw new Error(res.error || "Technical audit failed.");
@@ -351,11 +372,14 @@ export default function TechnicalAudit() {
             <input
               type="number"
               min={1}
-              max={100}
+              max={allowedMaxPages ?? undefined}
               value={maxPages}
               onChange={(e) => setMaxPages(Number(e.target.value) || 1)}
               className="w-full px-3 py-3 border border-neutral-200 rounded-xl bg-neutral-50 outline-none"
             />
+            <p className="mt-1 text-[11px] text-neutral-500">
+              {allowedMaxPages === null ? "Admin: unlimited pages" : `Max allowed for your plan: ${allowedMaxPages} pages`}
+            </p>
           </div>
           <button
             type="submit"

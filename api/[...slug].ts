@@ -43,8 +43,17 @@ const scanBodySchema = z.object({
 
 const technicalAuditBodySchema = z.object({
   url: z.string().min(1),
-  maxPages: z.number().int().min(1).max(60).optional(),
+  maxPages: z.coerce.number().int().min(1).optional(),
 });
+
+const technicalAuditLimitForUser = (user: any): number | null => {
+  if (user?.role === "admin") return null;
+
+  const plan = String(user?.plan || "").toLowerCase();
+  if (plan === "agency") return 200;
+  if (plan === "pro") return 100;
+  return 60;
+};
 
 const blogBlockSchema = z.object({
   id: z.string().optional(),
@@ -577,7 +586,9 @@ Include at least 10 checks covering: author credentials, about page, contact inf
       }
 
       const startInput = String(parsed.data.url || "").trim();
-      const maxPages = parsed.data.maxPages || 30;
+      const requestedMaxPages = Math.max(1, parsed.data.maxPages || 30);
+      const allowedMaxPages = technicalAuditLimitForUser(reqAny.user);
+      const maxPages = allowedMaxPages === null ? requestedMaxPages : Math.min(allowedMaxPages, requestedMaxPages);
       const startUrl = normalizePageUrl(startInput.startsWith("http") ? startInput : `https://${startInput}`);
       const crawlStartedAt = Date.now();
       const crawlBudgetMs = 18000;
@@ -816,6 +827,9 @@ Include at least 10 checks covering: author credentials, about page, contact inf
           brokenLinks: brokenLinks.length,
           htmlErrorPages: htmlErrors.length,
           duplicateContentGroups: duplicateContents.length,
+          requestedMaxPages,
+          appliedMaxPages: maxPages,
+          allowedMaxPages,
           truncated: toVisit.length > 0 || !withinBudget(),
         },
         pages,
