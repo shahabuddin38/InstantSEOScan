@@ -12,13 +12,23 @@ const authBodySchema = z.object({
 const isPrismaConnectionError = (error: any) => {
   const message = String(error?.message || "");
   return (
-    /Can\'t reach database server/i.test(message) ||
+    /Can.?t reach database server/i.test(message) ||
     /P1001/.test(message) ||
     /ECONNREFUSED|ETIMEDOUT|ENOTFOUND/i.test(message)
   );
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method === "GET") {
+    return res.status(200).json({
+      ok: true,
+      message: "Login endpoint is available. Use POST with email and password.",
+      method: "POST",
+      path: "/api/auth/login",
+      requiredBody: { email: "string", password: "string" },
+    });
+  }
+
   if (req.method !== "POST") return res.status(405).end();
 
   const parsed = authBodySchema.safeParse((req as any).body || {});
