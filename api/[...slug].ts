@@ -77,6 +77,11 @@ const anthropicBlogBodySchema = z.object({
   coverImage: z.string().optional(),
 });
 
+const anthropicBulkBodySchema = z.object({
+  topics: z.array(z.string().min(3)).min(1).max(10),
+  author: z.string().optional(),
+});
+
 const slugify = (value: string) =>
   String(value || "")
     .toLowerCase()
@@ -1154,11 +1159,81 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
   }
 
   // Admin: Anthropic blog auto-post (POST /api/admin/blog/auto-post-anthropic)
+  // Supports ?action=bulk for up to 10 topics at once
   if (path === "/api/admin/blog/auto-post-anthropic") {
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
       if (reqAny.method !== "POST") return resAny.status(405).end();
 
+      const isBulk = url.searchParams.get("action") === "bulk";
+
+      // ── Bulk mode ──
+      if (isBulk) {
+        const bulkParsed = anthropicBulkBodySchema.safeParse(reqAny.body || {});
+        if (!bulkParsed.success) {
+          return resAny.status(400).json({ error: "Invalid payload. Send { topics: ['topic1', ...], author? }", details: bulkParsed.error.flatten() });
+        }
+
+        const { topics, author: bulkAuthor } = bulkParsed.data;
+        const results: any[] = [];
+        const errors: any[] = [];
+
+        for (const topic of topics) {
+          try {
+            const draft = await generateAnthropicBlogDraft(topic);
+            const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
+            const normalizedContent = String(draft.content || "").trim();
+            const resolvedCover = String(draft.coverImage || "").trim() || null;
+
+            const blocks: any[] = [];
+            if (resolvedCover) {
+              blocks.push({
+                id: `img-cover-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                type: "image",
+                text: "",
+                url: resolvedCover,
+                alt: draft.coverImageAlt || `Cover image for ${draft.title}`,
+                description: draft.metaDescription || "",
+              });
+            }
+
+            const post = await prisma.blogPost.create({
+              data: {
+                title: draft.title,
+                slug: resolvedSlug,
+                content: normalizedContent,
+                excerpt: String(draft.metaDescription || draft.excerpt || normalizedContent.slice(0, 160) || "").trim(),
+                coverImage: resolvedCover,
+                blocks: blocks.length > 0 ? blocks : [],
+                author: String(bulkAuthor || "Admin").trim(),
+              },
+            });
+
+            results.push({
+              id: post.id,
+              title: post.title,
+              slug: post.slug,
+              excerpt: post.excerpt,
+              coverImage: post.coverImage,
+              author: post.author,
+              created_at: post.createdAt,
+            });
+          } catch (error: any) {
+            console.error(`Bulk auto-post error for topic "${topic}":`, error);
+            errors.push({ topic, error: error?.message || "Failed" });
+          }
+        }
+
+        return resAny.status(200).json({
+          success: true,
+          count: results.length,
+          failed: errors.length,
+          posts: results,
+          errors: errors.length > 0 ? errors : undefined,
+        });
+      }
+
+      // ── Single post mode ──
       const parsed = anthropicBlogBodySchema.safeParse(reqAny.body || {});
       if (!parsed.success) {
         return resAny.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
