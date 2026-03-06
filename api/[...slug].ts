@@ -71,6 +71,12 @@ const contactBodySchema = z.object({
   message: z.string().min(10),
 });
 
+const anthropicBlogBodySchema = z.object({
+  topic: z.string().min(3),
+  author: z.string().optional(),
+  coverImage: z.string().optional(),
+});
+
 const slugify = (value: string) =>
   String(value || "")
     .toLowerCase()
@@ -182,6 +188,90 @@ const textFingerprint = (value: string) =>
   createHash("sha1")
     .update(String(value || "").replace(/\s+/g, " ").trim().toLowerCase())
     .digest("hex");
+
+const parseAiJson = (raw: string, fallback: any = null) => {
+  const text = String(raw || "").trim();
+  if (!text) return fallback;
+  try {
+    return JSON.parse(text);
+  } catch {
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1];
+    if (fenced) {
+      try {
+        return JSON.parse(fenced.trim());
+      } catch {
+        return fallback;
+      }
+    }
+    return fallback;
+  }
+};
+
+const getAnthropicApiKey = async () => {
+  const settings = await prisma.setting.findMany({
+    where: { key: { in: ["CLAUDE_API_KEY", "ANTHROPIC_API_KEY"] } },
+  });
+  const map = new Map(settings.map((item) => [item.key, item.value]));
+  const key =
+    String(map.get("CLAUDE_API_KEY") || map.get("ANTHROPIC_API_KEY") || process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY || "").trim();
+  return key || null;
+};
+
+const generateAnthropicBlogDraft = async (topic: string) => {
+  const apiKey = await getAnthropicApiKey();
+  if (!apiKey) {
+    throw new Error("Anthropic API key missing. Set CLAUDE_API_KEY or ANTHROPIC_API_KEY in Admin Settings.");
+  }
+
+  const prompt = `You are an expert SEO content writer. Create a complete blog draft about: "${topic}".
+Return STRICT JSON only (no markdown, no extra text) with this exact shape:
+{
+  "title": "SEO-friendly title",
+  "slug": "seo-friendly-slug",
+  "excerpt": "Compelling summary under 160 chars",
+  "content": "Full blog content in plain text with headings and paragraphs"
+}`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-3-5-sonnet-latest",
+      max_tokens: 2500,
+      temperature: 0.3,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Anthropic request failed (${response.status})`);
+  }
+
+  const payload = await response.json();
+  const outputText = Array.isArray(payload?.content)
+    ? payload.content
+        .filter((chunk: any) => chunk?.type === "text")
+        .map((chunk: any) => String(chunk?.text || ""))
+        .join("\n")
+    : "";
+
+  const parsed = parseAiJson(outputText, null);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("Anthropic did not return valid JSON.");
+  }
+
+  return {
+    title: String((parsed as any).title || topic).trim(),
+    slug: String((parsed as any).slug || topic).trim(),
+    excerpt: String((parsed as any).excerpt || "").trim(),
+    content: String((parsed as any).content || "").trim(),
+  };
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url || "", "http://localhost");
@@ -1018,6 +1108,76 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
       } catch (error: any) {
         console.error("AI Generation Error:", error);
         return resAny.status(500).json({ error: "Failed to generate AI content" });
+      }
+    });
+    return authed(req as any, res as any);
+  }
+
+  // Admin: Anthropic blog draft generator (POST /api/admin/blog/generate-anthropic)
+  if (path === "/api/admin/blog/generate-anthropic") {
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
+      if (reqAny.method !== "POST") return resAny.status(405).end();
+
+      const parsed = anthropicBlogBodySchema.safeParse(reqAny.body || {});
+      if (!parsed.success) {
+        return resAny.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+      }
+
+      try {
+        const draft = await generateAnthropicBlogDraft(parsed.data.topic);
+        return resAny.status(200).json(draft);
+      } catch (error: any) {
+        console.error("Anthropic Blog Draft Error:", error);
+        return resAny.status(500).json({ error: error?.message || "Failed to generate Anthropic blog draft" });
+      }
+    });
+    return authed(req as any, res as any);
+  }
+
+  // Admin: Anthropic blog auto-post (POST /api/admin/blog/auto-post-anthropic)
+  if (path === "/api/admin/blog/auto-post-anthropic") {
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
+      if (reqAny.method !== "POST") return resAny.status(405).end();
+
+      const parsed = anthropicBlogBodySchema.safeParse(reqAny.body || {});
+      if (!parsed.success) {
+        return resAny.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+      }
+
+      const { topic, author, coverImage } = parsed.data;
+
+      try {
+        const draft = await generateAnthropicBlogDraft(topic);
+        const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
+        const normalizedContent = String(draft.content || "").trim();
+
+        const post = await prisma.blogPost.create({
+          data: {
+            title: draft.title,
+            slug: resolvedSlug,
+            content: normalizedContent,
+            excerpt: String(draft.excerpt || normalizedContent.slice(0, 180) || "").trim(),
+            coverImage: String(coverImage || "").trim() || null,
+            blocks: [],
+            author: String(author || "Automation").trim() || "Automation",
+          },
+        });
+
+        return resAny.status(200).json({
+          success: true,
+          post: {
+            id: post.id,
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt,
+            created_at: post.createdAt,
+          },
+        });
+      } catch (error: any) {
+        console.error("Anthropic Blog Auto-Post Error:", error);
+        return resAny.status(500).json({ error: error?.message || "Failed to auto-post Anthropic blog" });
       }
     });
     return authed(req as any, res as any);

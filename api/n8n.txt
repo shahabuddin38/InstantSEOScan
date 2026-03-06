@@ -1,0 +1,303 @@
+{
+  "name": "Automated SEO Content Generation and Publishing Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "id": "d720dbfb-73d8-424d-94b6-21ae17cc1072",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [256, 304]
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.keywords }}"
+            },
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "api_key",
+              "value": "={{ $env.SERP_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "cf574bb3-b78a-4cc7-a1f4-7f7fa4533789",
+      "name": "SERP API Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1152, 304]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Keyword: {{ $json.keywords }}\n\nTop SERP Results:\n{{ $json.organic_results }}",
+        "options": {
+          "systemMessage": "You are an SEO content writer. Generate comprehensive, SEO-optimized content for the given keyword based on SERP analysis. Create engaging, informative content that targets the keyword naturally while providing value to readers.\n\nYou MUST respond with ONLY valid JSON in this exact format, no other text:\n{\n  \"title\": \"SEO optimized blog post title\",\n  \"slug\": \"url-friendly-slug-with-hyphens\",\n  \"content\": \"Full article content here in plain text\",\n  \"excerpt\": \"A compelling 1-2 sentence summary under 160 characters\"\n}"
+        }
+      },
+      "id": "318f0091-6e71-4334-839b-8c4dff97c59d",
+      "name": "AI Content Generator",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [1376, 304]
+    },
+    {
+      "parameters": {
+        "model": "claude-haiku-4-5-20251001",
+        "options": {}
+      },
+      "id": "19669e19-ef44-4239-9785-a29485cf9d3e",
+      "name": "Anthropic Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [1456, 528],
+      "credentials": {
+        "anthropicApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "title",
+              "value": "={{ JSON.parse($json.output).title }}",
+              "type": "string"
+            },
+            {
+              "id": "65554738-222f-4bcb-9a93-395e9aa38e11",
+              "name": "slug",
+              "value": "={{ JSON.parse($json.output).slug }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "excerpt",
+              "value": "={{ JSON.parse($json.output).excerpt }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "content",
+              "value": "={{ JSON.parse($json.output).content }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "keyword",
+              "value": "={{ $('Split Keywords into Items').item.json.keywords }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8a4bc41c-09ff-4734-bb15-9c0616e841bd",
+      "name": "Prepare Content for Publishing",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1728, 304]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.instantseoscan.com/api/admin/blog/auto-post-anthropic",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $('Extract Token from Cookies').item.json.cookieHeader }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"topic\": \"{{ $('Split Keywords into Items').item.json.keywords }}\",\n  \"author\": \"Automation Bot\",\n  \"coverImage\": \"\"\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "9f6fb534-16c0-47a8-acde-56fcc9611af8",
+      "name": "Publish to CMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [2400, 304]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.instantseoscan.com/api/auth/login",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"email\": \"{{ $env.CMS_EMAIL }}\",\n  \"password\": \"{{ $env.CMS_PASSWORD }}\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "1189f2d8-e684-414e-870a-825c87b2610c",
+      "name": "Login to CMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1952, 304]
+    },
+    {
+      "parameters": {
+        "jsCode": "const setCookieHeader = $input.first().json.headers['set-cookie'] || $input.first().json.headers['Set-Cookie'] || [];\nconst cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];\nconst tokenCookie = cookies.find(c => c && c.startsWith('token='));\nif (!tokenCookie) throw new Error('Login token cookie not found in response');\nconst token = tokenCookie.split(';')[0];\nreturn [{ json: { cookieHeader: token } }];"
+      },
+      "id": "99205d63-1dff-4e5d-ae88-c853579114da",
+      "name": "Extract Token from Cookies",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2176, 304]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "keywords",
+              "value": "={{ JSON.parse($json.output) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "34429f30-48fa-4e4e-9c9b-4849953288a8",
+      "name": "Parse Keywords Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [704, 304]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "keywords",
+        "options": {}
+      },
+      "id": "9f8bf596-2256-41c3-810c-80b93a8cdc6f",
+      "name": "Split Keywords into Items",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [928, 304]
+    },
+    {
+      "parameters": {
+        "model": "claude-haiku-4-5-20251001",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "23b4fe2b-2bf5-4ea5-b7e5-15c189d14170",
+      "name": "Anthropic Chat Model for Keywords",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [336, 528],
+      "credentials": {
+        "anthropicApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate 10 trending SEO keywords for {{ $json.Month }} {{ $json.Year }}. Today's date is {{ $json['Readable date'] }}. Mix different SEO subtopics. Return ONLY a JSON array, no explanation.",
+        "options": {
+          "systemMessage": "You are an SEO keyword generator. The current date is provided in the prompt - use it to generate keywords that are relevant and trending RIGHT NOW in that exact month and year. Make them varied - include tools, techniques, strategies, and trending topics. Return ONLY a JSON array in this exact format: [\"keyword1\", \"keyword2\", \"keyword3\"]. No additional text or explanation."
+        }
+      },
+      "id": "0a86797e-07d4-45c6-bd43-cb03a7d711db",
+      "name": "Generate Keywords with AI",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [416, 304]
+    }
+  ],
+  "connections": {
+    "SERP API Request": {
+      "main": [[{"node": "AI Content Generator", "type": "main", "index": 0}]]
+    },
+    "Cron Trigger": {
+      "main": [[{"node": "Generate Keywords with AI", "type": "main", "index": 0}]]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [[{"node": "AI Content Generator", "type": "ai_languageModel", "index": 0}]]
+    },
+    "AI Content Generator": {
+      "main": [[{"node": "Prepare Content for Publishing", "type": "main", "index": 0}]]
+    },
+    "Prepare Content for Publishing": {
+      "main": [[{"node": "Login to CMS", "type": "main", "index": 0}]]
+    },
+    "Publish to CMS": {
+      "main": [[]]
+    },
+    "Login to CMS": {
+      "main": [[{"node": "Extract Token from Cookies", "type": "main", "index": 0}]]
+    },
+    "Extract Token from Cookies": {
+      "main": [[{"node": "Publish to CMS", "type": "main", "index": 0}]]
+    },
+    "Parse Keywords Response": {
+      "main": [[{"node": "Split Keywords into Items", "type": "main", "index": 0}]]
+    },
+    "Split Keywords into Items": {
+      "main": [[{"node": "SERP API Request", "type": "main", "index": 0}]]
+    },
+    "Generate Keywords with AI": {
+      "main": [[{"node": "Parse Keywords Response", "type": "main", "index": 0}]]
+    },
+    "Anthropic Chat Model for Keywords": {
+      "ai_languageModel": [[{"node": "Generate Keywords with AI", "type": "ai_languageModel", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "7b3dd5ad4d30883980ad4725136fd84a2664425224ce2082d11d5bacf6bd0d27"
+  },
+  "tags": []
+}
