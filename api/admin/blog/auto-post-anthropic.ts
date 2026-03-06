@@ -70,15 +70,16 @@ const getAnthropicApiKey = async () => {
   return key || null;
 };
 
-/**
- * Resolve an Unsplash image URL for a search keyword.
- * Uses the source.unsplash.com redirect (no API key needed).
- * Returns a direct image URL or a fallback placeholder.
- */
-const resolveUnsplashImage = (keyword: string): string => {
-  const q = encodeURIComponent(String(keyword || "blog").trim().slice(0, 80));
-  return `https://source.unsplash.com/1200x630/?${q}`;
-};
+const keywordToImagePath = (keyword: string) =>
+  String(keyword || "blog")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ",")
+    .replace(/^,+|,+$/g, "")
+    .slice(0, 80) || "blog";
+
+const resolveKeywordImage = (keyword: string, width = 1200, height = 630): string =>
+  `https://loremflickr.com/${width}/${height}/${keywordToImagePath(keyword)}`;
 
 const generateDraft = async (topic: string) => {
   const apiKey = await getAnthropicApiKey();
@@ -133,13 +134,13 @@ IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
   }
 
   const coverKeyword = String((parsed as any).coverImageKeyword || topic).trim();
-  const coverImageUrl = resolveUnsplashImage(coverKeyword);
+  const coverImageUrl = resolveKeywordImage(coverKeyword, 1200, 630);
   const coverAlt = String((parsed as any).coverImageAlt || `Cover image for ${topic}`).trim();
 
   // Replace any PLACEHOLDER_IMG in content with an actual Unsplash inline image
   let content = String((parsed as any).content || "").trim();
   if (content.includes("PLACEHOLDER_IMG")) {
-    const inlineImgUrl = resolveUnsplashImage(coverKeyword + " technology");
+    const inlineImgUrl = resolveKeywordImage(`${coverKeyword} technology`, 800, 450);
     content = content.replace(/PLACEHOLDER_IMG/g, inlineImgUrl);
   }
 
@@ -236,13 +237,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const results: any[] = [];
     const errors: any[] = [];
 
-    for (const topic of topics) {
-      try {
-        const post = await createPostFromTopic(topic, author || "Admin");
-        results.push(post);
-      } catch (error: any) {
-        errors.push({ topic, error: error?.message || "Failed" });
-      }
+    const batchSize = 3;
+    for (let index = 0; index < topics.length; index += batchSize) {
+      const batch = topics.slice(index, index + batchSize);
+      const settled = await Promise.allSettled(
+        batch.map((topic) => createPostFromTopic(topic, author || "Admin"))
+      );
+
+      settled.forEach((entry, batchIndex) => {
+        const topic = batch[batchIndex];
+        if (entry.status === "fulfilled") {
+          results.push(entry.value);
+          return;
+        }
+
+        errors.push({ topic, error: entry.reason?.message || "Failed" });
+      });
     }
 
     return res.status(200).json({

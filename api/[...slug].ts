@@ -222,6 +222,17 @@ const getAnthropicApiKey = async () => {
   return key || null;
 };
 
+const keywordToImagePath = (keyword: string) =>
+  String(keyword || "blog")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ",")
+    .replace(/^,+|,+$/g, "")
+    .slice(0, 80) || "blog";
+
+const resolveKeywordImage = (keyword: string, width = 1200, height = 630) =>
+  `https://loremflickr.com/${width}/${height}/${keywordToImagePath(keyword)}`;
+
 const generateAnthropicBlogDraft = async (topic: string) => {
   const apiKey = await getAnthropicApiKey();
   if (!apiKey) {
@@ -275,12 +286,12 @@ IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
   }
 
   const coverKeyword = String((parsed as any).coverImageKeyword || topic).trim();
-  const coverImageUrl = `https://source.unsplash.com/1200x630/?${encodeURIComponent(coverKeyword)}`;
+  const coverImageUrl = resolveKeywordImage(coverKeyword, 1200, 630);
   const coverAlt = String((parsed as any).coverImageAlt || `Cover image for ${topic}`).trim();
 
   let content = String((parsed as any).content || "").trim();
   if (content.includes("PLACEHOLDER_IMG")) {
-    content = content.replace(/PLACEHOLDER_IMG/g, `https://source.unsplash.com/800x450/?${encodeURIComponent(coverKeyword + " technology")}`);
+    content = content.replace(/PLACEHOLDER_IMG/g, resolveKeywordImage(`${coverKeyword} technology`, 800, 450));
   }
 
   return {
@@ -1178,50 +1189,65 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
         const results: any[] = [];
         const errors: any[] = [];
 
-        for (const topic of topics) {
-          try {
-            const draft = await generateAnthropicBlogDraft(topic);
-            const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
-            const normalizedContent = String(draft.content || "").trim();
-            const resolvedCover = String(draft.coverImage || "").trim() || null;
+        const createBulkPost = async (topic: string) => {
+          const draft = await generateAnthropicBlogDraft(topic);
+          const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
+          const normalizedContent = String(draft.content || "").trim();
+          const resolvedCover = String(draft.coverImage || "").trim() || null;
 
-            const blocks: any[] = [];
-            if (resolvedCover) {
-              blocks.push({
-                id: `img-cover-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                type: "image",
-                text: "",
-                url: resolvedCover,
-                alt: draft.coverImageAlt || `Cover image for ${draft.title}`,
-                description: draft.metaDescription || "",
-              });
+          const blocks: any[] = [];
+          if (resolvedCover) {
+            blocks.push({
+              id: `img-cover-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              type: "image",
+              text: "",
+              url: resolvedCover,
+              alt: draft.coverImageAlt || `Cover image for ${draft.title}`,
+              description: draft.metaDescription || "",
+            });
+          }
+
+          const post = await prisma.blogPost.create({
+            data: {
+              title: draft.title,
+              slug: resolvedSlug,
+              content: normalizedContent,
+              excerpt: String(draft.metaDescription || draft.excerpt || normalizedContent.slice(0, 160) || "").trim(),
+              coverImage: resolvedCover,
+              blocks: blocks.length > 0 ? blocks : [],
+              author: String(bulkAuthor || "Admin").trim(),
+            },
+          });
+
+          return {
+            id: post.id,
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt,
+            coverImage: post.coverImage,
+            author: post.author,
+            created_at: post.createdAt,
+          };
+        };
+
+        const batchSize = 3;
+        for (let index = 0; index < topics.length; index += batchSize) {
+          const batch = topics.slice(index, index + batchSize);
+          const settled = await Promise.allSettled(batch.map((topic) => createBulkPost(topic)));
+
+          settled.forEach((entry, batchIndex) => {
+            const topic = batch[batchIndex];
+            if (entry.status === "fulfilled") {
+              results.push(entry.value);
+              return;
             }
 
-            const post = await prisma.blogPost.create({
-              data: {
-                title: draft.title,
-                slug: resolvedSlug,
-                content: normalizedContent,
-                excerpt: String(draft.metaDescription || draft.excerpt || normalizedContent.slice(0, 160) || "").trim(),
-                coverImage: resolvedCover,
-                blocks: blocks.length > 0 ? blocks : [],
-                author: String(bulkAuthor || "Admin").trim(),
-              },
+            console.error(`Bulk auto-post error for topic "${topic}":`, entry.reason);
+            errors.push({
+              topic,
+              error: entry.reason?.message || "Failed",
             });
-
-            results.push({
-              id: post.id,
-              title: post.title,
-              slug: post.slug,
-              excerpt: post.excerpt,
-              coverImage: post.coverImage,
-              author: post.author,
-              created_at: post.createdAt,
-            });
-          } catch (error: any) {
-            console.error(`Bulk auto-post error for topic "${topic}":`, error);
-            errors.push({ topic, error: error?.message || "Failed" });
-          }
+          });
         }
 
         return resAny.status(200).json({

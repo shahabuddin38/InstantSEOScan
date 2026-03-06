@@ -11,11 +11,37 @@ function resolveApiInput(input: RequestInfo | URL): RequestInfo | URL {
   const baseUrl = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
 
   if (!baseUrl || typeof input !== "string") {
+    if (
+      typeof window !== "undefined" &&
+      typeof input === "string" &&
+      input.startsWith("/api")
+    ) {
+      const normalizedOrigin = window.location.origin.replace(/\/+$/, "");
+      const inputPath = input.replace(/\/+$/, "");
+      return `${normalizedOrigin}${inputPath}`;
+    }
     return input;
   }
 
   if (!input.startsWith("/api")) {
     return input;
+  }
+
+  if (typeof window !== "undefined") {
+    const normalizedOrigin = window.location.origin.replace(/\/+$/, "");
+    try {
+      const currentUrl = new URL(normalizedOrigin);
+      const configuredUrl = new URL(baseUrl);
+      const currentHost = currentUrl.hostname.replace(/^www\./i, "");
+      const configuredHost = configuredUrl.hostname.replace(/^www\./i, "");
+
+      if (currentHost === configuredHost) {
+        const inputPath = input.replace(/\/+$/, "");
+        return `${normalizedOrigin}${inputPath}`;
+      }
+    } catch {
+      // Fall back to configured base URL handling below.
+    }
   }
 
   const normalizedBase = baseUrl.replace(/\/+$/, "");

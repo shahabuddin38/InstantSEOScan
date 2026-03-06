@@ -35,10 +35,16 @@ const getAnthropicApiKey = async () => {
   return key || null;
 };
 
-const resolveUnsplashImage = (keyword: string): string => {
-  const q = encodeURIComponent(String(keyword || "blog").trim().slice(0, 80));
-  return `https://source.unsplash.com/1200x630/?${q}`;
-};
+const keywordToImagePath = (keyword: string) =>
+  String(keyword || "blog")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ",")
+    .replace(/^,+|,+$/g, "")
+    .slice(0, 80) || "blog";
+
+const resolveKeywordImage = (keyword: string, width = 1200, height = 630): string =>
+  `https://loremflickr.com/${width}/${height}/${keywordToImagePath(keyword)}`;
 
 const generateDraft = async (topic: string) => {
   const apiKey = await getAnthropicApiKey();
@@ -93,12 +99,12 @@ IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
   }
 
   const coverKeyword = String((parsed as any).coverImageKeyword || topic).trim();
-  const coverImageUrl = resolveUnsplashImage(coverKeyword);
+  const coverImageUrl = resolveKeywordImage(coverKeyword, 1200, 630);
   const coverAlt = String((parsed as any).coverImageAlt || `Cover image for ${topic}`).trim();
 
   let content = String((parsed as any).content || "").trim();
   if (content.includes("PLACEHOLDER_IMG")) {
-    content = content.replace(/PLACEHOLDER_IMG/g, resolveUnsplashImage(coverKeyword + " technology"));
+    content = content.replace(/PLACEHOLDER_IMG/g, resolveKeywordImage(`${coverKeyword} technology`, 800, 450));
   }
 
   return {
