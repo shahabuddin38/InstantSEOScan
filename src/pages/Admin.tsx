@@ -178,7 +178,7 @@ const SEOProgress = ({ score = 80 }: { score?: number }) => {
 
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "crm" | "cms" | "settings" | "aiwriter">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "crm" | "cms" | "settings" | "aiwriter" | "autopost">("dashboard");
   const [stats, setStats] = useState<AdminStats>({});
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [crm, setCrm] = useState<CRMResponse>({});
@@ -193,6 +193,11 @@ export default function Admin() {
   const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null);
   const [aiTopic, setAiTopic] = useState("");
   const [generatingAi, setGeneratingAi] = useState(false);
+  const [autoPostTopic, setAutoPostTopic] = useState("");
+  const [autoPostAuthor, setAutoPostAuthor] = useState("Automation Bot");
+  const [autoPostCoverImage, setAutoPostCoverImage] = useState("");
+  const [autoPostingAnthropic, setAutoPostingAnthropic] = useState(false);
+  const [autoPostResult, setAutoPostResult] = useState<any>(null);
 
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -660,6 +665,37 @@ export default function Admin() {
     setAiTopic("");
   };
 
+  const handleAutoPostAnthropic = async () => {
+    if (!autoPostTopic.trim()) {
+      setError("Please enter a topic for auto-post.");
+      return;
+    }
+
+    setAutoPostingAnthropic(true);
+    setError("");
+    setAutoPostResult(null);
+
+    const result = await apiRequest<any>("/api/admin/blog/auto-post-anthropic", {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic: autoPostTopic,
+        author: autoPostAuthor,
+        coverImage: autoPostCoverImage,
+      }),
+    });
+
+    setAutoPostingAnthropic(false);
+
+    if (!result.ok || !result.data) {
+      setError(result.error || "Failed to auto-post with Anthropic.");
+      return;
+    }
+
+    setAutoPostResult(result.data);
+    await Promise.all([fetchBlogPosts(), fetchStats()]);
+  };
+
   const activeSubscriptions = useMemo(() => users.filter((u) => u.plan !== "free").length, [users]);
 
   if (loading) {
@@ -693,6 +729,7 @@ export default function Admin() {
               <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} />
               <SidebarItem icon={FileText} label="Content Manager" active={activeTab === "cms"} onClick={() => setActiveTab("cms")} />
               <SidebarItem icon={Sparkles} label="AI Writer" active={activeTab === "aiwriter"} onClick={() => setActiveTab("aiwriter")} />
+              <SidebarItem icon={Upload} label="Auto Post (Anthropic)" active={activeTab === "autopost"} onClick={() => setActiveTab("autopost")} />
             </nav>
           </div>
 
@@ -733,13 +770,15 @@ export default function Admin() {
               {activeTab === "crm" && "Team Members & CRM"}
               {activeTab === "settings" && "SEO Settings"}
               {activeTab === "aiwriter" && "AI Article Writer"}
+              {activeTab === "autopost" && "Auto Post via Anthropic"}
             </h1>
             <p className="text-slate-500 font-medium">
               {activeTab === "dashboard" ? "System statistics and recent activity." :
                 activeTab === "cms" ? "Manage, optimize and publish high-ranking AI articles." :
                   activeTab === "crm" ? "Manage users, subscriptions, and plans." :
                     activeTab === "settings" ? "Configure API keys and platform settings." :
-                      "Generate SEO optimized articles in a single click."}
+                      activeTab === "aiwriter" ? "Generate SEO optimized articles in a single click." :
+                        "Create and publish a complete blog post from one topic using Anthropic."}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -1315,6 +1354,74 @@ export default function Admin() {
                 )}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Auto Post Anthropic Tab */}
+        {activeTab === "autopost" && (
+          <div className="max-w-3xl bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+            <h2 className="font-bold mb-4 flex items-center gap-2 text-xl">
+              <Upload className="text-[#10B981]" size={22} />
+              Auto Post (Anthropic)
+            </h2>
+            <p className="text-slate-500 mb-8">
+              Enter one topic and publish directly to CMS using the /api/admin/blog/auto-post-anthropic endpoint.
+            </p>
+
+            <div className="space-y-5">
+              <div>
+                <label className="text-sm font-bold text-slate-700 block mb-2">Topic</label>
+                <input
+                  type="text"
+                  value={autoPostTopic}
+                  onChange={(e) => setAutoPostTopic(e.target.value)}
+                  placeholder="e.g. Best technical SEO checklist for SaaS"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-bold text-slate-700 block mb-2">Author (optional)</label>
+                <input
+                  type="text"
+                  value={autoPostAuthor}
+                  onChange={(e) => setAutoPostAuthor(e.target.value)}
+                  placeholder="Automation Bot"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-bold text-slate-700 block mb-2">Cover Image URL (optional)</label>
+                <input
+                  type="text"
+                  value={autoPostCoverImage}
+                  onChange={(e) => setAutoPostCoverImage(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700"
+                />
+              </div>
+
+              <button
+                onClick={handleAutoPostAnthropic}
+                disabled={autoPostingAnthropic || !autoPostTopic.trim()}
+                className="w-full py-4 mt-2 bg-[#10B981] text-white rounded-xl font-bold hover:bg-[#059669] transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:shadow-none flex justify-center items-center gap-2"
+              >
+                {autoPostingAnthropic ? (
+                  <><RefreshCw className="animate-spin" size={20} /> Publishing...</>
+                ) : (
+                  <><Upload size={20} /> Generate & Publish</>
+                )}
+              </button>
+            </div>
+
+            {autoPostResult?.post && (
+              <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800">
+                <p className="font-bold text-sm mb-1">Post published successfully</p>
+                <p className="text-sm">Title: {autoPostResult.post.title}</p>
+                <p className="text-sm">Slug: {autoPostResult.post.slug}</p>
+              </div>
+            )}
           </div>
         )}
 
