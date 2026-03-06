@@ -194,10 +194,13 @@ export default function Admin() {
   const [aiTopic, setAiTopic] = useState("");
   const [generatingAi, setGeneratingAi] = useState(false);
   const [autoPostTopic, setAutoPostTopic] = useState("");
-  const [autoPostAuthor, setAutoPostAuthor] = useState("Automation Bot");
+  const [autoPostAuthor, setAutoPostAuthor] = useState("Admin");
   const [autoPostCoverImage, setAutoPostCoverImage] = useState("");
   const [autoPostingAnthropic, setAutoPostingAnthropic] = useState(false);
   const [autoPostResult, setAutoPostResult] = useState<any>(null);
+  const [bulkTopics, setBulkTopics] = useState("");
+  const [bulkPosting, setBulkPosting] = useState(false);
+  const [bulkResult, setBulkResult] = useState<any>(null);
 
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -693,6 +696,45 @@ export default function Admin() {
     }
 
     setAutoPostResult(result.data);
+    await Promise.all([fetchBlogPosts(), fetchStats()]);
+  };
+
+  const handleBulkPostAnthropic = async () => {
+    const lines = bulkTopics
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length >= 3);
+
+    if (lines.length === 0) {
+      setError("Enter at least one topic (one per line).");
+      return;
+    }
+    if (lines.length > 10) {
+      setError("Maximum 10 topics per bulk post.");
+      return;
+    }
+
+    setBulkPosting(true);
+    setError("");
+    setBulkResult(null);
+
+    const result = await apiRequest<any>("/api/admin/blog/auto-post-anthropic?action=bulk", {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topics: lines,
+        author: autoPostAuthor || "Admin",
+      }),
+    });
+
+    setBulkPosting(false);
+
+    if (!result.ok || !result.data) {
+      setError(result.error || "Bulk post failed.");
+      return;
+    }
+
+    setBulkResult(result.data);
     await Promise.all([fetchBlogPosts(), fetchStats()]);
   };
 
@@ -1359,69 +1401,151 @@ export default function Admin() {
 
         {/* Auto Post Anthropic Tab */}
         {activeTab === "autopost" && (
-          <div className="max-w-3xl bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
-            <h2 className="font-bold mb-4 flex items-center gap-2 text-xl">
-              <Upload className="text-[#10B981]" size={22} />
-              Auto Post (Anthropic)
-            </h2>
-            <p className="text-slate-500 mb-8">
-              Enter one topic and publish directly to CMS using the /api/admin/blog/auto-post-anthropic endpoint.
-            </p>
+          <div className="space-y-8 max-w-3xl">
+            {/* ── Single Post Card ── */}
+            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+              <h2 className="font-bold mb-4 flex items-center gap-2 text-xl">
+                <Upload className="text-[#10B981]" size={22} />
+                Single Auto Post
+              </h2>
+              <p className="text-slate-500 mb-6">
+                Enter one topic — auto-generates content, cover image, meta description, alt text, and publishes directly.
+              </p>
 
-            <div className="space-y-5">
-              <div>
-                <label className="text-sm font-bold text-slate-700 block mb-2">Topic</label>
-                <input
-                  type="text"
-                  value={autoPostTopic}
-                  onChange={(e) => setAutoPostTopic(e.target.value)}
-                  placeholder="e.g. Best technical SEO checklist for SaaS"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700"
-                />
+              <div className="space-y-5">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 block mb-2">Topic</label>
+                  <input
+                    type="text"
+                    value={autoPostTopic}
+                    onChange={(e) => setAutoPostTopic(e.target.value)}
+                    placeholder="e.g. Best technical SEO checklist for SaaS"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-bold text-slate-700 block mb-2">Author</label>
+                  <input
+                    type="text"
+                    value={autoPostAuthor}
+                    onChange={(e) => setAutoPostAuthor(e.target.value)}
+                    placeholder="Admin"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-bold text-slate-700 block mb-2">Cover Image URL (optional — auto-generated if empty)</label>
+                  <input
+                    type="text"
+                    value={autoPostCoverImage}
+                    onChange={(e) => setAutoPostCoverImage(e.target.value)}
+                    placeholder="Leave empty for auto Unsplash image"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700"
+                  />
+                </div>
+
+                <button
+                  onClick={handleAutoPostAnthropic}
+                  disabled={autoPostingAnthropic || !autoPostTopic.trim()}
+                  className="w-full py-4 mt-2 bg-[#10B981] text-white rounded-xl font-bold hover:bg-[#059669] transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:shadow-none flex justify-center items-center gap-2"
+                >
+                  {autoPostingAnthropic ? (
+                    <><RefreshCw className="animate-spin" size={20} /> Publishing...</>
+                  ) : (
+                    <><Upload size={20} /> Generate & Publish</>
+                  )}
+                </button>
               </div>
 
-              <div>
-                <label className="text-sm font-bold text-slate-700 block mb-2">Author (optional)</label>
-                <input
-                  type="text"
-                  value={autoPostAuthor}
-                  onChange={(e) => setAutoPostAuthor(e.target.value)}
-                  placeholder="Automation Bot"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-bold text-slate-700 block mb-2">Cover Image URL (optional)</label>
-                <input
-                  type="text"
-                  value={autoPostCoverImage}
-                  onChange={(e) => setAutoPostCoverImage(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700"
-                />
-              </div>
-
-              <button
-                onClick={handleAutoPostAnthropic}
-                disabled={autoPostingAnthropic || !autoPostTopic.trim()}
-                className="w-full py-4 mt-2 bg-[#10B981] text-white rounded-xl font-bold hover:bg-[#059669] transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:shadow-none flex justify-center items-center gap-2"
-              >
-                {autoPostingAnthropic ? (
-                  <><RefreshCw className="animate-spin" size={20} /> Publishing...</>
-                ) : (
-                  <><Upload size={20} /> Generate & Publish</>
-                )}
-              </button>
+              {autoPostResult?.post && (
+                <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800">
+                  <p className="font-bold text-sm mb-1">Post published successfully</p>
+                  <p className="text-sm">Title: {autoPostResult.post.title}</p>
+                  <p className="text-sm">Slug: {autoPostResult.post.slug}</p>
+                  {autoPostResult.post.coverImage && (
+                    <img src={autoPostResult.post.coverImage} alt={autoPostResult.post.title} className="mt-3 rounded-xl max-h-40 object-cover" referrerPolicy="no-referrer" />
+                  )}
+                </div>
+              )}
             </div>
 
-            {autoPostResult?.post && (
-              <div className="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800">
-                <p className="font-bold text-sm mb-1">Post published successfully</p>
-                <p className="text-sm">Title: {autoPostResult.post.title}</p>
-                <p className="text-sm">Slug: {autoPostResult.post.slug}</p>
+            {/* ── Bulk Post Card ── */}
+            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+              <h2 className="font-bold mb-4 flex items-center gap-2 text-xl">
+                <Newspaper className="text-blue-600" size={22} />
+                Bulk Auto Post (up to 10)
+              </h2>
+              <p className="text-slate-500 mb-6">
+                Enter up to 10 topics (one per line). Each gets a unique title, content, cover image, meta description, and alt text.
+              </p>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 block mb-2">Topics (one per line, max 10)</label>
+                  <textarea
+                    value={bulkTopics}
+                    onChange={(e) => setBulkTopics(e.target.value)}
+                    rows={8}
+                    placeholder={"Technical SEO audit guide\nLocal SEO for small business\nHow to improve Core Web Vitals\nOn-page SEO best practices 2026\nE-commerce SEO strategies\nSEO for startups\nVoice search optimization tips\nMobile-first indexing guide\nLink building strategies that work\nContent marketing for SEO growth"}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-slate-700 text-sm leading-relaxed"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">
+                    {bulkTopics.split("\n").filter((l) => l.trim().length >= 3).length} / 10 topics entered
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-bold text-slate-700 block mb-2">Author for all posts</label>
+                  <input
+                    type="text"
+                    value={autoPostAuthor}
+                    onChange={(e) => setAutoPostAuthor(e.target.value)}
+                    placeholder="Admin"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-slate-700"
+                  />
+                </div>
+
+                <button
+                  onClick={handleBulkPostAnthropic}
+                  disabled={bulkPosting || bulkTopics.split("\n").filter((l) => l.trim().length >= 3).length === 0}
+                  className="w-full py-4 mt-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50 disabled:shadow-none flex justify-center items-center gap-2"
+                >
+                  {bulkPosting ? (
+                    <><RefreshCw className="animate-spin" size={20} /> Generating {bulkTopics.split("\n").filter((l) => l.trim().length >= 3).length} Posts...</>
+                  ) : (
+                    <><Newspaper size={20} /> Bulk Generate & Publish</>
+                  )}
+                </button>
               </div>
-            )}
+
+              {bulkResult && (
+                <div className="mt-6 space-y-3">
+                  <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-blue-800">
+                    <p className="font-bold text-sm mb-2">
+                      Bulk complete: {bulkResult.count} published{bulkResult.failed > 0 ? `, ${bulkResult.failed} failed` : ""}
+                    </p>
+                  </div>
+                  {bulkResult.posts?.map((post: any, i: number) => (
+                    <div key={post.id || i} className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-800 flex gap-3 items-start">
+                      {post.coverImage && (
+                        <img src={post.coverImage} alt={post.title} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                      )}
+                      <div>
+                        <p className="font-bold text-sm">{post.title}</p>
+                        <p className="text-xs opacity-70">/{post.slug}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {bulkResult.errors?.map((err: any, i: number) => (
+                    <div key={i} className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">
+                      <span className="font-bold">{err.topic}:</span> {err.error}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

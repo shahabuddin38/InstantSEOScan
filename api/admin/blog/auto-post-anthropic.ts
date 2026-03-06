@@ -4,11 +4,20 @@ import { prisma } from "../../../lib/prisma.js";
 import { verifyToken } from "../../../lib/auth.js";
 import type { VercelRequest } from "@vercel/node";
 
+/* ── Schemas ─────────────────────────────────────────── */
+
 const bodySchema = z.object({
   topic: z.string().min(3),
   author: z.string().optional(),
   coverImage: z.string().optional(),
 });
+
+const bulkBodySchema = z.object({
+  topics: z.array(z.string().min(3)).min(1).max(10),
+  author: z.string().optional(),
+});
+
+/* ── Helpers ─────────────────────────────────────────── */
 
 const slugify = (value: string) =>
   String(value || "")
@@ -61,6 +70,16 @@ const getAnthropicApiKey = async () => {
   return key || null;
 };
 
+/**
+ * Resolve an Unsplash image URL for a search keyword.
+ * Uses the source.unsplash.com redirect (no API key needed).
+ * Returns a direct image URL or a fallback placeholder.
+ */
+const resolveUnsplashImage = (keyword: string): string => {
+  const q = encodeURIComponent(String(keyword || "blog").trim().slice(0, 80));
+  return `https://source.unsplash.com/1200x630/?${q}`;
+};
+
 const generateDraft = async (topic: string) => {
   const apiKey = await getAnthropicApiKey();
   if (!apiKey) {
@@ -68,13 +87,17 @@ const generateDraft = async (topic: string) => {
   }
 
   const prompt = `You are an expert SEO content writer. Create a complete blog draft about: "${topic}".
-Return STRICT JSON only (no markdown, no extra text) with this exact shape:
+Return STRICT JSON only (no markdown fences, no extra text) with this exact shape:
 {
-  "title": "SEO-friendly title",
-  "slug": "seo-friendly-slug",
-  "excerpt": "Compelling summary under 160 chars",
-  "content": "Full blog content in plain text with headings and paragraphs"
-}`;
+  "title": "Unique SEO-friendly title (do NOT just repeat the topic)",
+  "slug": "unique-seo-friendly-slug",
+  "metaDescription": "Compelling meta description under 160 chars for search engines",
+  "excerpt": "Engaging summary under 160 chars for blog listing cards",
+  "coverImageKeyword": "1-3 word keyword for sourcing a relevant cover photo (e.g. 'seo analytics')",
+  "coverImageAlt": "Descriptive alt text for the cover image (accessibility + SEO)",
+  "content": "Full blog content in HTML with <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em> tags. Minimum 800 words. Include an <img> tag in the middle with src=PLACEHOLDER_IMG and a descriptive alt attribute."
+}
+IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -85,8 +108,8 @@ Return STRICT JSON only (no markdown, no extra text) with this exact shape:
     },
     body: JSON.stringify({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
-      max_tokens: 2500,
-      temperature: 0.3,
+      max_tokens: 4000,
+      temperature: 0.7,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -109,34 +132,129 @@ Return STRICT JSON only (no markdown, no extra text) with this exact shape:
     throw new Error("Anthropic did not return valid JSON.");
   }
 
+  const coverKeyword = String((parsed as any).coverImageKeyword || topic).trim();
+  const coverImageUrl = resolveUnsplashImage(coverKeyword);
+  const coverAlt = String((parsed as any).coverImageAlt || `Cover image for ${topic}`).trim();
+
+  // Replace any PLACEHOLDER_IMG in content with an actual Unsplash inline image
+  let content = String((parsed as any).content || "").trim();
+  if (content.includes("PLACEHOLDER_IMG")) {
+    const inlineImgUrl = resolveUnsplashImage(coverKeyword + " technology");
+    content = content.replace(/PLACEHOLDER_IMG/g, inlineImgUrl);
+  }
+
   return {
     title: String((parsed as any).title || topic).trim(),
     slug: String((parsed as any).slug || topic).trim(),
+    metaDescription: String((parsed as any).metaDescription || "").trim(),
     excerpt: String((parsed as any).excerpt || "").trim(),
-    content: String((parsed as any).content || "").trim(),
+    content,
+    coverImage: coverImageUrl,
+    coverImageAlt: coverAlt,
+    coverImageKeyword: coverKeyword,
   };
 };
+
+/* ── Utility: create a single post from topic ──────── */
+
+const createPostFromTopic = async (topic: string, author: string, coverImageOverride?: string) => {
+  const draft = await generateDraft(topic);
+  const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
+  const normalizedContent = String(draft.content || "").trim();
+  const coverImage = String(coverImageOverride || draft.coverImage || "").trim() || null;
+
+  // Build blocks array with cover image block
+  const blocks: any[] = [];
+  if (coverImage) {
+    blocks.push({
+      id: `img-cover-${Date.now()}`,
+      type: "image",
+      text: "",
+      url: coverImage,
+      alt: draft.coverImageAlt || `Cover image for ${draft.title}`,
+      description: draft.metaDescription || "",
+    });
+  }
+
+  const post = await prisma.blogPost.create({
+    data: {
+      title: draft.title,
+      slug: resolvedSlug,
+      content: normalizedContent,
+      excerpt: String(draft.metaDescription || draft.excerpt || normalizedContent.slice(0, 160) || "").trim(),
+      coverImage,
+      blocks: blocks.length > 0 ? blocks : [],
+      author: String(author || "Admin").trim(),
+    },
+  });
+
+  return {
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    coverImage: post.coverImage,
+    author: post.author,
+    created_at: post.createdAt,
+  };
+};
+
+/* ── Handler ─────────────────────────────────────────── */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET") {
     return res.status(200).json({
       ok: true,
-      message: "Use POST with { topic, author?, coverImage? } to auto-post with Anthropic.",
+      message: "POST { topic, author?, coverImage? } for single post, or POST { topics: [...], author? } with action=bulk query param for 10 posts.",
       path: "/api/admin/blog/auto-post-anthropic",
     });
   }
 
   if (req.method !== "POST") return res.status(405).end();
 
+  // Auth
   let user: any;
   try {
     user = await verifyToken(req);
   } catch (err: any) {
     return res.status(401).json({ error: err?.message || "Unauthorized" });
   }
-
   if (user?.role !== "admin") return res.status(403).json({ error: "Admin only" });
 
+  // Check for bulk mode
+  const url = new URL(req.url || "", "http://localhost");
+  const isBulk = url.searchParams.get("action") === "bulk";
+
+  if (isBulk) {
+    // ── Bulk mode: create up to 10 posts ──
+    const parsed = bulkBodySchema.safeParse((req as any).body || {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid payload. Send { topics: ['topic1', ...], author? }", details: parsed.error.flatten() });
+    }
+
+    const { topics, author } = parsed.data;
+    const results: any[] = [];
+    const errors: any[] = [];
+
+    for (const topic of topics) {
+      try {
+        const post = await createPostFromTopic(topic, author || "Admin");
+        results.push(post);
+      } catch (error: any) {
+        errors.push({ topic, error: error?.message || "Failed" });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: results.length,
+      failed: errors.length,
+      posts: results,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  }
+
+  // ── Single post mode ──
   const parsed = bodySchema.safeParse((req as any).body || {});
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
@@ -145,32 +263,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { topic, author, coverImage } = parsed.data;
 
   try {
-    const draft = await generateDraft(topic);
-    const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
-    const normalizedContent = String(draft.content || "").trim();
-
-    const post = await prisma.blogPost.create({
-      data: {
-        title: draft.title,
-        slug: resolvedSlug,
-        content: normalizedContent,
-        excerpt: String(draft.excerpt || normalizedContent.slice(0, 180) || "").trim(),
-        coverImage: String(coverImage || "").trim() || null,
-        blocks: [],
-        author: String(author || "Automation").trim() || "Automation",
-      },
-    });
-
-    return res.status(200).json({
-      success: true,
-      post: {
-        id: post.id,
-        title: post.title,
-        slug: post.slug,
-        excerpt: post.excerpt,
-        created_at: post.createdAt,
-      },
-    });
+    const post = await createPostFromTopic(topic, author || "Admin", coverImage);
+    return res.status(200).json({ success: true, post });
   } catch (error: any) {
     return res.status(500).json({ error: error?.message || "Failed to auto-post Anthropic blog" });
   }

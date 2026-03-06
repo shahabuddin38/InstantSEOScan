@@ -224,13 +224,17 @@ const generateAnthropicBlogDraft = async (topic: string) => {
   }
 
   const prompt = `You are an expert SEO content writer. Create a complete blog draft about: "${topic}".
-Return STRICT JSON only (no markdown, no extra text) with this exact shape:
+Return STRICT JSON only (no markdown fences, no extra text) with this exact shape:
 {
-  "title": "SEO-friendly title",
-  "slug": "seo-friendly-slug",
-  "excerpt": "Compelling summary under 160 chars",
-  "content": "Full blog content in plain text with headings and paragraphs"
-}`;
+  "title": "Unique SEO-friendly title (do NOT just repeat the topic)",
+  "slug": "unique-seo-friendly-slug",
+  "metaDescription": "Compelling meta description under 160 chars for search engines",
+  "excerpt": "Engaging summary under 160 chars for blog listing cards",
+  "coverImageKeyword": "1-3 word keyword for sourcing a relevant cover photo (e.g. 'seo analytics')",
+  "coverImageAlt": "Descriptive alt text for the cover image (accessibility + SEO)",
+  "content": "Full blog content in HTML with <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em> tags. Minimum 800 words. Include an <img> tag in the middle with src=PLACEHOLDER_IMG and a descriptive alt attribute."
+}
+IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -241,8 +245,8 @@ Return STRICT JSON only (no markdown, no extra text) with this exact shape:
     },
     body: JSON.stringify({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
-      max_tokens: 2500,
-      temperature: 0.3,
+      max_tokens: 4000,
+      temperature: 0.7,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -265,11 +269,24 @@ Return STRICT JSON only (no markdown, no extra text) with this exact shape:
     throw new Error("Anthropic did not return valid JSON.");
   }
 
+  const coverKeyword = String((parsed as any).coverImageKeyword || topic).trim();
+  const coverImageUrl = `https://source.unsplash.com/1200x630/?${encodeURIComponent(coverKeyword)}`;
+  const coverAlt = String((parsed as any).coverImageAlt || `Cover image for ${topic}`).trim();
+
+  let content = String((parsed as any).content || "").trim();
+  if (content.includes("PLACEHOLDER_IMG")) {
+    content = content.replace(/PLACEHOLDER_IMG/g, `https://source.unsplash.com/800x450/?${encodeURIComponent(coverKeyword + " technology")}`);
+  }
+
   return {
     title: String((parsed as any).title || topic).trim(),
     slug: String((parsed as any).slug || topic).trim(),
+    metaDescription: String((parsed as any).metaDescription || "").trim(),
     excerpt: String((parsed as any).excerpt || "").trim(),
-    content: String((parsed as any).content || "").trim(),
+    content,
+    coverImage: coverImageUrl,
+    coverImageAlt: coverAlt,
+    coverImageKeyword: coverKeyword,
   };
 };
 
@@ -1153,16 +1170,29 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
         const draft = await generateAnthropicBlogDraft(topic);
         const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
         const normalizedContent = String(draft.content || "").trim();
+        const resolvedCover = String(coverImage || draft.coverImage || "").trim() || null;
+
+        const blocks: any[] = [];
+        if (resolvedCover) {
+          blocks.push({
+            id: `img-cover-${Date.now()}`,
+            type: "image",
+            text: "",
+            url: resolvedCover,
+            alt: draft.coverImageAlt || `Cover image for ${draft.title}`,
+            description: draft.metaDescription || "",
+          });
+        }
 
         const post = await prisma.blogPost.create({
           data: {
             title: draft.title,
             slug: resolvedSlug,
             content: normalizedContent,
-            excerpt: String(draft.excerpt || normalizedContent.slice(0, 180) || "").trim(),
-            coverImage: String(coverImage || "").trim() || null,
-            blocks: [],
-            author: String(author || "Automation").trim() || "Automation",
+            excerpt: String(draft.metaDescription || draft.excerpt || normalizedContent.slice(0, 160) || "").trim(),
+            coverImage: resolvedCover,
+            blocks: blocks.length > 0 ? blocks : [],
+            author: String(author || "Admin").trim(),
           },
         });
 
@@ -1173,6 +1203,8 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
             title: post.title,
             slug: post.slug,
             excerpt: post.excerpt,
+            coverImage: post.coverImage,
+            author: post.author,
             created_at: post.createdAt,
           },
         });

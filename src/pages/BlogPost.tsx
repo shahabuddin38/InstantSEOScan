@@ -18,6 +18,8 @@ type BlogPostType = {
   slug: string;
   content: string;
   author: string;
+  excerpt?: string;
+  coverImage?: string;
   createdAt?: string;
   created_at?: string;
   read_time?: string;
@@ -90,6 +92,21 @@ export default function BlogPost() {
 
       setPost(result.data);
       setLoading(false);
+
+      // Set meta description if excerpt exists
+      if (result.data.excerpt) {
+        let metaDesc = document.querySelector('meta[name="description"]') as HTMLMetaElement;
+        if (!metaDesc) {
+          metaDesc = document.createElement('meta');
+          metaDesc.name = 'description';
+          document.head.appendChild(metaDesc);
+        }
+        metaDesc.content = result.data.excerpt;
+      }
+      // Set page title
+      if (result.data.title) {
+        document.title = `${result.data.title} | InstantSEOScan Blog`;
+      }
     };
 
     loadPost();
@@ -161,6 +178,18 @@ export default function BlogPost() {
         </Link>
 
         <article className="bg-white rounded-3xl p-8 md:p-12 border border-neutral-200 shadow-sm">
+          {/* Cover Image */}
+          {post.coverImage && (
+            <div className="-mx-8 -mt-8 md:-mx-12 md:-mt-12 mb-8">
+              <img
+                src={post.coverImage}
+                alt={post.title}
+                className="w-full h-64 md:h-80 object-cover rounded-t-3xl"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          )}
+
           <div className="mb-8">
             <div className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-widest rounded-full mb-6">
               {post.category || "SEO Guide"}
