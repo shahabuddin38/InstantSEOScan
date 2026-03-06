@@ -92,6 +92,8 @@ const resolveStableKeywordImage = async (keyword: string, width = 1200, height =
   return sourceUrl;
 };
 
+
+
 const generateDraft = async (topic: string) => {
   const apiKey = await getAnthropicApiKey();
   if (!apiKey) {
@@ -199,6 +201,9 @@ const createPostFromTopic = async (topic: string, author: string, coverImageOver
       author: String(author || "Admin").trim(),
     },
   });
+
+  // Asynchronously notify search engines about the new content - DEPRECATED
+  // pingSearchEngines().catch(console.error);
 
   return {
     id: post.id,

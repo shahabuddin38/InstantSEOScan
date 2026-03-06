@@ -360,9 +360,9 @@ IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
     const payload = await response.json();
     const outputText = Array.isArray(payload?.content)
       ? payload.content
-          .filter((chunk: any) => chunk?.type === "text")
-          .map((chunk: any) => String(chunk?.text || ""))
-          .join("\n")
+        .filter((chunk: any) => chunk?.type === "text")
+        .map((chunk: any) => String(chunk?.text || ""))
+        .join("\n")
       : "";
 
     const parsed = parseAiJson(outputText, null);
@@ -1187,6 +1187,10 @@ Include at least 10 checks covering: author credentials, about page, contact inf
             author: String(payload.author || "Admin").trim() || "Admin",
           },
         });
+
+        // Asynchronously notify search engines about the new content - DEPRECATED
+        // pingSearchEngines().catch(console.error);
+
         return resAny.json(post);
       }
 
@@ -1345,6 +1349,9 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
             },
           });
 
+          // Asynchronously notify search engines about the new content - DEPRECATED
+          // pingSearchEngines().catch(console.error);
+
           return {
             status: "created" as const,
             payload: {
@@ -1434,6 +1441,9 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
             author: String(author || "Admin").trim(),
           },
         });
+
+        // Asynchronously notify search engines about the new content - DEPRECATED
+        // pingSearchEngines().catch(console.error);
 
         return resAny.status(200).json({
           success: true,
@@ -1731,9 +1741,9 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
       if (reqAny.method !== "POST") return resAny.status(405).end();
       const { action, payload } = reqAny.body || {};
 
-        const responses: Record<string, string> = {
-    health: "Health check ok",
-    insights: `Analyze these SEO insights: ${JSON.stringify(payload)}.
+      const responses: Record<string, string> = {
+        health: "Health check ok",
+        insights: `Analyze these SEO insights: ${JSON.stringify(payload)}.
   You MUST return STRICT JSON only (no markdown) with exact keys:
   - keywordUsage: string
   - readability: string
@@ -1744,7 +1754,7 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
   - improvements: array of 3-8 objects with { title: string, description: string }
   - faq: array of 3-6 objects with { question: string, answer: string }
   Keep recommendations practical and prioritized.`,
-    keywords: `Generate SEO keyword research for this topic: ${JSON.stringify(payload)}.
+        keywords: `Generate SEO keyword research for this topic: ${JSON.stringify(payload)}.
   Return STRICT JSON with exact keys:
   - ideas: string[]
   - longTail: string[]
@@ -1752,39 +1762,39 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Do 
   - entities: string[]
   - questions: string[]
   Provide at least 8 ideas and 6 long-tail terms.`,
-    rewrite: `Rewrite and optimize this content for SEO: ${JSON.stringify(payload)}.
+        rewrite: `Rewrite and optimize this content for SEO: ${JSON.stringify(payload)}.
   Return STRICT JSON with exact keys:
   - rewrittenContent: string
   - metaDescription: string (max 160 chars)
   - faqs: array of 3-5 objects with { question: string, answer: string }
   - schema: object (valid JSON-LD Article schema)
   Ensure natural readability and keyword placement.`,
-    aiOverview: `Optimize this content for AI Overviews and answer engines: ${JSON.stringify(payload)}.
+        aiOverview: `Optimize this content for AI Overviews and answer engines: ${JSON.stringify(payload)}.
   Return STRICT JSON with exact keys:
   - clarityScore: number (0-100)
   - directAnswer: string
   - structuredQA: array of 3-6 objects with { question: string, answer: string }
   - entityCoverage: string
   - conversationalTips: string`,
-    schema: `Generate JSON-LD schema for this input: ${JSON.stringify(payload)}.
+        schema: `Generate JSON-LD schema for this input: ${JSON.stringify(payload)}.
   Return STRICT JSON object only containing valid schema markup for the requested type.
   Use @context and @type keys and include realistic required properties.`,
-    optimizeContent: `Evaluate and optimize this SEO content: ${JSON.stringify(payload)}.
+        optimizeContent: `Evaluate and optimize this SEO content: ${JSON.stringify(payload)}.
   Return STRICT JSON with exact keys:
   - score: number (0-100)
   - suggestions: array of 5-10 objects with { title: string, description: string }
   - keywords: string[]
   - readability: string`,
-    chat: `You are InstantSEOScan AI assistant. Answer briefly and clearly with SEO-focused help. User message: ${JSON.stringify(payload?.message || "")}`,
-    strategyPlan: `Create a website SEO strategy plan from this input: ${JSON.stringify(payload)}.
+        chat: `You are InstantSEOScan AI assistant. Answer briefly and clearly with SEO-focused help. User message: ${JSON.stringify(payload?.message || "")}`,
+        strategyPlan: `Create a website SEO strategy plan from this input: ${JSON.stringify(payload)}.
   Return STRICT JSON with keys:
   - summary: string
   - timelinePlan: string
   - priorities: array of 5-10 objects with { title: string, detail: string }
   Focus on technical SEO, on-page SEO, content, off-page SEO, and KPI tracking.`,
-        };
+      };
 
-        const prompt = responses[String(action || "")] || `Generate SEO insights for: ${JSON.stringify(payload)}`;
+      const prompt = responses[String(action || "")] || `Generate SEO insights for: ${JSON.stringify(payload)}`;
 
       if (action === "health") return resAny.json({ message: "API working" });
 
