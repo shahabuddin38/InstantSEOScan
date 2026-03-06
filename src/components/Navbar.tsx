@@ -40,7 +40,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
       ],
     },
     {
-      label: "Keyword & SERP Tools",
+      label: "Keyword Section",
       links: [
         { name: "AI Keyword Ideas", path: "/ai-keyword-ideas-tool" },
         { name: "Google Keyword Rank Checker", path: "/tools/google-keyword-rank-checker" },
@@ -51,7 +51,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
       ],
     },
     {
-      label: "Programmatic SEO",
+      label: "New Tools & Pages",
       links: [
         { name: "SEO Statistics", path: "/seo-statistics" },
         { name: "AI SEO Statistics", path: "/ai-seo-statistics" },
@@ -59,6 +59,10 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
         { name: "Local SEO Statistics", path: "/local-seo-statistics" },
         { name: "Content Marketing Statistics", path: "/content-marketing-statistics" },
         { name: "Google Ranking Statistics", path: "/google-ranking-statistics" },
+        { name: "Keyword Data Page", path: "/keyword-data/seo-tools" },
+        { name: "SERP Analysis Page", path: "/serp-analysis/seo-tools" },
+        { name: "Ranking Page", path: "/ranking/seo-tools" },
+        { name: "Compare Page", path: "/compare/seo-tools-vs-keyword-research" },
       ],
     },
   ];
@@ -83,7 +87,7 @@ export default function Navbar({ user, onLogout }: { user: any, onLogout: () => 
                 {t("nav.seo_tools")}
                 <Menu size={14} />
               </button>
-              <div className="absolute top-full left-0 mt-2 w-[22rem] max-h-[70vh] overflow-auto bg-white border border-neutral-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2">
+              <div className="absolute top-full left-0 mt-2 w-[24rem] max-h-[70vh] overflow-auto bg-white border border-neutral-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2">
                 <div className="space-y-2">
                   {seoToolMenu.map((section) => (
                     <div key={section.label} className="border border-neutral-100 rounded-lg p-2">
