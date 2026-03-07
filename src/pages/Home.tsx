@@ -753,22 +753,33 @@ export default function Home() {
           {/* Feature Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { icon: <Search size={24} />, title: "Deep Domain Analysis", desc: "Full-site crawl covering HTML structure, meta tags, headings hierarchy, image optimization, and canonical configuration." },
-              { icon: <Eye size={24} />, title: "LLM Visibility Checker", desc: "Track how your brand appears in AI engines like ChatGPT, Perplexity, Gemini, and Google SGE. Know which prompts trigger your competitors." },
-              { icon: <Bot size={24} />, title: "AI Content Analysis", desc: "Score your content against top-ranking pages using NLP. Identify semantic gaps, missing entities, and optimization opportunities." },
-              { icon: <Code2 size={24} />, title: "Technical SEO Audits", desc: "Detect crawl errors, redirect chains, missing sitemaps, robots.txt issues, Core Web Vitals problems, and server configuration flaws." },
-              { icon: <Gauge size={24} />, title: "Site Speed & Outage Monitoring", desc: "24/7 uptime monitoring and page speed tracking. Get alerted instantly when your site goes down or performance degrades." },
-              { icon: <Link2 size={24} />, title: "Backlinks Checker", desc: "Analyze your backlink profile, identify toxic links, discover competitor link sources, and track new and lost links over time." },
-              { icon: <Target size={24} />, title: "Top Keywords & Position Tracker", desc: "Monitor your keyword rankings daily. Track position changes, discover new keyword opportunities, and benchmark against competitors." },
-              { icon: <FileText size={24} />, title: "White Label Reports", desc: "Generate branded PDF reports with your agency logo, custom colors, and client-ready insights. Perfect for agencies managing multiple domains." },
-              { icon: <Activity size={24} />, title: "Competitor Benchmarking", desc: "Compare your SEO metrics side-by-side with competitors. Identify their strengths and find opportunities they're missing." }
+              { icon: <Search size={28} />, title: "Deep Domain Analysis", desc: "Full-site crawl covering HTML structure, meta tags, headings hierarchy, image optimization, and canonical configuration.", href: "/tools/corescan", gradient: "from-emerald-600 to-teal-500" },
+              { icon: <Eye size={28} />, title: "LLM Visibility Checker", desc: "Track how your brand appears in AI engines like ChatGPT, Perplexity, Gemini, and Google SGE. Know which prompts trigger your competitors.", href: "/ai-overview-optimizer", gradient: "from-violet-600 to-purple-500" },
+              { icon: <Bot size={28} />, title: "AI Content Analysis", desc: "Score your content against top-ranking pages using NLP. Identify semantic gaps, missing entities, and optimization opportunities.", href: "/ai-seo-content-score", gradient: "from-cyan-600 to-blue-500" },
+              { icon: <Code2 size={28} />, title: "Technical SEO Audits", desc: "Detect crawl errors, redirect chains, missing sitemaps, robots.txt issues, Core Web Vitals problems, and server configuration flaws.", href: "/tools/technical", gradient: "from-orange-500 to-red-500" },
+              { icon: <Gauge size={28} />, title: "Site Speed & Outage Monitoring", desc: "24/7 uptime monitoring and page speed tracking. Get alerted instantly when your site goes down or performance degrades.", href: "/tools/infra", gradient: "from-rose-500 to-pink-500" },
+              { icon: <Link2 size={28} />, title: "Backlinks Checker", desc: "Analyze your backlink profile, identify toxic links, discover competitor link sources, and track new and lost links over time.", href: "/tools/off-page", gradient: "from-amber-500 to-orange-500" },
+              { icon: <Target size={28} />, title: "Top Keywords & Position Tracker", desc: "Monitor your keyword rankings daily. Track position changes, discover new keyword opportunities, and benchmark against competitors.", href: "/tools/google-keyword-rank-checker", gradient: "from-blue-600 to-indigo-500" },
+              { icon: <FileText size={28} />, title: "White Label Reports", desc: "Generate branded PDF reports with your agency logo, custom colors, and client-ready insights. Perfect for agencies managing multiple domains.", href: "/dashboard", gradient: "from-emerald-500 to-cyan-500" },
+              { icon: <Activity size={28} />, title: "Competitor Benchmarking", desc: "Compare your SEO metrics side-by-side with competitors. Identify their strengths and find opportunities they're missing.", href: "/tools/serp-comparison", gradient: "from-fuchsia-600 to-violet-500" }
             ].map((f, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
-                className="bg-neutral-800/50 backdrop-blur rounded-2xl p-6 border border-neutral-700 hover:border-emerald-500/30 transition-colors"
-              >
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-4">{f.icon}</div>
-                <h3 className="font-bold text-lg mb-2">{f.title}</h3>
-                <p className="text-neutral-400 text-sm leading-relaxed">{f.desc}</p>
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}>
+                <Link to={f.href} className="block bg-neutral-800/50 backdrop-blur rounded-2xl border border-neutral-700 hover:border-emerald-500/40 transition-all hover:shadow-lg hover:shadow-emerald-500/5 overflow-hidden group">
+                  {/* Feature Image Header */}
+                  <div className={`h-36 bg-gradient-to-br ${f.gradient} flex items-center justify-center relative overflow-hidden`}>
+                    <div className="absolute inset-0 bg-black/10" />
+                    <div className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
+                    <div className="absolute -top-4 -left-4 w-20 h-20 rounded-full bg-white/5" />
+                    <div className="relative text-white drop-shadow-lg">{f.icon}</div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="font-bold text-lg mb-2 group-hover:text-emerald-400 transition-colors flex items-center gap-2">
+                      {f.title}
+                      <ExternalLink size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </h3>
+                    <p className="text-neutral-400 text-sm leading-relaxed">{f.desc}</p>
+                  </div>
+                </Link>
               </motion.div>
             ))}
           </div>
@@ -894,12 +905,12 @@ export default function Home() {
               <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><Code2 size={22} className="text-emerald-600" /> On-Page & Technical SEO</h3>
               <div className="grid gap-3">
                 {[
-                  { name: "Meta Tag Analyzer", href: "/tools/meta-tags" },
-                  { name: "Heading Structure Checker", href: "/tools/heading-checker" },
-                  { name: "Schema Markup Validator", href: "/tools/schema-validator" },
-                  { name: "Core Web Vitals Tester", href: "/tools/core-web-vitals" },
-                  { name: "Robots.txt Checker", href: "/tools/robots-txt" },
-                  { name: "Sitemap Validator", href: "/tools/sitemap-validator" },
+                  { name: "CoreScan Technical Auditor", href: "/tools/corescan" },
+                  { name: "On-Page SEO Analyzer", href: "/tools/on-page" },
+                  { name: "Schema Markup Generator", href: "/schema-generator" },
+                  { name: "Infrastructure SEO Analyzer", href: "/tools/infra" },
+                  { name: "AI SEO Content Score", href: "/ai-seo-content-score" },
+                  { name: "AI SEO Rewrite Tool", href: "/ai-seo-rewrite-tool" },
                 ].map((tool, i) => (
                   <Link key={i} to={tool.href} className="flex items-center justify-between p-4 bg-white rounded-xl border border-neutral-200 hover:border-emerald-300 hover:shadow-sm transition-all group">
                     <span className="font-semibold text-neutral-700 group-hover:text-emerald-600 transition-colors">{tool.name}</span>
@@ -912,12 +923,12 @@ export default function Home() {
               <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><BarChart3 size={22} className="text-cyan-600" /> Off-Page & SERPs</h3>
               <div className="grid gap-3">
                 {[
-                  { name: "Backlink Checker", href: "/tools/backlinks" },
-                  { name: "Domain Authority Checker", href: "/tools/domain-authority" },
-                  { name: "SERP Simulator", href: "/tools/serp-simulator" },
-                  { name: "Keyword Density Analyzer", href: "/tools/keyword-density" },
-                  { name: "AI Overview Checker", href: "/tools/ai-overview" },
-                  { name: "Redirect Chain Checker", href: "/tools/redirect-checker" },
+                  { name: "Off-Page SEO Insights", href: "/tools/off-page" },
+                  { name: "Authority Radar", href: "/tools/authority" },
+                  { name: "SERP Comparison Tool", href: "/tools/serp-comparison" },
+                  { name: "Keyword Rank Checker", href: "/tools/google-keyword-rank-checker" },
+                  { name: "AI Overview Optimizer", href: "/ai-overview-optimizer" },
+                  { name: "SERP Intent Analyzer", href: "/tools/serp-intent-analyzer" },
                 ].map((tool, i) => (
                   <Link key={i} to={tool.href} className="flex items-center justify-between p-4 bg-white rounded-xl border border-neutral-200 hover:border-cyan-300 hover:shadow-sm transition-all group">
                     <span className="font-semibold text-neutral-700 group-hover:text-cyan-600 transition-colors">{tool.name}</span>
@@ -941,21 +952,26 @@ export default function Home() {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { title: "When Great Content Fails: Why People Love It but AI Ignores It", desc: "Your article went viral on social media but ChatGPT never mentions it. Here's why content virality and AI visibility are two completely different games.", category: "AI SEO" },
-              { title: "What Brand Subreddits Do for SEO", desc: "Reddit threads are now appearing in Google's AI Overviews. Learn how to leverage brand subreddits as a powerful off-page SEO signal.", category: "Off-Page SEO" },
-              { title: "The Complete Guide to E-E-A-T in 2026", desc: "Experience, Expertise, Authoritativeness, and Trust — how Google evaluates content quality and what you need to do to meet its standards.", category: "On-Page SEO" },
+              { title: "When Great Content Fails: Why People Love It but AI Ignores It", desc: "Your article went viral on social media but ChatGPT never mentions it. Here's why content virality and AI visibility are two completely different games.", category: "AI SEO", gradient: "from-violet-600 via-purple-500 to-indigo-600", icon: <Bot size={40} /> },
+              { title: "What Brand Subreddits Do for SEO", desc: "Reddit threads are now appearing in Google's AI Overviews. Learn how to leverage brand subreddits as a powerful off-page SEO signal.", category: "Off-Page SEO", gradient: "from-emerald-600 via-teal-500 to-cyan-600", icon: <TrendingUp size={40} /> },
+              { title: "The Complete Guide to E-E-A-T in 2026", desc: "Experience, Expertise, Authoritativeness, and Trust — how Google evaluates content quality and what you need to do to meet its standards.", category: "On-Page SEO", gradient: "from-orange-500 via-red-500 to-rose-600", icon: <ShieldCheck size={40} /> },
             ].map((post, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-3xl border border-neutral-200 overflow-hidden hover:shadow-xl transition-shadow group"
-              >
-                <div className="h-48 bg-gradient-to-br from-neutral-100 to-neutral-200 flex items-center justify-center">
-                  <BookOpen size={48} className="text-neutral-300" />
-                </div>
-                <div className="p-6">
-                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">{post.category}</span>
-                  <h3 className="font-bold text-lg mt-2 mb-3 group-hover:text-emerald-600 transition-colors">{post.title}</h3>
-                  <p className="text-neutral-500 text-sm leading-relaxed">{post.desc}</p>
-                </div>
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+                <Link to="/blog" className="block bg-white rounded-3xl border border-neutral-200 overflow-hidden hover:shadow-xl transition-shadow group">
+                  <div className={`h-48 bg-gradient-to-br ${post.gradient} flex items-center justify-center relative overflow-hidden`}>
+                    <div className="absolute inset-0 bg-black/5" />
+                    <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
+                    <div className="absolute top-4 left-4 w-16 h-16 rounded-full bg-white/10" />
+                    <div className="absolute top-6 right-6 text-[10px] font-bold text-white/80 uppercase tracking-widest bg-white/15 px-3 py-1 rounded-full backdrop-blur-sm">{post.category}</div>
+                    <div className="relative text-white drop-shadow-lg">{post.icon}</div>
+                  </div>
+                  <div className="p-6">
+                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">{post.category}</span>
+                    <h3 className="font-bold text-lg mt-2 mb-3 group-hover:text-emerald-600 transition-colors">{post.title}</h3>
+                    <p className="text-neutral-500 text-sm leading-relaxed">{post.desc}</p>
+                    <span className="inline-flex items-center gap-1 text-emerald-600 font-bold text-sm mt-4 group-hover:gap-2 transition-all">Read Article <ArrowRight size={14} /></span>
+                  </div>
+                </Link>
               </motion.div>
             ))}
           </div>
