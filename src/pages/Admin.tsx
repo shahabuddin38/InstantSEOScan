@@ -223,6 +223,8 @@ export default function Admin() {
   const [bulkResult, setBulkResult] = useState<any>(null);
   const [fixingImages, setFixingImages] = useState(false);
   const [fixImagesResult, setFixImagesResult] = useState<any>(null);
+  const [fixingContentFormat, setFixingContentFormat] = useState(false);
+  const [fixContentFormatResult, setFixContentFormatResult] = useState<any>(null);
 
   // ── Growth Engine State ──────────────────────
   type GrowthLead = {
@@ -1889,6 +1891,50 @@ export default function Admin() {
                       <span className="font-bold">{err.topic}:</span> {err.error}
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Fix Content Formatting */}
+            <div className="mt-8 bg-white border border-neutral-200 rounded-2xl p-6 shadow-sm">
+              <h3 className="font-bold text-neutral-900 mb-1 flex items-center gap-2 text-base">
+                ✍️ Fix Content Format (All Old Posts)
+              </h3>
+              <p className="text-sm text-neutral-500 mb-4">
+                Retroactively applies justified text (<code>text-align:justify</code>) to every &lt;p&gt; tag, prepends an
+                &lt;h1&gt; title if none exists, and appends an internal silo-links block to posts that have no
+                InstantSEOScan.com links. Safe to run multiple times.
+              </p>
+              <button
+                onClick={async () => {
+                  if (!confirm("Apply justify styling, H1 tags, and internal silo links to ALL existing blog posts?")) return;
+                  setFixingContentFormat(true);
+                  setFixContentFormatResult(null);
+                  const r = await apiRequest<any>("/api/admin/blog/fix-content-format", { method: "POST", headers: tokenHeaders() });
+                  setFixContentFormatResult(r.ok ? r.data : { error: r.error || "Fix failed" });
+                  if (r.ok && r.data?.fixed > 0) fetchBlogPosts();
+                  setFixingContentFormat(false);
+                }}
+                disabled={fixingContentFormat}
+                className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors"
+              >
+                {fixingContentFormat ? <Loader2 size={16} className="animate-spin" /> : <FileEdit size={16} />}
+                {fixingContentFormat ? "Formatting posts..." : "Fix Content Format (Justify + H1 + Silo Links)"}
+              </button>
+              {fixContentFormatResult && (
+                <div className={`mt-4 p-4 rounded-xl text-sm font-medium ${
+                  fixContentFormatResult.error
+                    ? "bg-red-50 border border-red-200 text-red-700"
+                    : fixContentFormatResult.fixed === 0
+                      ? "bg-neutral-50 border border-neutral-200 text-neutral-600"
+                      : "bg-violet-50 border border-violet-200 text-violet-800"
+                }`}>
+                  {fixContentFormatResult.error
+                    ? fixContentFormatResult.error
+                    : fixContentFormatResult.fixed === 0
+                      ? `✅ All ${fixContentFormatResult.scanned} posts already have correct formatting.`
+                      : `✅ Formatted ${fixContentFormatResult.fixed} of ${fixContentFormatResult.scanned} posts — justified text, H1, and silo links applied.`
+                  }
                 </div>
               )}
             </div>

@@ -111,11 +111,11 @@ const resolveStableKeywordImage = async (keyword: string, width = 1200, height =
     clearTimeout(timer);
     if (res.ok) return res.url || url; // follow redirect to stable CDN URL
   } catch {
-    // Network failure or timeout — fall through to SVG fallback
+    // Network failure or timeout — fall through to fresh picsum seed
   }
-  // SVG fallback: gradient placeholder, always loads, never 18+, never corrupt
-  const label = encodeURIComponent(safeKeyword.slice(0, 40));
-  return `https://via.placeholder.com/${width}x${height}/4F46E5/ffffff?text=${label}`;
+  // Fallback: another randomised numeric-seed picsum (SFW, never 404)
+  const seed2 = 100_000 + Math.floor(Math.random() * 8_900_000);
+  return `https://picsum.photos/seed/${seed2}/${width}/${height}`;
 };
 
 
@@ -130,6 +130,16 @@ const generateDraft = async (topic: string, customInstructions?: string) => {
     ? `\nAdditionally, adhere strictly to these custom instructions: "${customInstructions}"\n`
     : "";
 
+  // Fetch existing blog posts for silo interlinking so new posts link back to related content
+  const siloPostsRaw = await prisma.blogPost.findMany({
+    select: { slug: true, title: true },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  const siloSection = siloPostsRaw.length > 0
+    ? `\nSILO INTERLINKING REQUIREMENT: You MUST include 2-4 contextual anchor-text internal links to these existing published blog posts (pick the most topically relevant — vary anchor text naturally):\n${siloPostsRaw.map((p) => `  - <a href="https://instantseoscan.com/blog/${p.slug}">${p.title}</a>`).join("\n")}\n`
+    : "";
+
   const prompt = `You are a world-class SEO content writer for InstantSEOScan. Write a comprehensive, publication-ready blog article about: "${topic}".${customPromptSection}
 Return STRICT JSON only (no markdown fences, no extra text) with this exact shape:
 {
@@ -139,9 +149,9 @@ Return STRICT JSON only (no markdown fences, no extra text) with this exact shap
   "excerpt": "Engaging 1-2 sentence summary for blog listing cards under 160 chars",
   "coverImageKeyword": "2-3 word professional keyword for cover photo (e.g. 'seo analytics dashboard')",
   "coverImageAlt": "Descriptive keyword-rich alt text for the cover image",
-  "content": "FULL HTML article — ALL requirements below MUST be met: (1) Open with <h1 style='font-size:2rem;font-weight:900;margin-bottom:1rem'>[article title]</h1> (2) ALL <p> tags MUST include style='text-align:justify;line-height:1.8' (3) Write 5-6 <h2> main sections, each with 1-2 <h3> sub-sections and 2-3 justified paragraphs (4) Named Entities: naturally mention real brands/tools like Google Search Console, Semrush, Ahrefs, Moz, Screaming Frog, or other relevant entities from the topic domain (5) N-gram richness: embed 3-5 semantically related 2-4 word keyword phrases per section (6) After the second h2 section insert <img src='PLACEHOLDER_IMG' alt='[descriptive alt]' style='width:100%;border-radius:12px;margin:1.5rem 0;display:block' /> (7) Add a People Also Ask section: <h2 style='font-size:1.5rem;font-weight:800;margin:2rem 0 1rem'>People Also Ask</h2> with 4-5 Q&A pairs each as <div style='border:1px solid #e5e7eb;border-radius:8px;padding:1rem;margin:0.75rem 0'><strong style='display:block;margin-bottom:0.5rem'>Q: [question]</strong><p style='text-align:justify;line-height:1.8;margin:0'>A: [2-3 sentence answer]</p></div> (8) Add a Frequently Asked Questions section: <h2 style='font-size:1.5rem;font-weight:800;margin:2rem 0 1rem'>Frequently Asked Questions</h2> with 5 Q&A pairs in the same format (9) End with <h2>Conclusion</h2> and a 2-3 paragraph justified summary plus a CTA linking to https://instantseoscan.com (10) Include at least 2 <a href='https://instantseoscan.com/[tool]'> internal links to relevant tools such as /tools/corescan /tools/on-page /schema-generator /keyword-density (11) Minimum 1800 words total (12) Use <ul><li> for lists <strong> for key terms <em> for technical terms"
+  "content": "FULL HTML article — ALL requirements below MUST be met: (1) Open with <h1 style='font-size:2rem;font-weight:900;margin-bottom:1rem'>[article title]</h1> (2) ALL <p> tags MUST include style='text-align:justify;line-height:1.8' (3) Write 5-6 <h2> main sections, each with 1-2 <h3> sub-sections and 2-3 justified paragraphs (4) Named Entities: naturally mention real brands/tools like Google Search Console, Semrush, Ahrefs, Moz, Screaming Frog, or other relevant entities from the topic domain (5) N-gram richness: embed 3-5 semantically related 2-4 word keyword phrases per section (6) After the second h2 section insert <img src='PLACEHOLDER_IMG' alt='[descriptive alt]' style='width:100%;border-radius:12px;margin:1.5rem 0;display:block' /> (7) Add a People Also Ask section: <h2 style='font-size:1.5rem;font-weight:800;margin:2rem 0 1rem'>People Also Ask</h2> with 4-5 Q&A pairs each as <div style='border:1px solid #e5e7eb;border-radius:8px;padding:1rem;margin:0.75rem 0'><strong style='display:block;margin-bottom:0.5rem'>Q: [question]</strong><p style='text-align:justify;line-height:1.8;margin:0'>A: [2-3 sentence answer]</p></div> (8) Add a Frequently Asked Questions section: <h2 style='font-size:1.5rem;font-weight:800;margin:2rem 0 1rem'>Frequently Asked Questions</h2> with 5 Q&A pairs in the same format (9) End with <h2>Conclusion</h2> and a 2-3 paragraph justified summary plus a CTA linking to https://instantseoscan.com (10) Include at least 2 <a href='https://instantseoscan.com/[tool]'> internal links to relevant tools such as /tools/corescan /tools/on-page /schema-generator /keyword-density (11) SILO — also contextually link to related published blog posts as instructed above (12) Minimum 1800 words total (13) Use <ul><li> for lists <strong> for key terms <em> for technical terms"
 }
-IMPORTANT: Return ONLY the JSON. No commentary, no code fences, no extra text.`;
+IMPORTANT: Return ONLY the JSON. No commentary, no code fences, no extra text.${siloSection}`;
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",

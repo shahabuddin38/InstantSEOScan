@@ -1548,6 +1548,66 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Mus
     return authed(req as any, res as any);
   }
 
+  // POST /api/admin/blog/fix-content-format
+  // Retroactively: adds justify styling to all <p> tags, prepends <h1> if missing,
+  // and appends an internal-links silo block to posts that have no instantseoscan.com links.
+  if (path === "/api/admin/blog/fix-content-format") {
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
+      if (reqAny.method !== "POST") return resAny.status(405).end();
+
+      const posts = await prisma.blogPost.findMany({
+        select: { id: true, title: true, content: true },
+      });
+
+      let fixed = 0;
+      const fixedIds: string[] = [];
+
+      for (const post of posts) {
+        let content = String(post.content || "");
+        if (!content.trim()) continue;
+        let dirty = false;
+
+        // 1. Prepend <h1> if missing
+        if (!/<h1[\s>]/i.test(content)) {
+          const safeTitle = String(post.title || "Article")
+            .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          content = `<h1 style="font-size:2rem;font-weight:900;margin-bottom:1rem">${safeTitle}</h1>\n${content}`;
+          dirty = true;
+        }
+
+        // 2. Add text-align:justify to every <p> that doesn't already have it
+        const justified = content.replace(/<p(\s[^>]*)?\s*>/gi, (match: string, attrs: string) => {
+          const a = String(attrs || "");
+          if (a.includes("text-align:justify")) return match;
+          if (/style\s*=/i.test(a)) {
+            return match.replace(/(style\s*=\s*['"]{1})/i, `$1text-align:justify;line-height:1.8;`);
+          }
+          return `<p${a ? a : ""} style="text-align:justify;line-height:1.8">`;
+        });
+        if (justified !== content) { content = justified; dirty = true; }
+
+        // 3. Append internal links silo block if no instantseoscan.com links exist
+        if (!/instantseoscan\.com/i.test(content)) {
+          content += `\n<div style="margin:2rem 0;padding:1.25rem;background:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0">\n  <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:0.75rem;color:#065f46">🔗 Related SEO Tools</h3>\n  <ul style="list-style:disc;padding-left:1.25rem">\n    <li><a href="https://instantseoscan.com/tools/corescan" style="color:#059669">Free Core SEO Scanner</a></li>\n    <li><a href="https://instantseoscan.com/tools/on-page" style="color:#059669">On-Page SEO Analyzer</a></li>\n    <li><a href="https://instantseoscan.com/schema-generator" style="color:#059669">Schema Markup Generator</a></li>\n    <li><a href="https://instantseoscan.com/keyword-density" style="color:#059669">Keyword Density Checker</a></li>\n  </ul>\n</div>`;
+          dirty = true;
+        }
+
+        if (dirty) {
+          await prisma.blogPost.update({
+            where: { id: post.id },
+            data: { content },
+          });
+          fixed++;
+          fixedIds.push(post.id);
+        }
+      }
+
+      return resAny.json({ ok: true, scanned: posts.length, fixed, fixedIds });
+    });
+    return authed(req as any, res as any);
+  }
+
   // Admin: blog update/delete (PUT/DELETE /api/admin/blog/:id)
   if (path.startsWith("/api/admin/blog/") && path.split("/").length === 5) {
     const id = path.split("/")[4];
