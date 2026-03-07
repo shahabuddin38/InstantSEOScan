@@ -46,6 +46,7 @@ const SERPIntentAnalyzer = lazy(() => import("./pages/tools/SERPIntentAnalyzer")
 const FreeSerpDatabase = lazy(() => import("./pages/tools/FreeSerpDatabase"));
 const SEOStatisticsPage = lazy(() => import("./pages/SEOStatisticsPage"));
 const ProgrammaticSEOPage = lazy(() => import("./pages/ProgrammaticSEOPage"));
+const EmailOutreachAuto = lazy(() => import("./pages/tools/EmailOutreachAuto"));
 
 const PAGE_SEO: Record<string, { title: string; description: string }> = {
   "/": {
@@ -160,6 +161,10 @@ const PAGE_SEO: Record<string, { title: string; description: string }> = {
     title: "Free SERP Database | InstantSEOScan",
     description: "Explore top Google results with title, description, backlinks, traffic, and word count estimates.",
   },
+  "/tools/email-outreach-auto": {
+    title: "AI Email Outreach Personalization | InstantSEOScan",
+    description: "Instantly generate highly personalized cold SEO outreach emails with actionable audit results using Claude.",
+  },
   "/seo-statistics": {
     title: "SEO Statistics 2026 | InstantSEOScan",
     description: "150+ SEO statistics with citation copy and auto-updating data snapshots.",
@@ -252,6 +257,7 @@ function AppRoutes({ user, setUser, handleLogout }: { user: any; setUser: any; h
       <Route path="/tools/keyword-cannibalization" element={user ? <KeywordCannibalizationChecker /> : <Navigate to="/login" />} />
       <Route path="/tools/serp-intent-analyzer" element={user ? <SERPIntentAnalyzer /> : <Navigate to="/login" />} />
       <Route path="/tools/free-serp-database" element={user ? <FreeSerpDatabase /> : <Navigate to="/login" />} />
+      <Route path="/tools/email-outreach-auto" element={user ? <EmailOutreachAuto /> : <Navigate to="/login" />} />
 
       <Route path="/seo-statistics" element={<SEOStatisticsPage />} />
       <Route path="/ai-seo-statistics" element={<SEOStatisticsPage />} />
@@ -326,15 +332,15 @@ function SeoMetaManager() {
 
     const seo = isBlogPost
       ? {
-          title: "SEO Blog Post | InstantSEOScan",
-          description: "Read in-depth SEO insights, practical optimization tactics, and ranking strategies from InstantSEOScan experts.",
-        }
+        title: "SEO Blog Post | InstantSEOScan",
+        description: "Read in-depth SEO insights, practical optimization tactics, and ranking strategies from InstantSEOScan experts.",
+      }
       : isReport
-      ? {
+        ? {
           title: "SEO Audit Report | InstantSEOScan",
           description: "Review your detailed SEO audit report with technical findings, on-page opportunities, and clear next actions.",
         }
-      : PAGE_SEO[normalizedPath] || PAGE_SEO["/"];
+        : PAGE_SEO[normalizedPath] || PAGE_SEO["/"];
 
     document.title = seo.title;
 
