@@ -27,6 +27,7 @@
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
+    "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
     "html2canvas": "^1.4.1",
     "json2csv": "^6.0.0-alpha.2",

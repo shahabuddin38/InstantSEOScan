@@ -17,6 +17,7 @@ export default function Sidebar() {
 
   const topMenuItems = [
     { name: "Dashboard", path: "/dashboard", icon: <LayoutDashboard size={20} /> },
+    { name: "Growth Engine", path: "/outreach", icon: <Globe size={20} /> },
   ];
 
   const collapsibleMenus = [
@@ -100,8 +101,8 @@ export default function Sidebar() {
               key={item.name}
               to={item.path}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${isItemActive(item.path)
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
+                ? "bg-indigo-50 text-indigo-700"
+                : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
                 }`}
             >
               <span className={isItemActive(item.path) ? "text-indigo-600" : "text-neutral-400"}>
@@ -150,8 +151,8 @@ export default function Sidebar() {
                             key={item.path}
                             to={item.path}
                             className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isItemActive(item.path)
-                                ? "bg-indigo-50 text-indigo-700 font-bold"
-                                : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                              ? "bg-indigo-50 text-indigo-700 font-bold"
+                              : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                               }`}
                           >
                             {item.name}
@@ -175,8 +176,8 @@ export default function Sidebar() {
               key={item.name}
               to={item.path}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${isItemActive(item.path)
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
+                ? "bg-indigo-50 text-indigo-700"
+                : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
                 }`}
             >
               <span className={item.name === "Affiliate Program" ? "" : "text-neutral-400"}>

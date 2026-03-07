@@ -47,6 +47,7 @@ const FreeSerpDatabase = lazy(() => import("./pages/tools/FreeSerpDatabase"));
 const SEOStatisticsPage = lazy(() => import("./pages/SEOStatisticsPage"));
 const ProgrammaticSEOPage = lazy(() => import("./pages/ProgrammaticSEOPage"));
 const EmailOutreachAuto = lazy(() => import("./pages/tools/EmailOutreachAuto"));
+const OutreachEngine = lazy(() => import("./pages/OutreachEngine"));
 
 const PAGE_SEO: Record<string, { title: string; description: string }> = {
   "/": {
@@ -193,6 +194,10 @@ const PAGE_SEO: Record<string, { title: string; description: string }> = {
     title: "Admin Panel | InstantSEOScan",
     description: "Manage users, usage, content, and platform settings from the InstantSEOScan administration panel.",
   },
+  "/outreach": {
+    title: "AI Growth Engine & CRM | InstantSEOScan",
+    description: "Discover SEO leads at scale, generate automated audit reports, and deploy personalized AI cold outreach emails.",
+  },
 };
 
 function Layout({ user, children }: { user: any, children: React.ReactNode }) {
@@ -278,6 +283,10 @@ function AppRoutes({ user, setUser, handleLogout }: { user: any; setUser: any; h
       <Route
         path="/adminaceess"
         element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/outreach"
+        element={user?.role === 'admin' ? <OutreachEngine /> : <Navigate to="/" />}
       />
     </>
   );

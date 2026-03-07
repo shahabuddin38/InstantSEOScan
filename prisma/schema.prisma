@@ -69,3 +69,87 @@ model Setting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+// ==========================================
+// AI Growth Engine (emailauto SaaS) Models
+// ==========================================
+
+model Lead {
+  id           String   @id @default(cuid())
+  companyName  String?
+  website      String
+  email        String?
+  phone        String?
+  linkedinUrl  String?
+  industry     String?
+  location     String?
+  seoScore     Int?
+  issues       Json?
+  status       String   @default("new") // new, contacted, replied, converted, ignored
+  tags         String[]
+  leadSource   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reports      SEOReport[]
+  emailLogs    EmailLog[]
+}
+
+model SEOReport {
+  id          String   @id @default(cuid())
+  leadId      String
+  score       Int
+  issues      Json
+  pdfUrl      String?
+  aiSummary   String?
+  createdAt   DateTime @default(now())
+
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String
+  body        String   // Can contain {{companyName}}, {{website}}, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaigns   EmailCampaign[]
+}
+
+model EmailCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  templateId  String
+  status      String   @default("draft") // draft, running, paused, completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  template    EmailTemplate @relation(fields: [templateId], references: [id])
+  logs        EmailLog[]
+}
+
+model EmailLog {
+  id          String   @id @default(cuid())
+  campaignId  String?
+  leadId      String
+  subject     String
+  body        String
+  status      String   @default("sent") // sent, delivered, opened, clicked, bounced, replied
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  sentAt      DateTime @default(now())
+
+  campaign    EmailCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  lead        Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model AutomationSetting {
+  id               String   @id @default(cuid())
+  module           String   @unique // e.g. "AutoLeadDiscovery", "AutoSEOScanning", "AutoEmailOutreach"
+  enabled          Boolean  @default(false)
+  scheduleInterval String   @default("daily") // hourly, daily, weekly
+  config           Json?
+  updatedAt        DateTime @updatedAt
+}
