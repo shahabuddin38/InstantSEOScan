@@ -196,6 +196,7 @@ export default function Admin() {
   const [autoPostTopic, setAutoPostTopic] = useState("");
   const [autoPostAuthor, setAutoPostAuthor] = useState("Admin");
   const [autoPostCoverImage, setAutoPostCoverImage] = useState("");
+  const [autoPostCustomInstructions, setAutoPostCustomInstructions] = useState("");
   const [autoPostingAnthropic, setAutoPostingAnthropic] = useState(false);
   const [autoPostResult, setAutoPostResult] = useState<any>(null);
   const [bulkTopics, setBulkTopics] = useState("");
@@ -685,6 +686,7 @@ export default function Admin() {
         topic: autoPostTopic,
         author: autoPostAuthor,
         coverImage: autoPostCoverImage,
+        customInstructions: autoPostCustomInstructions,
       }),
     });
 
@@ -733,6 +735,7 @@ export default function Admin() {
         body: JSON.stringify({
           topics: uniqueLines,
           author: autoPostAuthor || "Admin",
+          customInstructions: autoPostCustomInstructions,
         }),
       });
 
@@ -1460,6 +1463,17 @@ export default function Admin() {
                   />
                 </div>
 
+                <div>
+                  <label className="text-sm font-bold text-slate-700 block mb-2">Custom AI Instructions (optional)</label>
+                  <textarea
+                    value={autoPostCustomInstructions}
+                    onChange={(e) => setAutoPostCustomInstructions(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. Write in a highly technical tone, emphasize programmatic SEO concepts, mention internal tools specific to InstantSEOScan, etc."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#10B981]/20 font-medium text-slate-700 text-sm leading-relaxed"
+                  />
+                </div>
+
                 <button
                   onClick={handleAutoPostAnthropic}
                   disabled={autoPostingAnthropic || !autoPostTopic.trim()}
@@ -1518,6 +1532,17 @@ export default function Admin() {
                     onChange={(e) => setAutoPostAuthor(e.target.value)}
                     placeholder="Admin"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-slate-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-bold text-slate-700 block mb-2">Custom AI Instructions for Bulk (optional)</label>
+                  <textarea
+                    value={autoPostCustomInstructions}
+                    onChange={(e) => setAutoPostCustomInstructions(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. Use a professional tone, strictly organize structures into 8+ headers, and emphasize SaaS analytics."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-slate-700 text-sm leading-relaxed"
                   />
                 </div>
 
@@ -1612,47 +1637,48 @@ export default function Admin() {
                 ].map(({ key, limitKey, label, color, type, slot }) => {
                   const stat = geminiKeyStats.find((item) => item.slot === slot);
                   return (
-                  <div key={key} className="space-y-1">
-                    <label className="text-sm font-bold text-neutral-700 flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full bg-${color}-500`} />
-                      {label}
-                    </label>
-                    <input
-                      type={type}
-                      value={settingsForm[key]}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, [key]: e.target.value })}
-                      placeholder="AIzaSy..."
-                      className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
-                    />
-                    <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
-                      <div className="space-y-1 md:col-span-1">
-                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Limit</label>
-                        <input
-                          type="number"
-                          min={0}
-                          value={settingsForm[limitKey]}
-                          onChange={(e) => setSettingsForm({ ...settingsForm, [limitKey]: e.target.value })}
-                          placeholder="0 = unlimited"
-                          className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
-                        />
-                      </div>
-                      <div className="md:col-span-2 grid grid-cols-3 gap-2 text-xs">
-                        <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
-                          <div className="text-neutral-500">Usage</div>
-                          <div className="font-bold text-neutral-800">{stat?.usage ?? 0}</div>
+                    <div key={key} className="space-y-1">
+                      <label className="text-sm font-bold text-neutral-700 flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full bg-${color}-500`} />
+                        {label}
+                      </label>
+                      <input
+                        type={type}
+                        value={settingsForm[key]}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, [key]: e.target.value })}
+                        placeholder="AIzaSy..."
+                        className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                      />
+                      <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div className="space-y-1 md:col-span-1">
+                          <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Limit</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={settingsForm[limitKey]}
+                            onChange={(e) => setSettingsForm({ ...settingsForm, [limitKey]: e.target.value })}
+                            placeholder="0 = unlimited"
+                            className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500/20"
+                          />
                         </div>
-                        <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
-                          <div className="text-neutral-500">Remaining</div>
-                          <div className="font-bold text-neutral-800">{stat?.remaining === null ? "Unlimited" : stat?.remaining ?? "-"}</div>
-                        </div>
-                        <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
-                          <div className="text-neutral-500">Status</div>
-                          <div className="font-bold text-neutral-800 capitalize">{stat?.status || "missing"}</div>
+                        <div className="md:col-span-2 grid grid-cols-3 gap-2 text-xs">
+                          <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
+                            <div className="text-neutral-500">Usage</div>
+                            <div className="font-bold text-neutral-800">{stat?.usage ?? 0}</div>
+                          </div>
+                          <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
+                            <div className="text-neutral-500">Remaining</div>
+                            <div className="font-bold text-neutral-800">{stat?.remaining === null ? "Unlimited" : stat?.remaining ?? "-"}</div>
+                          </div>
+                          <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
+                            <div className="text-neutral-500">Status</div>
+                            <div className="font-bold text-neutral-800 capitalize">{stat?.status || "missing"}</div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )})}
+                  )
+                })}
               </div>
 
               {/* Database Section */}

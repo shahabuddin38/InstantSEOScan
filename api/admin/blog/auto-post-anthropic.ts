@@ -10,11 +10,13 @@ const bodySchema = z.object({
   topic: z.string().min(3),
   author: z.string().optional(),
   coverImage: z.string().optional(),
+  customInstructions: z.string().optional(),
 });
 
 const bulkBodySchema = z.object({
   topics: z.array(z.string().min(3)).min(1).max(10),
   author: z.string().optional(),
+  customInstructions: z.string().optional(),
 });
 
 /* ── Helpers ─────────────────────────────────────────── */
@@ -94,13 +96,17 @@ const resolveStableKeywordImage = async (keyword: string, width = 1200, height =
 
 
 
-const generateDraft = async (topic: string) => {
+const generateDraft = async (topic: string, customInstructions?: string) => {
   const apiKey = await getAnthropicApiKey();
   if (!apiKey) {
     throw new Error("Anthropic API key missing. Set CLAUDE_API_KEY or ANTHROPIC_API_KEY in Admin Settings.");
   }
 
-  const prompt = `You are an expert SEO content writer forming an article for InstantSEOScan. Create a complete blog draft about: "${topic}".
+  const customPromptSection = customInstructions?.trim()
+    ? `\nAdditionally, adhere strictly to these custom instructions: "${customInstructions}"\n`
+    : "";
+
+  const prompt = `You are an expert SEO content writer forming an article for InstantSEOScan. Create a complete blog draft about: "${topic}".${customPromptSection}
 Return STRICT JSON only (no markdown fences, no extra text) with this exact shape:
 {
   "title": "Unique SEO-friendly title (do NOT just repeat the topic)",
@@ -171,8 +177,8 @@ IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
 
 /* ── Utility: create a single post from topic ──────── */
 
-const createPostFromTopic = async (topic: string, author: string, coverImageOverride?: string) => {
-  const draft = await generateDraft(topic);
+const createPostFromTopic = async (topic: string, author: string, coverImageOverride?: string, customInstructions?: string) => {
+  const draft = await generateDraft(topic, customInstructions);
   const resolvedSlug = await uniqueSlug(draft.slug || draft.title);
   const normalizedContent = String(draft.content || "").trim();
   const coverImage = String(coverImageOverride || draft.coverImage || "").trim() || null;
@@ -249,7 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Invalid payload. Send { topics: ['topic1', ...], author? }", details: parsed.error.flatten() });
     }
 
-    const { topics, author } = parsed.data;
+    const { topics, author, customInstructions } = parsed.data;
     const results: any[] = [];
     const errors: any[] = [];
 
@@ -257,7 +263,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (let index = 0; index < topics.length; index += batchSize) {
       const batch = topics.slice(index, index + batchSize);
       const settled = await Promise.allSettled(
-        batch.map((topic) => createPostFromTopic(topic, author || "Admin"))
+        batch.map((topic) => createPostFromTopic(topic, author || "Admin", undefined, customInstructions))
       );
 
       settled.forEach((entry, batchIndex) => {
@@ -286,10 +292,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
   }
 
-  const { topic, author, coverImage } = parsed.data;
+  const { topic, author, coverImage, customInstructions } = parsed.data;
 
   try {
-    const post = await createPostFromTopic(topic, author || "Admin", coverImage);
+    const post = await createPostFromTopic(topic, author || "Admin", coverImage, customInstructions);
     return res.status(200).json({ success: true, post });
   } catch (error: any) {
     return res.status(500).json({ error: error?.message || "Failed to auto-post Anthropic blog" });

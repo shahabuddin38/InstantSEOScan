@@ -75,11 +75,13 @@ const anthropicBlogBodySchema = z.object({
   topic: z.string().min(3),
   author: z.string().optional(),
   coverImage: z.string().optional(),
+  customInstructions: z.string().optional(),
 });
 
 const anthropicBulkBodySchema = z.object({
   topics: z.array(z.string().min(3)).min(1).max(10),
   author: z.string().optional(),
+  customInstructions: z.string().optional(),
 });
 
 const slugify = (value: string) =>
@@ -317,13 +319,17 @@ const findDuplicateBlogPostByTopic = async (topic: string) => {
   });
 };
 
-const generateAnthropicBlogDraft = async (topic: string) => {
+const generateAnthropicBlogDraft = async (topic: string, customInstructions?: string) => {
   const apiKey = await getAnthropicApiKey();
   if (!apiKey) {
     throw new Error("Anthropic API key missing. Set CLAUDE_API_KEY or ANTHROPIC_API_KEY in Admin Settings.");
   }
 
-  const prompt = `You are an expert SEO content writer forming an article for InstantSEOScan. Create a complete blog draft about: "${topic}".
+  const customPromptSection = customInstructions?.trim()
+    ? `\nAdditionally, adhere strictly to these custom instructions: "${customInstructions}"\n`
+    : "";
+
+  const prompt = `You are an expert SEO content writer forming an article for InstantSEOScan. Create a complete blog draft about: "${topic}".${customPromptSection}
 Return STRICT JSON only (no markdown fences, no extra text) with this exact shape:
 {
   "title": "Unique SEO-friendly title (do NOT just repeat the topic)",
@@ -1259,7 +1265,7 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Mus
       }
 
       try {
-        const draft = await generateAnthropicBlogDraft(parsed.data.topic);
+        const draft = await generateAnthropicBlogDraft(parsed.data.topic, parsed.data.customInstructions);
         return resAny.status(200).json(draft);
       } catch (error: any) {
         console.error("Anthropic Blog Draft Error:", error);
@@ -1285,7 +1291,7 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Mus
           return resAny.status(400).json({ error: "Invalid payload. Send { topics: ['topic1', ...], author? }", details: bulkParsed.error.flatten() });
         }
 
-        const { topics, author: bulkAuthor } = bulkParsed.data;
+        const { topics, author: bulkAuthor, customInstructions } = bulkParsed.data;
         const results: any[] = [];
         const errors: any[] = [];
         const skipped: any[] = [];
@@ -1313,7 +1319,7 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Mus
             };
           }
 
-          const draft = await generateAnthropicBlogDraft(topic);
+          const draft = await generateAnthropicBlogDraft(topic, customInstructions);
           const normalizedContent = String(draft.content || "").trim();
           const duplicatePost = await findDuplicateBlogPost(topic, draft.title, draft.slug || draft.title, normalizedContent);
           if (duplicatePost) {
@@ -1401,7 +1407,7 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Mus
         return resAny.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
       }
 
-      const { topic, author, coverImage } = parsed.data;
+      const { topic, author, coverImage, customInstructions } = parsed.data;
 
       try {
         const duplicateByTopic = await findDuplicateBlogPostByTopic(topic);
@@ -1409,7 +1415,7 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Mus
           return resAny.status(409).json({ error: `Duplicate topic detected. Existing post found at /blog/${duplicateByTopic.slug}` });
         }
 
-        const draft = await generateAnthropicBlogDraft(topic);
+        const draft = await generateAnthropicBlogDraft(topic, customInstructions);
         const normalizedContent = String(draft.content || "").trim();
         const duplicatePost = await findDuplicateBlogPost(topic, draft.title, draft.slug || draft.title, normalizedContent);
         if (duplicatePost) {
