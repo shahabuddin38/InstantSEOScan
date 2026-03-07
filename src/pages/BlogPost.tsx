@@ -239,11 +239,11 @@ export default function BlogPost() {
               {post.content?.trim() && (
                 /<\/?[a-z][\s\S]*>/i.test(post.content) ? (
                   <div
-                    className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700"
+                    className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700 [&_p]:text-justify [&_p]:leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: post.content }}
                   />
                 ) : (
-                  <div className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700">
+                  <div className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700 [&_p]:text-justify [&_p]:leading-relaxed">
                     <ReactMarkdown>{post.content}</ReactMarkdown>
                   </div>
                 )
@@ -252,11 +252,11 @@ export default function BlogPost() {
           ) : (
             /<\/?[a-z][\s\S]*>/i.test(post.content) ? (
               <div
-                className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700"
+                className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700 [&_p]:text-justify [&_p]:leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: post.content }}
               />
             ) : (
-              <div className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700">
+              <div className="prose prose-lg prose-emerald max-w-none prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700 [&_p]:text-justify [&_p]:leading-relaxed">
                 <ReactMarkdown>{post.content}</ReactMarkdown>
               </div>
             )

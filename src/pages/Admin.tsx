@@ -1903,14 +1903,31 @@ export default function Admin() {
                 and any URL containing adult keywords. Replaces all bad images with fresh, verified,
                 always-SFW Picsum photos.
               </p>
-              <button
-                onClick={handleFixImages}
-                disabled={fixingImages}
-                className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors"
-              >
-                {fixingImages ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
-                {fixingImages ? "Scanning & fixing..." : "Fix All Blog Images Now"}
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={handleFixImages}
+                  disabled={fixingImages}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors"
+                >
+                  {fixingImages ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
+                  {fixingImages ? "Scanning & fixing..." : "Fix Bad Images"}
+                </button>
+                <button
+                  onClick={() => {
+                    if (!confirm("Force-refresh ALL images on every post? This replaces even working images with fresh Picsum photos.")) return;
+                    setFixingImages(true);
+                    setFixImagesResult(null);
+                    apiRequest<any>("/api/admin/blog/fix-images?force=1", { method: "POST", headers: tokenHeaders() })
+                      .then((r) => { setFixImagesResult(r.ok ? r.data : { error: r.error || "Fix failed" }); if (r.ok && r.data?.fixed > 0) fetchBlogPosts(); })
+                      .finally(() => setFixingImages(false));
+                  }}
+                  disabled={fixingImages}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-neutral-700 hover:bg-neutral-900 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors"
+                >
+                  {fixingImages ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                  Force Refresh ALL Images
+                </button>
+              </div>
               {fixImagesResult && (
                 <div className={`mt-4 p-4 rounded-xl text-sm font-medium ${
                   fixImagesResult.error

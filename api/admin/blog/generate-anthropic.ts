@@ -35,26 +35,34 @@ const getAnthropicApiKey = async () => {
   return key || null;
 };
 
-const keywordToImagePath = (keyword: string) =>
-  String(keyword || "blog")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ",")
-    .replace(/^,+|,+$/g, "")
-    .slice(0, 80) || "blog";
+const NSFW_FRAGMENTS_GEN = [
+  "sex","porn","nude","naked","adult","xxx","erotic","fetish","nsfw",
+  "lingerie","bikini","escort","stripper","mature","onlyfans",
+];
 
-const resolveKeywordImage = (keyword: string, width = 1200, height = 630): string =>
-  `https://loremflickr.com/${width}/${height}/${keywordToImagePath(keyword)}`;
+const sanitizeImageKeyword = (raw: string): string => {
+  const kw = String(raw || "business").toLowerCase().trim();
+  return NSFW_FRAGMENTS_GEN.some((f) => kw.includes(f)) ? "professional business technology" : kw;
+};
 
-const resolveStableKeywordImage = async (keyword: string, width = 1200, height = 630) => {
-  const sourceUrl = resolveKeywordImage(keyword, width, height);
+// Unique numeric-seed picsum — curated SFW professional photography, never 404
+const resolveKeywordImage = (_keyword: string, width = 1200, height = 630): string => {
+  const seed = 100_000 + Math.floor(Math.random() * 8_900_000) + (Date.now() % 100_000);
+  return `https://picsum.photos/seed/${seed}/${width}/${height}`;
+};
+
+const resolveStableKeywordImage = async (keyword: string, width = 1200, height = 630): Promise<string> => {
+  const safeKeyword = sanitizeImageKeyword(keyword);
+  const url = resolveKeywordImage(safeKeyword, width, height);
   try {
-    const response = await fetch(sourceUrl, { method: "HEAD", redirect: "follow" });
-    if (response.url && response.url !== sourceUrl) {
-      return response.url;
-    }
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(url, { method: "HEAD", signal: ctrl.signal, redirect: "follow" });
+    clearTimeout(timer);
+    if (res.ok) return res.url || url;
   } catch { }
-  return sourceUrl;
+  const seed2 = 100_000 + Math.floor(Math.random() * 8_900_000);
+  return `https://picsum.photos/seed/${seed2}/${width}/${height}`;
 };
 
 const generateDraft = async (topic: string) => {
@@ -63,18 +71,18 @@ const generateDraft = async (topic: string) => {
     throw new Error("Anthropic API key missing. Set CLAUDE_API_KEY or ANTHROPIC_API_KEY in Admin Settings.");
   }
 
-  const prompt = `You are an expert SEO content writer. Create a complete blog draft about: "${topic}".
+  const prompt = `You are a world-class SEO content writer for InstantSEOScan. Write a comprehensive, publication-ready blog article about: "${topic}".
 Return STRICT JSON only (no markdown fences, no extra text) with this exact shape:
 {
-  "title": "Unique SEO-friendly title (do NOT just repeat the topic)",
-  "slug": "unique-seo-friendly-slug",
-  "metaDescription": "Compelling meta description under 160 chars for search engines",
-  "excerpt": "Engaging summary under 160 chars for blog listing cards",
-  "coverImageKeyword": "1-3 word keyword for sourcing a relevant cover photo (e.g. 'seo analytics')",
-  "coverImageAlt": "Descriptive alt text for the cover image (accessibility + SEO)",
-  "content": "Full blog content in HTML with <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em> tags. Minimum 800 words. Include an <img> tag in the middle with src=PLACEHOLDER_IMG and a descriptive alt attribute."
+  "title": "Unique, compelling SEO title that is creative and NOT a copy of the topic",
+  "slug": "seo-friendly-url-slug",
+  "metaDescription": "Meta description under 160 characters including primary keyword",
+  "excerpt": "Engaging 1-2 sentence summary for blog listing cards under 160 chars",
+  "coverImageKeyword": "2-3 word professional keyword for cover photo (e.g. 'seo analytics dashboard')",
+  "coverImageAlt": "Descriptive keyword-rich alt text for the cover image",
+  "content": "FULL HTML article — ALL requirements below MUST be met: (1) Open with <h1 style='font-size:2rem;font-weight:900;margin-bottom:1rem'>[article title]</h1> (2) ALL <p> tags MUST include style='text-align:justify;line-height:1.8' (3) Write 5-6 <h2> main sections, each with 1-2 <h3> sub-sections and 2-3 justified paragraphs (4) Named Entities: naturally mention real brands/tools like Google Search Console, Semrush, Ahrefs, Moz, Screaming Frog, or other relevant entities from the topic domain (5) N-gram richness: embed 3-5 semantically related 2-4 word keyword phrases per section (6) After the second h2 section insert <img src='PLACEHOLDER_IMG' alt='[descriptive alt]' style='width:100%;border-radius:12px;margin:1.5rem 0;display:block' /> (7) Add a People Also Ask section: <h2 style='font-size:1.5rem;font-weight:800;margin:2rem 0 1rem'>People Also Ask</h2> with 4-5 Q&A pairs each as <div style='border:1px solid #e5e7eb;border-radius:8px;padding:1rem;margin:0.75rem 0'><strong style='display:block;margin-bottom:0.5rem'>Q: [question]</strong><p style='text-align:justify;line-height:1.8;margin:0'>A: [2-3 sentence answer]</p></div> (8) Add a Frequently Asked Questions section: <h2 style='font-size:1.5rem;font-weight:800;margin:2rem 0 1rem'>Frequently Asked Questions</h2> with 5 Q&A pairs in the same format (9) End with <h2>Conclusion</h2> and a 2-3 paragraph justified summary plus a CTA linking to https://instantseoscan.com (10) Include at least 2 <a href='https://instantseoscan.com/[tool]'> internal links to relevant tools such as /tools/corescan /tools/on-page /schema-generator /keyword-density (11) Minimum 1800 words total (12) Use <ul><li> for lists <strong> for key terms <em> for technical terms"
 }
-IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
+IMPORTANT: Return ONLY the JSON. No commentary, no code fences, no extra text.`;
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -85,7 +93,7 @@ IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
     },
     body: JSON.stringify({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
-      max_tokens: 4000,
+      max_tokens: 8000,
       temperature: 0.7,
       messages: [{ role: "user", content: prompt }],
     }),

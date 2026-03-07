@@ -314,18 +314,18 @@ const generateAnthropicBlogDraft = async (topic: string, customInstructions?: st
     ? `\nAdditionally, adhere strictly to these custom instructions: "${customInstructions}"\n`
     : "";
 
-  const prompt = `You are an expert SEO content writer forming an article for InstantSEOScan. Create a complete blog draft about: "${topic}".${customPromptSection}
+  const prompt = `You are a world-class SEO content writer for InstantSEOScan. Write a comprehensive, publication-ready blog article about: "${topic}".${customPromptSection}
 Return STRICT JSON only (no markdown fences, no extra text) with this exact shape:
 {
-  "title": "Unique SEO-friendly title (do NOT just repeat the topic)",
-  "slug": "unique-seo-friendly-slug",
-  "metaDescription": "Compelling meta description under 160 chars for search engines",
-  "excerpt": "Engaging summary under 160 chars for blog listing cards",
-  "coverImageKeyword": "1-3 word keyword for sourcing a relevant cover photo (e.g. 'seo analytics')",
-  "coverImageAlt": "Descriptive alt text for the cover image (accessibility + SEO)",
-  "content": "Full blog content in HTML with <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em> tags. Minimum 800 words. Include an <img> tag in the middle with src=PLACEHOLDER_IMG and a descriptive alt attribute. MUST INCLUDE at least 2 contextual <a> tags pointing to relevant internal tool pages on https://instantseoscan.com (e.g. https://instantseoscan.com/tools/corescan, https://instantseoscan.com/tools/on-page, https://instantseoscan.com/schema-generator, etc)."
+  "title": "Unique, compelling SEO title that is creative and NOT a copy of the topic",
+  "slug": "seo-friendly-url-slug",
+  "metaDescription": "Meta description under 160 characters including primary keyword",
+  "excerpt": "Engaging 1-2 sentence summary for blog listing cards under 160 chars",
+  "coverImageKeyword": "2-3 word professional keyword for cover photo (e.g. 'seo analytics dashboard')",
+  "coverImageAlt": "Descriptive keyword-rich alt text for the cover image",
+  "content": "FULL HTML article — ALL requirements below MUST be met: (1) Open with <h1 style='font-size:2rem;font-weight:900;margin-bottom:1rem'>[article title]</h1> (2) ALL <p> tags MUST include style='text-align:justify;line-height:1.8' (3) Write 5-6 <h2> main sections, each with 1-2 <h3> sub-sections and 2-3 justified paragraphs (4) Named Entities: naturally mention real brands/tools like Google Search Console, Semrush, Ahrefs, Moz, Screaming Frog, or other relevant entities from the topic domain (5) N-gram richness: embed 3-5 semantically related 2-4 word keyword phrases per section (6) After the second h2 section insert <img src='PLACEHOLDER_IMG' alt='[descriptive alt]' style='width:100%;border-radius:12px;margin:1.5rem 0;display:block' /> (7) Add a People Also Ask section: <h2 style='font-size:1.5rem;font-weight:800;margin:2rem 0 1rem'>People Also Ask</h2> with 4-5 Q&A pairs each as <div style='border:1px solid #e5e7eb;border-radius:8px;padding:1rem;margin:0.75rem 0'><strong style='display:block;margin-bottom:0.5rem'>Q: [question]</strong><p style='text-align:justify;line-height:1.8;margin:0'>A: [2-3 sentence answer]</p></div> (8) Add a Frequently Asked Questions section: <h2 style='font-size:1.5rem;font-weight:800;margin:2rem 0 1rem'>Frequently Asked Questions</h2> with 5 Q&A pairs in the same format (9) End with <h2>Conclusion</h2> and a 2-3 paragraph justified summary plus a CTA linking to https://instantseoscan.com (10) Include at least 2 <a href='https://instantseoscan.com/[tool]'> internal links to relevant tools such as /tools/corescan /tools/on-page /schema-generator /keyword-density (11) Minimum 1800 words total (12) Use <ul><li> for lists <strong> for key terms <em> for technical terms"
 }
-IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
+IMPORTANT: Return ONLY the JSON. No commentary, no code fences, no extra text.`;
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -337,7 +337,7 @@ IMPORTANT: The title MUST be unique and creative, not a copy of the topic.`;
       },
       body: JSON.stringify({
         model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
-        max_tokens: 4000,
+        max_tokens: 8000,
         temperature: 0.7,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -1458,34 +1458,38 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Mus
   }
 
   // POST /api/admin/blog/fix-images
-  // Scans all blog posts for loremflickr, broken, or NSFW-risk image URLs
-  // and replaces them with fresh reliable picsum images.
+  // Scans ALL blog posts for broken/NSFW/fallback image URLs and replaces them.
+  // ?force=1  — replace EVERY image on every post (full refresh)
   if (path === "/api/admin/blog/fix-images") {
     const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
       if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
       if (reqAny.method !== "POST") return resAny.status(405).end();
+
+      const force = url.searchParams.get("force") === "1";
 
       const NSFW_FRAGMENTS = [
         "sex","porn","nude","naked","adult","xxx","erotic","fetish","nsfw",
         "lingerie","bikini","escort","stripper","mature","onlyfans",
       ];
 
-      const isBadUrl = (u: string): boolean => {
-        if (!u) return false;
+      const isBadUrl = (u: string | null | undefined): boolean => {
+        if (!u) return true; // null/empty → always fix
         const lower = u.toLowerCase();
-        if (lower.includes("loremflickr")) return true; // old provider — can serve 18+
+        if (force) return true; // force mode: replace everything
+        if (lower.includes("loremflickr")) return true;
+        if (lower.includes("via.placeholder.com")) return true; // fallback placeholder
+        if (lower.includes("placeholder.com")) return true;
+        // string-seed picsum can 404 — numeric seeds are fine
         if (lower.includes("picsum.photos/seed/")) {
-          // only replace string-seed picsum (string seeds can 404); numeric seeds are fine
           const seedMatch = lower.match(/picsum\.photos\/seed\/([^/]+)/);
           if (seedMatch && !/^\d+$/.test(seedMatch[1])) return true;
         }
         if (NSFW_FRAGMENTS.some((f) => lower.includes(f))) return true;
-        if (lower.includes("placeholder") && lower.includes("loremflickr")) return true;
         return false;
       };
 
       const freshImage = (width = 1200, height = 630): string => {
-        const seed = 100_000 + Math.floor(Math.random() * 8_900_000) + (Date.now() % 10_000);
+        const seed = 100_000 + Math.floor(Math.random() * 8_900_000) + (Date.now() % 100_000);
         return `https://picsum.photos/seed/${seed}/${width}/${height}`;
       };
 
@@ -1502,25 +1506,25 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Mus
         let newContent = String(post.content || "");
         let newBlocks = Array.isArray(post.blocks) ? (post.blocks as any[]) : [];
 
-        // Fix coverImage
-        if (newCover && isBadUrl(newCover)) {
+        // Fix coverImage (including missing/null)
+        if (isBadUrl(newCover)) {
           newCover = freshImage(1200, 630);
           dirty = true;
         }
 
         // Fix block images
         newBlocks = newBlocks.map((b: any) => {
-          if (b?.type === "image" && b?.url && isBadUrl(b.url)) {
+          if (b?.type === "image" && isBadUrl(b?.url)) {
             dirty = true;
             return { ...b, url: freshImage(1200, 630) };
           }
           return b;
         });
 
-        // Fix inline <img src="..."> in HTML content
+        // Fix inline <img src> in HTML content
         newContent = newContent.replace(
-          /<img([^>]*?)src=["']([^"']+)["']/gi,
-          (match, attrs, src) => {
+          /<img([^>]*?)src=["']([^"']*)["']/gi,
+          (match: string, attrs: string, src: string) => {
             if (isBadUrl(src)) {
               dirty = true;
               return `<img${attrs}src="${freshImage(800, 450)}"`;
@@ -1539,7 +1543,7 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Mus
         }
       }
 
-      return resAny.json({ ok: true, scanned: posts.length, fixed, fixedIds });
+      return resAny.json({ ok: true, scanned: posts.length, fixed, force, fixedIds });
     });
     return authed(req as any, res as any);
   }
