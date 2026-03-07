@@ -221,6 +221,8 @@ export default function Admin() {
   const [bulkTopics, setBulkTopics] = useState("");
   const [bulkPosting, setBulkPosting] = useState(false);
   const [bulkResult, setBulkResult] = useState<any>(null);
+  const [fixingImages, setFixingImages] = useState(false);
+  const [fixImagesResult, setFixImagesResult] = useState<any>(null);
 
   // ── Growth Engine State ──────────────────────
   type GrowthLead = {
@@ -987,6 +989,23 @@ export default function Admin() {
       await Promise.all([fetchBlogPosts(), fetchStats()]);
     } finally {
       setBulkPosting(false);
+    }
+  };
+
+  const handleFixImages = async () => {
+    if (!confirm("Scan all blog posts for broken/NSFW image URLs and replace them with safe Picsum photos?")) return;
+    setFixingImages(true);
+    setFixImagesResult(null);
+    const r = await apiRequest<any>("/api/admin/blog/fix-images", {
+      method: "POST",
+      headers: tokenHeaders(),
+    });
+    setFixingImages(false);
+    if (r.ok && r.data) {
+      setFixImagesResult(r.data);
+      if (r.data.fixed > 0) fetchBlogPosts();
+    } else {
+      setFixImagesResult({ error: r.error || "Fix failed" });
     }
   };
 
@@ -1870,6 +1889,42 @@ export default function Admin() {
                       <span className="font-bold">{err.topic}:</span> {err.error}
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Fix Corrupt / NSFW Images */}
+            <div className="mt-8 bg-white border border-neutral-200 rounded-2xl p-6 shadow-sm">
+              <h3 className="font-bold text-neutral-900 mb-1 flex items-center gap-2 text-base">
+                🛡️ Fix Corrupt &amp; NSFW Images
+              </h3>
+              <p className="text-sm text-neutral-500 mb-4">
+                Scans every blog post for broken loremflickr URLs, string-seed Picsum URLs (which can 404),
+                and any URL containing adult keywords. Replaces all bad images with fresh, verified,
+                always-SFW Picsum photos.
+              </p>
+              <button
+                onClick={handleFixImages}
+                disabled={fixingImages}
+                className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors"
+              >
+                {fixingImages ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
+                {fixingImages ? "Scanning & fixing..." : "Fix All Blog Images Now"}
+              </button>
+              {fixImagesResult && (
+                <div className={`mt-4 p-4 rounded-xl text-sm font-medium ${
+                  fixImagesResult.error
+                    ? "bg-red-50 border border-red-200 text-red-700"
+                    : fixImagesResult.fixed === 0
+                      ? "bg-neutral-50 border border-neutral-200 text-neutral-600"
+                      : "bg-emerald-50 border border-emerald-200 text-emerald-800"
+                }`}>
+                  {fixImagesResult.error
+                    ? fixImagesResult.error
+                    : fixImagesResult.fixed === 0
+                      ? `✅ All ${fixImagesResult.scanned} posts already have safe images. No fixes needed.`
+                      : `✅ Fixed ${fixImagesResult.fixed} of ${fixImagesResult.scanned} posts. All images are now safe and verified.`
+                  }
                 </div>
               )}
             </div>

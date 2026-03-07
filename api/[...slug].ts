@@ -1457,6 +1457,93 @@ Make sure to include at least 8-10 blocks total for a comprehensive article. Mus
     return authed(req as any, res as any);
   }
 
+  // POST /api/admin/blog/fix-images
+  // Scans all blog posts for loremflickr, broken, or NSFW-risk image URLs
+  // and replaces them with fresh reliable picsum images.
+  if (path === "/api/admin/blog/fix-images") {
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
+      if (reqAny.method !== "POST") return resAny.status(405).end();
+
+      const NSFW_FRAGMENTS = [
+        "sex","porn","nude","naked","adult","xxx","erotic","fetish","nsfw",
+        "lingerie","bikini","escort","stripper","mature","onlyfans",
+      ];
+
+      const isBadUrl = (u: string): boolean => {
+        if (!u) return false;
+        const lower = u.toLowerCase();
+        if (lower.includes("loremflickr")) return true; // old provider — can serve 18+
+        if (lower.includes("picsum.photos/seed/")) {
+          // only replace string-seed picsum (string seeds can 404); numeric seeds are fine
+          const seedMatch = lower.match(/picsum\.photos\/seed\/([^/]+)/);
+          if (seedMatch && !/^\d+$/.test(seedMatch[1])) return true;
+        }
+        if (NSFW_FRAGMENTS.some((f) => lower.includes(f))) return true;
+        if (lower.includes("placeholder") && lower.includes("loremflickr")) return true;
+        return false;
+      };
+
+      const freshImage = (width = 1200, height = 630): string => {
+        const seed = 100_000 + Math.floor(Math.random() * 8_900_000) + (Date.now() % 10_000);
+        return `https://picsum.photos/seed/${seed}/${width}/${height}`;
+      };
+
+      const posts = await prisma.blogPost.findMany({
+        select: { id: true, coverImage: true, blocks: true, content: true },
+      });
+
+      let fixed = 0;
+      const fixedIds: string[] = [];
+
+      for (const post of posts) {
+        let dirty = false;
+        let newCover = post.coverImage;
+        let newContent = String(post.content || "");
+        let newBlocks = Array.isArray(post.blocks) ? (post.blocks as any[]) : [];
+
+        // Fix coverImage
+        if (newCover && isBadUrl(newCover)) {
+          newCover = freshImage(1200, 630);
+          dirty = true;
+        }
+
+        // Fix block images
+        newBlocks = newBlocks.map((b: any) => {
+          if (b?.type === "image" && b?.url && isBadUrl(b.url)) {
+            dirty = true;
+            return { ...b, url: freshImage(1200, 630) };
+          }
+          return b;
+        });
+
+        // Fix inline <img src="..."> in HTML content
+        newContent = newContent.replace(
+          /<img([^>]*?)src=["']([^"']+)["']/gi,
+          (match, attrs, src) => {
+            if (isBadUrl(src)) {
+              dirty = true;
+              return `<img${attrs}src="${freshImage(800, 450)}"`;
+            }
+            return match;
+          }
+        );
+
+        if (dirty) {
+          await prisma.blogPost.update({
+            where: { id: post.id },
+            data: { coverImage: newCover, blocks: newBlocks, content: newContent },
+          });
+          fixed++;
+          fixedIds.push(post.id);
+        }
+      }
+
+      return resAny.json({ ok: true, scanned: posts.length, fixed, fixedIds });
+    });
+    return authed(req as any, res as any);
+  }
+
   // Admin: blog update/delete (PUT/DELETE /api/admin/blog/:id)
   if (path.startsWith("/api/admin/blog/") && path.split("/").length === 5) {
     const id = path.split("/")[4];
