@@ -29,6 +29,24 @@ import {
   FileEdit,
   Moon,
   Upload,
+  // Growth Engine icons
+  Target,
+  Send,
+  Bot,
+  MapPin,
+  AtSign,
+  Play,
+  Pause,
+  Database,
+  Globe,
+  Mail,
+  Activity,
+  Loader2,
+  ArrowUpRight,
+  ToggleLeft,
+  ToggleRight,
+  Cpu,
+  ChevronDown,
 } from "lucide-react";
 import { apiRequest } from "../services/apiClient";
 import { cn } from "../lib/utils";
@@ -178,7 +196,7 @@ const SEOProgress = ({ score = 80 }: { score?: number }) => {
 
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "crm" | "cms" | "settings" | "aiwriter" | "autopost">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "crm" | "cms" | "settings" | "aiwriter" | "autopost" | "leads" | "campaigns" | "templates" | "automation" | "scraper">("dashboard");
   const [stats, setStats] = useState<AdminStats>({});
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [crm, setCrm] = useState<CRMResponse>({});
@@ -202,6 +220,40 @@ export default function Admin() {
   const [bulkTopics, setBulkTopics] = useState("");
   const [bulkPosting, setBulkPosting] = useState(false);
   const [bulkResult, setBulkResult] = useState<any>(null);
+
+  // ── Growth Engine State ──────────────────────
+  type GrowthLead = {
+    id: string; companyName?: string; website: string; email?: string;
+    seoScore?: number; status: string; industry?: string; location?: string;
+    leadSource?: string; createdAt: string; issues?: string[];
+  };
+  type GrowthTemplate = { id: string; name: string; subject: string; body: string; createdAt: string; };
+  type GrowthCampaign = {
+    id: string; name: string; status: string; templateId: string; createdAt: string;
+    template?: { name: string; subject: string };
+    _count?: { logs: number };
+  };
+  type AutoModule = { id: string; module: string; enabled: boolean; scheduleInterval: string; updatedAt: string; };
+
+  const [growthLeads, setGrowthLeads] = useState<GrowthLead[]>([]);
+  const [loadingLeads, setLoadingLeads] = useState(false);
+  const [leadSearch, setLeadSearch] = useState("");
+  const [growthTemplates, setGrowthTemplates] = useState<GrowthTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({ name: "", subject: "", body: "" });
+  const [growthCampaigns, setGrowthCampaigns] = useState<GrowthCampaign[]>([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [newCampaign, setNewCampaign] = useState({ name: "", templateId: "" });
+  const [sendingCampaignId, setSendingCampaignId] = useState<string | null>(null);
+  const [campaignSendResult, setCampaignSendResult] = useState<any>(null);
+  const [autoModules, setAutoModules] = useState<AutoModule[]>([]);
+  const [loadingAuto, setLoadingAuto] = useState(false);
+  const [togglingModule, setTogglingModule] = useState<string | null>(null);
+  const [scraperForm, setScraperForm] = useState({ keyword: "", location: "", source: "google", maxLeads: "10" });
+  const [scraping, setScraping] = useState(false);
+  const [scrapeResult, setScrapeResult] = useState<any>(null);
 
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -294,6 +346,144 @@ export default function Admin() {
     }
   };
 
+  // ── Growth Engine fetch helpers ─────────────────
+  const fetchGrowthLeads = async () => {
+    setLoadingLeads(true);
+    const r = await apiRequest<any[]>("/api/admin/growth/leads", { headers: tokenHeaders() });
+    if (r.ok && r.data) setGrowthLeads(r.data);
+    setLoadingLeads(false);
+  };
+
+  const fetchGrowthTemplates = async () => {
+    setLoadingTemplates(true);
+    const r = await apiRequest<any[]>("/api/admin/growth/templates", { headers: tokenHeaders() });
+    if (r.ok && r.data) setGrowthTemplates(r.data);
+    setLoadingTemplates(false);
+  };
+
+  const fetchGrowthCampaigns = async () => {
+    setLoadingCampaigns(true);
+    const r = await apiRequest<any[]>("/api/admin/growth/campaigns", { headers: tokenHeaders() });
+    if (r.ok && r.data) setGrowthCampaigns(r.data);
+    setLoadingCampaigns(false);
+  };
+
+  const fetchAutoModules = async () => {
+    setLoadingAuto(true);
+    const r = await apiRequest<any[]>("/api/admin/growth/automation", { headers: tokenHeaders() });
+    if (r.ok && r.data) setAutoModules(r.data);
+    setLoadingAuto(false);
+  };
+
+  const handleScrape = async () => {
+    if (!scraperForm.keyword.trim()) return;
+    setScraping(true);
+    setScrapeResult(null);
+    const r = await apiRequest<any>("/api/admin/growth/scraper", {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        keyword: scraperForm.keyword,
+        location: scraperForm.location,
+        source: scraperForm.source,
+        maxLeads: Number(scraperForm.maxLeads),
+      }),
+    });
+    if (r.ok) {
+      setScrapeResult(r.data);
+      await fetchGrowthLeads();
+    } else {
+      setScrapeResult({ error: r.error });
+    }
+    setScraping(false);
+  };
+
+  const handleCreateTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const r = await apiRequest<any>("/api/admin/growth/templates", {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify(newTemplate),
+    });
+    if (r.ok) {
+      await fetchGrowthTemplates();
+      setShowTemplateModal(false);
+      setNewTemplate({ name: "", subject: "", body: "" });
+    } else {
+      alert(r.error || "Failed to create template");
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    if (!confirm("Delete this template?")) return;
+    await apiRequest(`/api/admin/growth/templates?id=${id}`, { method: "DELETE", headers: tokenHeaders() });
+    setGrowthTemplates((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleCreateCampaign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const r = await apiRequest<any>("/api/admin/growth/campaigns", {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify(newCampaign),
+    });
+    if (r.ok) {
+      await fetchGrowthCampaigns();
+      setShowCampaignModal(false);
+      setNewCampaign({ name: "", templateId: "" });
+    } else {
+      alert(r.error || "Failed to create campaign");
+    }
+  };
+
+  const handleDeleteCampaign = async (id: string) => {
+    if (!confirm("Delete this campaign?")) return;
+    await apiRequest(`/api/admin/growth/campaigns?id=${id}`, { method: "DELETE", headers: tokenHeaders() });
+    setGrowthCampaigns((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const handleSendCampaign = async (campaignId: string) => {
+    if (!confirm("Send this campaign to all new leads with email addresses?")) return;
+    setSendingCampaignId(campaignId);
+    setCampaignSendResult(null);
+    const r = await apiRequest<any>("/api/admin/growth/campaigns/send", {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ campaignId }),
+    });
+    setSendingCampaignId(null);
+    setCampaignSendResult(r.data || { error: r.error });
+    if (r.ok) await fetchGrowthCampaigns();
+  };
+
+  const handleDeleteLead = async (id: string) => {
+    if (!confirm("Delete this lead?")) return;
+    await apiRequest(`/api/admin/growth/leads?id=${id}`, { method: "DELETE", headers: tokenHeaders() });
+    setGrowthLeads((prev) => prev.filter((l) => l.id !== id));
+  };
+
+  const handleToggleModule = async (module: string, currentEnabled: boolean) => {
+    setTogglingModule(module);
+    const r = await apiRequest<any>("/api/admin/growth/automation", {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ module, enabled: !currentEnabled }),
+    });
+    if (r.ok) {
+      setAutoModules((prev) => prev.map((m) => m.module === module ? { ...m, enabled: !currentEnabled } : m));
+    }
+    setTogglingModule(null);
+  };
+
+  const handleUpdateSchedule = async (module: string, scheduleInterval: string) => {
+    await apiRequest<any>("/api/admin/growth/automation", {
+      method: "POST",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ module, scheduleInterval }),
+    });
+    setAutoModules((prev) => prev.map((m) => m.module === module ? { ...m, scheduleInterval } : m));
+  };
+
   const saveSettings = async () => {
     setSavingSettings(true);
     setError("");
@@ -334,6 +524,14 @@ export default function Admin() {
       setSelectedPost(posts[0]);
     }
   }, [posts, activeTab]);
+
+  // Lazy-load Growth Engine data when tabs become active
+  useEffect(() => {
+    if (activeTab === "leads" || activeTab === "scraper") fetchGrowthLeads();
+    if (activeTab === "templates") fetchGrowthTemplates();
+    if (activeTab === "campaigns") { fetchGrowthCampaigns(); fetchGrowthTemplates(); }
+    if (activeTab === "automation") fetchAutoModules();
+  }, [activeTab]);
 
   const handleApprove = async (userId: string) => {
     const result = await apiRequest(`/api/admin/users/${userId}/approve`, {
@@ -793,6 +991,17 @@ export default function Admin() {
           </div>
 
           <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-4">Growth Engine</p>
+            <nav className="flex flex-col gap-1">
+              <SidebarItem icon={Target} label="Lead Scraper" active={activeTab === "scraper"} onClick={() => setActiveTab("scraper")} />
+              <SidebarItem icon={Database} label="Leads CRM" active={activeTab === "leads"} onClick={() => setActiveTab("leads")} />
+              <SidebarItem icon={Mail} label="Campaigns" active={activeTab === "campaigns"} onClick={() => setActiveTab("campaigns")} />
+              <SidebarItem icon={FileEdit} label="Email Templates" active={activeTab === "templates"} onClick={() => setActiveTab("templates")} />
+              <SidebarItem icon={Bot} label="Automation" active={activeTab === "automation"} onClick={() => setActiveTab("automation")} />
+            </nav>
+          </div>
+
+          <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-4">Configuration</p>
             <nav className="flex flex-col gap-1">
               <SidebarItem icon={Users} label="Team Members" active={activeTab === "crm"} onClick={() => setActiveTab("crm")} />
@@ -830,6 +1039,11 @@ export default function Admin() {
               {activeTab === "settings" && "SEO Settings"}
               {activeTab === "aiwriter" && "AI Article Writer"}
               {activeTab === "autopost" && "Auto Post via Anthropic"}
+              {activeTab === "scraper" && (<>Lead <span className="text-indigo-600">Scraper Engine</span></>)}
+              {activeTab === "leads" && (<>Leads <span className="text-indigo-600">CRM</span></>)}
+              {activeTab === "campaigns" && "Email Campaigns"}
+              {activeTab === "templates" && "Email Templates"}
+              {activeTab === "automation" && "Automation Rules"}
             </h1>
             <p className="text-slate-500 font-medium">
               {activeTab === "dashboard" ? "System statistics and recent activity." :
@@ -837,7 +1051,12 @@ export default function Admin() {
                   activeTab === "crm" ? "Manage users, subscriptions, and plans." :
                     activeTab === "settings" ? "Configure API keys and platform settings." :
                       activeTab === "aiwriter" ? "Generate SEO optimized articles in a single click." :
-                        "Create and publish a complete blog post from one topic using Anthropic."}
+                        activeTab === "autopost" ? "Create and publish a complete blog post from one topic using Anthropic." :
+                          activeTab === "scraper" ? "Discover businesses with poor SEO at scale — up to 10,000 leads/day." :
+                            activeTab === "leads" ? "Manage and track scraped leads, SEO opportunities, and outreach status." :
+                              activeTab === "campaigns" ? "Create and send personalized AI-powered email campaigns to leads." :
+                                activeTab === "templates" ? "Build reusable outreach templates with dynamic personalization variables." :
+                                  "Enable automated lead discovery, SEO scanning, and email outreach workflows."}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -853,6 +1072,22 @@ export default function Admin() {
                 <Plus size={20} />
                 Create New Post
               </button>
+            )}
+            {activeTab === "templates" && (
+              <button onClick={() => setShowTemplateModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all">
+                <Plus size={20} /> New Template
+              </button>
+            )}
+            {activeTab === "campaigns" && (
+              <button onClick={() => setShowCampaignModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all">
+                <Plus size={20} /> New Campaign
+              </button>
+            )}
+            {(activeTab === "scraper" || activeTab === "leads" || activeTab === "campaigns" || activeTab === "templates" || activeTab === "automation") && (
+              <a href="/growth-engine-guide.html" target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-indigo-200 rounded-xl text-indigo-700 text-sm font-bold hover:bg-indigo-50 transition-colors">
+                📘 User Guide
+              </a>
             )}
           </div>
         </header>
@@ -1743,6 +1978,380 @@ export default function Admin() {
                   <Save size={16} />
                   {savingSettings ? "Saving..." : "Save Settings"}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== GROWTH ENGINE: LEAD SCRAPER TAB ===== */}
+        {activeTab === "scraper" && (
+          <div className="max-w-3xl space-y-8">
+            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-indigo-50 rounded-xl"><Target size={22} className="text-indigo-600" /></div>
+                <div>
+                  <h2 className="font-bold text-lg text-slate-900">Lead Discovery Scraper</h2>
+                  <p className="text-xs text-slate-500">Search for businesses with poor SEO by keyword + location</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-slate-700">Industry / Keyword <span className="text-red-500">*</span></label>
+                  <input value={scraperForm.keyword} onChange={e => setScraperForm({ ...scraperForm, keyword: e.target.value })}
+                    placeholder="e.g. dentist, plumber, law firm"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-1"><MapPin size={14} /> City / Location</label>
+                  <input value={scraperForm.location} onChange={e => setScraperForm({ ...scraperForm, location: e.target.value })}
+                    placeholder="e.g. New York, London"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-slate-700">Source</label>
+                  <select value={scraperForm.source} onChange={e => setScraperForm({ ...scraperForm, source: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white">
+                    <option value="google">Google Search</option>
+                    <option value="bing">Bing Search</option>
+                    <option value="maps">Google Maps</option>
+                    <option value="yellowpages">Yellow Pages</option>
+                    <option value="linkedin">LinkedIn</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-slate-700">Max Leads</label>
+                  <input type="number" min="1" max="50" value={scraperForm.maxLeads}
+                    onChange={e => setScraperForm({ ...scraperForm, maxLeads: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                </div>
+              </div>
+              <button onClick={handleScrape} disabled={scraping || !scraperForm.keyword.trim()}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 transition-all">
+                {scraping ? <><Loader2 size={16} className="animate-spin" /> Scraping...</> : <><Target size={16} /> Start Scraping</>}
+              </button>
+            </div>
+
+            {scrapeResult && (
+              <div className={`p-5 rounded-2xl border text-sm font-medium ${scrapeResult.error ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-800"}`}>
+                {scrapeResult.error ? `Error: ${scrapeResult.error}` : (
+                  <div>
+                    <div className="font-bold text-base mb-1">✓ Scrape Complete — Query: "{scrapeResult.query}"</div>
+                    <div>{scrapeResult.found} new lead{scrapeResult.found !== 1 ? "s" : ""} discovered and saved to CRM.</div>
+                    <button onClick={() => setActiveTab("leads")} className="mt-3 text-sm font-bold text-indigo-600 underline">View in Leads CRM →</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-6">
+              <h3 className="font-bold text-sm text-slate-800 mb-3">Example Search Patterns</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {["dentist in New York", "plumber near London", "law firm Chicago", "restaurant in Paris", "real estate agent Dubai", "marketing agency Berlin"].map(q => (
+                  <button key={q} onClick={() => { const [kw, , loc] = q.split(" in "); setScraperForm(p => ({ ...p, keyword: kw || q, location: loc || "" })); }}
+                    className="text-left text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition-colors">
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== GROWTH ENGINE: LEADS CRM TAB ===== */}
+        {activeTab === "leads" && (
+          <div>
+            <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+              <div className="p-4 border-b border-neutral-200 bg-neutral-50/50 flex flex-col sm:flex-row gap-4 justify-between items-center">
+                <div className="relative w-full sm:w-96">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
+                  <input type="text" placeholder="Search by company or domain..." value={leadSearch}
+                    onChange={e => setLeadSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 font-medium">{growthLeads.length} total leads</span>
+                  <button onClick={() => setActiveTab("scraper")}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-lg text-sm font-semibold text-white hover:bg-indigo-700 transition-colors">
+                    <Target size={16} /> New Scrape
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-x-auto">
+                <table className="w-full text-left text-sm text-neutral-600">
+                  <thead className="bg-neutral-50 text-neutral-700 text-xs uppercase font-bold border-b border-neutral-200">
+                    <tr>
+                      <th className="px-6 py-4">Company</th>
+                      <th className="px-6 py-4">SEO Score</th>
+                      <th className="px-6 py-4">Contact</th>
+                      <th className="px-6 py-4">Source</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingLeads ? (
+                      <tr><td colSpan={6} className="px-6 py-12 text-center text-neutral-500"><Loader2 className="animate-spin mx-auto mb-2" size={24} /> Loading leads...</td></tr>
+                    ) : growthLeads.filter(l => !leadSearch || l.companyName?.toLowerCase().includes(leadSearch.toLowerCase()) || l.website.toLowerCase().includes(leadSearch.toLowerCase())).length === 0 ? (
+                      <tr><td colSpan={6} className="px-6 py-12 text-center text-neutral-400">No leads found. Go to Lead Scraper to discover leads.</td></tr>
+                    ) : growthLeads.filter(l => !leadSearch || l.companyName?.toLowerCase().includes(leadSearch.toLowerCase()) || l.website.toLowerCase().includes(leadSearch.toLowerCase())).map(lead => (
+                      <tr key={lead.id} className="border-b border-neutral-100 hover:bg-neutral-50/50 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold border border-indigo-100 shrink-0 text-sm">
+                              {(lead.companyName?.[0] || lead.website[0] || "?").toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="font-bold text-neutral-900 text-sm">{lead.companyName || "Unknown"}</div>
+                              <a href={`https://${lead.website}`} target="_blank" rel="noopener noreferrer"
+                                className="text-xs text-indigo-600 hover:underline flex items-center gap-0.5">
+                                {lead.website}<ArrowUpRight size={10} />
+                              </a>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {lead.seoScore != null ? (
+                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold ${lead.seoScore >= 80 ? "bg-emerald-50 text-emerald-700" : lead.seoScore >= 50 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"}`}>
+                              {lead.seoScore}/100
+                            </span>
+                          ) : <span className="text-neutral-400 text-xs italic">—</span>}
+                        </td>
+                        <td className="px-6 py-4">
+                          {lead.email ? <span className="flex items-center gap-1 text-sm"><AtSign size={12} className="text-neutral-400" />{lead.email}</span>
+                            : <span className="text-xs text-neutral-400 italic">No email</span>}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xs text-neutral-500 capitalize">{lead.leadSource || "manual"}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${lead.status === "new" ? "bg-blue-50 text-blue-700 border border-blue-100" : lead.status === "contacted" ? "bg-purple-50 text-purple-700 border border-purple-100" : lead.status === "replied" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : lead.status === "converted" ? "bg-green-50 text-green-700 border border-green-100" : "bg-neutral-100 text-neutral-600 border border-neutral-200"}`}>
+                            {lead.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button onClick={() => handleDeleteLead(lead.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                            title="Delete lead"><Trash2 size={15} /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {growthLeads.length > 0 && (
+                <div className="p-4 border-t border-neutral-100 bg-neutral-50/50 flex justify-between items-center">
+                  <span className="text-xs text-neutral-500">{growthLeads.filter(l => l.email).length} leads have email addresses (ready for campaigns)</span>
+                  <button onClick={() => setActiveTab("campaigns")}
+                    className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1">
+                    <Send size={12} /> Launch Campaign
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===== GROWTH ENGINE: EMAIL TEMPLATES TAB ===== */}
+        {activeTab === "templates" && (
+          <div className="space-y-6">
+            {growthTemplates.length === 0 && !loadingTemplates && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 text-sm text-indigo-800 font-medium flex items-start gap-3">
+                <Mail size={18} className="text-indigo-500 mt-0.5 shrink-0" />
+                <div>No templates yet. Create your first template below. Use <code className="bg-white px-1 rounded text-xs">{"{{companyName}}"}</code>, <code className="bg-white px-1 rounded text-xs">{"{{website}}"}</code>, <code className="bg-white px-1 rounded text-xs">{"{{seoScore}}"}</code> for personalization.</div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {loadingTemplates && <div className="col-span-full text-center py-12 text-neutral-400"><Loader2 className="animate-spin mx-auto mb-2" size={24} />Loading...</div>}
+              {growthTemplates.map(t => (
+                <div key={t.id} className="bg-white border border-neutral-200 rounded-2xl p-5 hover:border-indigo-300 hover:shadow-md transition-all group flex flex-col">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="font-bold text-neutral-900 group-hover:text-indigo-600 transition-colors">{t.name}</h3>
+                    <button onClick={() => handleDeleteTemplate(t.id)} className="text-neutral-400 hover:text-red-500 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} /></button>
+                  </div>
+                  <div className="text-xs font-semibold text-neutral-500 mb-2 truncate">Subject: {t.subject}</div>
+                  <div className="text-sm text-neutral-600 bg-neutral-50 p-3 rounded-lg flex-1 overflow-hidden line-clamp-5 whitespace-pre-wrap">{t.body}</div>
+                  <div className="mt-3 text-[10px] text-neutral-400 uppercase tracking-wider font-bold">{new Date(t.createdAt).toLocaleDateString()}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ===== GROWTH ENGINE: CAMPAIGNS TAB ===== */}
+        {activeTab === "campaigns" && (
+          <div className="space-y-6">
+            {campaignSendResult && (
+              <div className={`p-5 rounded-2xl border text-sm font-medium ${campaignSendResult.error ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-800"}`}>
+                {campaignSendResult.error ? `Send Error: ${campaignSendResult.error}` : (
+                  <div>
+                    <div className="font-bold">✓ Campaign sent successfully!</div>
+                    <div>{campaignSendResult.sent} email{campaignSendResult.sent !== 1 ? "s" : ""} sent via <strong>{campaignSendResult.provider}</strong>.</div>
+                    {campaignSendResult.provider?.startsWith("simulated") && (
+                      <div className="mt-1 text-xs text-amber-700">To send real emails, set <code className="bg-white px-1 rounded">EMAIL_API_KEY</code> (Resend API key) and <code className="bg-white px-1 rounded">EMAIL_FROM</code> in your Vercel env vars.</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {growthCampaigns.length === 0 && !loadingCampaigns && (
+              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-8 text-center">
+                <Mail size={32} className="text-neutral-300 mx-auto mb-3" />
+                <p className="font-bold text-neutral-700 mb-1">No campaigns yet</p>
+                <p className="text-sm text-neutral-500 mb-4">Create your first campaign, select a template, and send personalized emails to all your leads.</p>
+                <button onClick={() => setShowCampaignModal(true)} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors">
+                  <span className="flex items-center gap-2"><Plus size={16} /> Create Campaign</span>
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {loadingCampaigns && <div className="col-span-full text-center py-12 text-neutral-400"><Loader2 className="animate-spin mx-auto mb-2" size={24} />Loading...</div>}
+              {growthCampaigns.map(c => (
+                <div key={c.id} className="bg-white border border-neutral-200 rounded-2xl p-6 hover:border-indigo-300 hover:shadow-md transition-all">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="font-bold text-neutral-900 mb-1">{c.name}</h3>
+                      <div className="text-xs text-neutral-500">Template: {c.template?.name || c.templateId}</div>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${c.status === "draft" ? "bg-slate-100 text-slate-600" : c.status === "running" ? "bg-indigo-50 text-indigo-700" : c.status === "completed" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                      {c.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-xs text-neutral-500">{c._count?.logs ?? 0} emails sent</span>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => handleDeleteCampaign(c.id)}
+                        className="p-1.5 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"><Trash2 size={15} /></button>
+                      <button onClick={() => handleSendCampaign(c.id)} disabled={sendingCampaignId === c.id}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                        {sendingCampaignId === c.id ? <><Loader2 size={14} className="animate-spin" /> Sending...</> : <><Send size={14} /> Send Now</>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Create Campaign Modal */}
+            {showCampaignModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+                  <div className="px-6 py-4 border-b flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-neutral-900 flex items-center gap-2"><Mail className="text-indigo-600" size={20} /> Create Campaign</h3>
+                    <button onClick={() => setShowCampaignModal(false)} className="text-neutral-400 hover:text-neutral-600"><X size={20} /></button>
+                  </div>
+                  <form id="campaignForm" onSubmit={handleCreateCampaign} className="p-6 space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-bold text-neutral-700">Campaign Name <span className="text-red-500">*</span></label>
+                      <input required value={newCampaign.name} onChange={e => setNewCampaign({ ...newCampaign, name: e.target.value })}
+                        placeholder="e.g. Q1 Cold Outreach" className="w-full px-4 py-2.5 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-bold text-neutral-700">Email Template <span className="text-red-500">*</span></label>
+                      <select required value={newCampaign.templateId} onChange={e => setNewCampaign({ ...newCampaign, templateId: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white">
+                        <option value="">Select a template…</option>
+                        {growthTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                      {growthTemplates.length === 0 && <p className="text-xs text-amber-600 mt-1">No templates found. <button type="button" className="underline" onClick={() => { setShowCampaignModal(false); setActiveTab("templates"); }}>Create a template first.</button></p>}
+                    </div>
+                  </form>
+                  <div className="px-6 py-4 border-t flex items-center justify-end gap-3">
+                    <button type="button" onClick={() => setShowCampaignModal(false)} className="px-4 py-2 text-sm font-bold text-neutral-600 hover:text-neutral-900">Cancel</button>
+                    <button type="submit" form="campaignForm" className="px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors">Create Campaign</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== GROWTH ENGINE: AUTOMATION TAB ===== */}
+        {activeTab === "automation" && (
+          <div className="max-w-3xl space-y-6">
+            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 text-sm text-indigo-800 flex items-start gap-3">
+              <Bot size={18} className="text-indigo-600 mt-0.5 shrink-0" />
+              <div>
+                <strong>Automation Engine</strong> — Toggle each module to enable or disable automatic execution. Schedules are processed by your deployment's cron jobs or n8n workflows.
+                To set up live cron execution, visit the <a href="/growth-engine-guide.html" target="_blank" className="underline">User Guide</a>.
+              </div>
+            </div>
+
+            {loadingAuto && <div className="text-center py-12 text-neutral-400"><Loader2 className="animate-spin mx-auto mb-2" size={24} />Loading...</div>}
+
+            {autoModules.map(mod => {
+              const info: Record<string, { icon: any; description: string; color: string }> = {
+                AutoLeadDiscovery: { icon: Target, description: "Automatically discovers new business domains using search patterns and stores them as leads.", color: "indigo" },
+                AutoSEOScanning: { icon: BarChart3, description: "Runs automated SEO audits on newly discovered leads and scores them 0–100.", color: "blue" },
+                AutoLeadEnrichment: { icon: AtSign, description: "Scrapes contact pages to extract email addresses and phone numbers for each lead.", color: "violet" },
+                AutoEmailOutreach: { icon: Send, description: "Sends personalized outreach emails to qualifying leads with SEO scores below 65.", color: "emerald" },
+              };
+              const meta = info[mod.module] || { icon: Cpu, description: "Automation module.", color: "neutral" };
+              const Icon = meta.icon;
+
+              return (
+                <div key={mod.id} className="bg-white border border-neutral-200 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center gap-5">
+                  <div className={`p-3 bg-${meta.color}-50 rounded-xl shrink-0`}>
+                    <Icon size={22} className={`text-${meta.color}-600`} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-neutral-900 text-base mb-1">{mod.module.replace(/([A-Z])/g, " $1").trim()}</div>
+                    <p className="text-sm text-neutral-500 mb-3">{meta.description}</p>
+                    <div className="flex items-center gap-3">
+                      <select value={mod.scheduleInterval} disabled={!mod.enabled}
+                        onChange={e => handleUpdateSchedule(mod.module, e.target.value)}
+                        className="px-3 py-1.5 border border-neutral-200 rounded-lg text-xs font-medium outline-none bg-white text-neutral-700 disabled:opacity-50">
+                        <option value="hourly">Every Hour</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                      </select>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${mod.enabled ? "bg-emerald-50 text-emerald-700" : "bg-neutral-100 text-neutral-500"}`}>
+                        {mod.enabled ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </div>
+                  <button onClick={() => handleToggleModule(mod.module, mod.enabled)} disabled={togglingModule === mod.module}
+                    className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${mod.enabled ? "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100" : "bg-indigo-600 text-white hover:bg-indigo-700"} disabled:opacity-50`}>
+                    {togglingModule === mod.module ? <Loader2 size={15} className="animate-spin" /> : mod.enabled ? <><Pause size={15} /> Disable</> : <><Play size={15} /> Enable</>}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Email Template Modal (from templates tab) */}
+        {showTemplateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="px-6 py-4 border-b flex items-center justify-between">
+                <h3 className="text-lg font-bold text-neutral-900 flex items-center gap-2"><Mail className="text-indigo-600" size={20} /> Create Email Template</h3>
+                <button onClick={() => setShowTemplateModal(false)} className="text-neutral-400 hover:text-neutral-600"><X size={20} /></button>
+              </div>
+              <form id="templateForm2" onSubmit={handleCreateTemplate} className="p-6 overflow-y-auto flex-1 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-neutral-700">Template Name <span className="text-red-500">*</span></label>
+                  <input required value={newTemplate.name} onChange={e => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                    placeholder="e.g. Cold SEO Outreach" className="w-full px-4 py-2 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-neutral-700">Email Subject <span className="text-red-500">*</span></label>
+                  <input required value={newTemplate.subject} onChange={e => setNewTemplate({ ...newTemplate, subject: e.target.value })}
+                    placeholder="Quick SEO improvement opportunity for {{companyName}}" className="w-full px-4 py-2 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                  <p className="text-xs text-neutral-500">Variables: <code>{"{{companyName}}"}</code> <code>{"{{website}}"}</code> <code>{"{{seoScore}}"}</code></p>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-neutral-700">Email Body <span className="text-red-500">*</span></label>
+                  <textarea required rows={8} value={newTemplate.body} onChange={e => setNewTemplate({ ...newTemplate, body: e.target.value })}
+                    placeholder={"Hello,\n\nI ran a quick SEO check on {{website}} and found some opportunities...\n\nBest regards,\nInstantSEOScan Team"}
+                    className="w-full px-4 py-3 border border-neutral-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none" />
+                </div>
+              </form>
+              <div className="px-6 py-4 border-t flex items-center justify-end gap-3">
+                <button type="button" onClick={() => setShowTemplateModal(false)} className="px-4 py-2 text-sm font-bold text-neutral-600 hover:text-neutral-900">Cancel</button>
+                <button type="submit" form="templateForm2" className="px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors">Save Template</button>
               </div>
             </div>
           </div>

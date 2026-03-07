@@ -286,7 +286,7 @@ function AppRoutes({ user, setUser, handleLogout }: { user: any; setUser: any; h
       />
       <Route
         path="/outreach"
-        element={user?.role === 'admin' ? <OutreachEngine /> : <Navigate to="/" />}
+        element={<Navigate to="/admin" replace />}
       />
     </>
   );

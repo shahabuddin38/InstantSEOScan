@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InstantSEOScan — AI Growth Engine User Guide</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      color: #1a1a2e;
+      background: #fff;
+      line-height: 1.6;
+    }
+    a { color: #4F46E5; }
+
+    /* Print & PDF styles */
+    @media print {
+      .no-print { display: none !important; }
+      .page-break { page-break-before: always; }
+      body { font-size: 12px; }
+      .cover { min-height: 100vh; }
+    }
+
+    /* ── Layout ── */
+    .container { max-width: 860px; margin: 0 auto; padding: 40px 32px; }
+
+    /* ── Cover ── */
+    .cover {
+      background: linear-gradient(135deg, #4F46E5 0%, #7c3aed 50%, #06b6d4 100%);
+      color: #fff;
+      padding: 80px 60px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .cover-logo { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 48px; }
+    .cover-logo span { opacity: 0.8; }
+    .cover h1 { font-size: 48px; font-weight: 900; line-height: 1.1; margin-bottom: 16px; }
+    .cover h1 em { font-style: normal; opacity: 0.8; }
+    .cover p { font-size: 18px; opacity: 0.85; max-width: 580px; margin-bottom: 40px; }
+    .cover-meta { font-size: 13px; opacity: 0.7; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 24px; }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 999px;
+      padding: 6px 18px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    /* ── TOC ── */
+    .toc { background: #f8f9ff; border: 1px solid #e0e7ff; border-radius: 12px; padding: 32px 36px; margin: 40px 0; }
+    .toc h2 { font-size: 18px; font-weight: 800; color: #4F46E5; margin-bottom: 20px; }
+    .toc ol { counter-reset: toc-counter; list-style: none; }
+    .toc li { counter-increment: toc-counter; padding: 6px 0; border-bottom: 1px dashed #e0e7ff; display: flex; align-items: center; gap: 10px; }
+    .toc li::before { content: counter(toc-counter); background: #4F46E5; color: #fff; font-weight: 700; font-size: 11px; min-width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+    .toc li span { font-weight: 600; color: #1a1a2e; }
+    .toc li small { margin-left: auto; color: #6b7280; font-size: 12px; }
+
+    /* ── Section ── */
+    .section { margin: 48px 0; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e0e7ff;
+    }
+    .section-num {
+      background: #4F46E5;
+      color: #fff;
+      font-weight: 900;
+      font-size: 14px;
+      min-width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .section h2 { font-size: 22px; font-weight: 800; color: #1a1a2e; }
+    .section p { color: #374151; margin-bottom: 12px; }
+
+    /* ── Sub-sections ── */
+    .sub { margin: 20px 0; }
+    .sub h3 { font-size: 15px; font-weight: 700; color: #4F46E5; margin-bottom: 8px; display: flex; align-items: center; gap-8px; }
+
+    /* ── Steps ── */
+    .steps { list-style: none; counter-reset: step-counter; }
+    .steps li {
+      counter-increment: step-counter;
+      display: flex;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .steps li::before {
+      content: counter(step-counter);
+      background: #f0f3ff;
+      color: #4F46E5;
+      font-weight: 900;
+      font-size: 13px;
+      min-width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #c7d2fe;
+      flex-shrink: 0;
+    }
+
+    /* ── Info boxes ── */
+    .info-box {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 13px;
+      color: #0c4a6e;
+    }
+    .warning-box {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 13px;
+      color: #78350f;
+    }
+    .tip-box {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 13px;
+      color: #14532d;
+    }
+    .info-box strong, .warning-box strong, .tip-box strong { font-weight: 700; }
+
+    /* ── Code ── */
+    code {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #7c3aed;
+    }
+    pre {
+      background: #1e1b4b;
+      color: #a5f3fc;
+      border-radius: 10px;
+      padding: 18px 22px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 12px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+    th { background: #4F46E5; color: #fff; padding: 10px 14px; text-align: left; font-weight: 700; }
+    td { padding: 10px 14px; border-bottom: 1px solid #e5e7eb; color: #374151; vertical-align: top; }
+    tr:nth-child(even) td { background: #f9fafb; }
+
+    /* ── Status pills ── */
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .pill-new { background: #dbeafe; color: #1d4ed8; }
+    .pill-contacted { background: #ede9fe; color: #6d28d9; }
+    .pill-replied { background: #d1fae5; color: #065f46; }
+    .pill-converted { background: #dcfce7; color: #14532d; }
+    .pill-active { background: #d1fae5; color: #065f46; }
+    .pill-off { background: #f3f4f6; color: #6b7280; }
+
+    /* ── Variable ref ── */
+    .var-ref td:first-child code { background: #ede9fe; border-color: #c4b5fd; }
+
+    /* ── Print button ── */
+    .print-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4F46E5;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 9999;
+    }
+    .print-btn:hover { background: #4338ca; }
+
+    /* ── Footer ── */
+    .footer { text-align: center; color: #9ca3af; font-size: 12px; padding: 40px 0 20px; border-top: 1px solid #e5e7eb; margin-top: 60px; }
+  </style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+
+<!-- ══════════════════════════════════════════
+     COVER PAGE
+══════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">Instant<span>SEO</span>Scan <span style="font-size:18px;font-weight:400;">⚡</span></div>
+  <div class="badge">Admin-Only Documentation</div>
+  <h1>AI Growth Engine<br /><em>User Guide</em></h1>
+  <p>Complete instructions for the Lead Scraper, Leads CRM, Email Campaigns, Templates, and Automation modules — available exclusively to Admin users.</p>
+  <div class="cover-meta">
+    InstantSEOScan · instantseoscan.com<br />
+    Version 1.0 · March 2026 · For Internal Use Only
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CONTENT
+══════════════════════════════════════════ -->
+<div class="container">
+
+  <!-- Table of Contents -->
+  <div class="toc">
+    <h2>📋 Table of Contents</h2>
+    <ol>
+      <li><span>Overview & Architecture</span><small>p.2</small></li>
+      <li><span>Accessing the Growth Engine</span><small>p.2</small></li>
+      <li><span>Lead Scraper Engine</span><small>p.3</small></li>
+      <li><span>Leads CRM</span><small>p.4</small></li>
+      <li><span>Email Templates</span><small>p.5</small></li>
+      <li><span>Email Campaigns</span><small>p.6</small></li>
+      <li><span>Automation Rules</span><small>p.7</small></li>
+      <li><span>Email Delivery Setup (Resend API)</span><small>p.8</small></li>
+      <li><span>Environment Variables Reference</span><small>p.9</small></li>
+      <li><span>Database Schema</span><small>p.10</small></li>
+      <li><span>Security & Access Control</span><small>p.11</small></li>
+      <li><span>Troubleshooting</span><small>p.12</small></li>
+    </ol>
+  </div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">1</span>
+      <h2>Overview & Architecture</h2>
+    </div>
+    <p>The <strong>AI Growth Engine</strong> is a complete outbound sales automation system built into the InstantSEOScan admin panel. It is <strong>exclusively accessible to users with the "admin" role</strong> and is completely invisible to regular users.</p>
+    <p>The system automates the entire outreach pipeline:</p>
+    <ol class="steps">
+      <li>Discover businesses with poor SEO using keyword + location searches</li>
+      <li>Store discovered domains in the Leads CRM database</li>
+      <li>Enrich leads with contact information (email, phone)</li>
+      <li>Generate personalized outreach emails using templates with dynamic variables</li>
+      <li>Send bulk email campaigns via the Resend API</li>
+      <li>Track open rates, click rates, and replies</li>
+      <li>Automate the entire workflow on a schedule (hourly / daily / weekly)</li>
+    </ol>
+    <div class="info-box">
+      <strong>📌 Note:</strong> All Growth Engine API endpoints require a valid admin JWT token. Any attempt to access them without admin credentials returns HTTP 403 Forbidden.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">2</span>
+      <h2>Accessing the Growth Engine</h2>
+    </div>
+    <p>The Growth Engine is embedded inside the Admin Panel — it is <strong>not a public-facing page</strong> and does not appear in the navigation for regular users.</p>
+    <ol class="steps">
+      <li>Log in with your Admin account at <code>/login</code></li>
+      <li>Navigate to <code>/admin</code> — you will be redirected if you are not an admin</li>
+      <li>In the left sidebar, scroll to the <strong>"Growth Engine"</strong> section</li>
+      <li>The section contains 5 tabs: <strong>Lead Scraper, Leads CRM, Campaigns, Email Templates, Automation</strong></li>
+    </ol>
+    <div class="warning-box">
+      <strong>⚠️ Admin Only:</strong> The route <code>/admin</code> checks <code>user.role === "admin"</code> in the frontend. The API endpoints check the role server-side via JWT. Non-admin users are hard-blocked at both layers.
+    </div>
+    <div class="tip-box">
+      <strong>💡 Tip:</strong> The old standalone <code>/outreach</code> route now automatically redirects to <code>/admin</code>. You don't need to update any bookmarks.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">3</span>
+      <h2>Lead Scraper Engine</h2>
+    </div>
+    <p>The Lead Scraper discovers potential clients by generating domain name patterns based on your keyword and city inputs, simulating how businesses in a niche are typically named online.</p>
+
+    <div class="sub">
+      <h3>🎯 How to Run a Scrape</h3>
+      <ol class="steps">
+        <li>Click <strong>"Lead Scraper"</strong> in the sidebar</li>
+        <li>Enter an <strong>Industry / Keyword</strong> (e.g. "dentist", "plumber", "marketing agency")</li>
+        <li>Optionally enter a <strong>City / Location</strong> (e.g. "New York")</li>
+        <li>Select a <strong>Source</strong>: Google, Bing, Google Maps, Yellow Pages, or LinkedIn</li>
+        <li>Set <strong>Max Leads</strong> (1–50 per run)</li>
+        <li>Click <strong>"Start Scraping"</strong></li>
+        <li>Leads are saved to the <strong>Leads CRM</strong> automatically</li>
+      </ol>
+    </div>
+
+    <div class="sub">
+      <h3>📊 What Gets Scraped</h3>
+      <p>Each discovered lead includes:</p>
+      <table>
+        <tr><th>Field</th><th>Details</th></tr>
+        <tr><td>Website domain</td><td>Auto-generated from keyword+location patterns</td></tr>
+        <tr><td>Company Name</td><td>Derived from domain slug</td></tr>
+        <tr><td>SEO Score</td><td>Random 10–65 (intentionally low — these are opportunities)</td></tr>
+        <tr><td>Issues</td><td>3 random SEO issues from a standard checklist</td></tr>
+        <tr><td>Status</td><td>Always starts as "new"</td></tr>
+        <tr><td>Source</td><td>The selected search source</td></tr>
+        <tr><td>Tags</td><td>Keyword + location</td></tr>
+      </table>
+    </div>
+
+    <div class="tip-box">
+      <strong>💡 Quick-Start Patterns:</strong> Click any example query button (e.g. "dentist in New York") to pre-fill the form for fast experimentation.
+    </div>
+
+    <div class="info-box">
+      <strong>🔮 Production Upgrade Path:</strong> To scrape real Google/Maps results, integrate the SerpAPI (<code>SERP_API_KEY</code>) or ScraperAPI. The scraper endpoint at <code>/api/admin/growth/scraper</code> is designed to be augmented with real HTTP scraping logic without changing the frontend.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">4</span>
+      <h2>Leads CRM</h2>
+    </div>
+    <p>The Leads CRM is your central database of all discovered leads. Each lead represents a business that has been identified as having poor SEO and is a potential client.</p>
+
+    <div class="sub">
+      <h3>📋 Lead Statuses</h3>
+      <table>
+        <tr><th>Status</th><th>Meaning</th></tr>
+        <tr><td><span class="pill pill-new">new</span></td><td>Just discovered, no contact attempted</td></tr>
+        <tr><td><span class="pill pill-contacted">contacted</span></td><td>An outreach email has been sent</td></tr>
+        <tr><td><span class="pill pill-replied">replied</span></td><td>Lead replied to your email</td></tr>
+        <tr><td><span class="pill pill-converted">converted</span></td><td>Lead became a paying client</td></tr>
+        <tr><td>ignored</td><td>Lead dismissed / not a good fit</td></tr>
+      </table>
+    </div>
+
+    <div class="sub">
+      <h3>🔍 Filtering &amp; Search</h3>
+      <ol class="steps">
+        <li>Use the search bar to filter leads by company name or domain</li>
+        <li>Leads with email addresses (ready for campaigns) are shown in the footer count</li>
+        <li>Click "Launch Campaign" in the footer to go straight to the Campaigns tab</li>
+      </ol>
+    </div>
+
+    <div class="sub">
+      <h3>🗑️ Deleting Leads</h3>
+      <p>Hover over any lead row and click the red trash icon to permanently delete it. This also removes all associated email logs and SEO reports.</p>
+    </div>
+
+    <div class="warning-box">
+      <strong>⚠️ Email Requirement:</strong> Only leads with an email address can receive campaign emails. To add emails, either: (1) run the Auto Lead Enrichment module, or (2) manually create a lead via the API: <code>POST /api/admin/growth/leads</code> with an email field.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">5</span>
+      <h2>Email Templates</h2>
+    </div>
+    <p>Templates define the structure of outreach emails. They support dynamic variables that are personalized per lead at send time.</p>
+
+    <div class="sub">
+      <h3>✏️ Creating a Template</h3>
+      <ol class="steps">
+        <li>Click <strong>"Email Templates"</strong> in the sidebar</li>
+        <li>Click <strong>"New Template"</strong> button (top-right)</li>
+        <li>Enter a name, subject line, and email body</li>
+        <li>Use the personalization variables below in both subject and body</li>
+        <li>Click <strong>"Save Template"</strong></li>
+      </ol>
+    </div>
+
+    <div class="sub">
+      <h3>🔤 Personalization Variables</h3>
+      <table class="var-ref">
+        <tr><th>Variable</th><th>Replaced With</th></tr>
+        <tr><td><code>{{companyName}}</code></td><td>The lead's company name (e.g. "Acme Dental")</td></tr>
+        <tr><td><code>{{website}}</code></td><td>The lead's domain (e.g. "acmedental.com")</td></tr>
+        <tr><td><code>{{seoScore}}</code></td><td>The lead's SEO score (e.g. "42")</td></tr>
+      </table>
+    </div>
+
+    <div class="sub">
+      <h3>📝 Example Template</h3>
+      <p><strong>Subject:</strong> <code>Quick SEO opportunity for {{companyName}}</code></p>
+      <pre>Hello {{companyName}} team,
+
+I ran a quick SEO check on {{website}} and found some opportunities
+that could help improve your Google rankings.
+
+Your current SEO score is {{seoScore}}/100.
+
+Some of the issues I noticed:
+- Missing meta descriptions
+- Slow page speed
+- Weak internal linking
+
+I've put together a free detailed SEO report for your website.
+Would you like me to send it over?
+
+Best regards,
+The InstantSEOScan Team
+https://instantseoscan.com</pre>
+    </div>
+
+    <div class="tip-box">
+      <strong>💡 Best Practice:</strong> Keep templates concise (150–250 words). Be specific about the lead's website and SEO issues. Mention the free report to increase reply rates.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">6</span>
+      <h2>Email Campaigns</h2>
+    </div>
+    <p>A Campaign bundles a template with a target audience (your leads). When you send a campaign, every qualifying lead receives a personalized version of the template email.</p>
+
+    <div class="sub">
+      <h3>🚀 Creating &amp; Sending a Campaign</h3>
+      <ol class="steps">
+        <li>Click <strong>"Campaigns"</strong> in the sidebar</li>
+        <li>Click <strong>"New Campaign"</strong> (top-right)</li>
+        <li>Enter a campaign name and select an email template</li>
+        <li>Click <strong>"Create Campaign"</strong> — the campaign starts in <strong>Draft</strong> status</li>
+        <li>Click <strong>"Send Now"</strong> on the campaign card to dispatch emails</li>
+        <li>Emails are sent to all leads with status <strong>"new"</strong> that have an email address</li>
+        <li>After sending, lead statuses update to <strong>"contacted"</strong></li>
+      </ol>
+    </div>
+
+    <div class="sub">
+      <h3>📊 Campaign Statuses</h3>
+      <table>
+        <tr><th>Status</th><th>Meaning</th></tr>
+        <tr><td>draft</td><td>Created but not yet sent</td></tr>
+        <tr><td>running</td><td>Emails have been dispatched (at least once)</td></tr>
+        <tr><td>completed</td><td>Campaign fully finished</td></tr>
+        <tr><td>paused</td><td>Manually paused mid-run</td></tr>
+      </table>
+    </div>
+
+    <div class="info-box">
+      <strong>📌 Simulated vs. Live Sending:</strong> If <code>EMAIL_API_KEY</code> is not set in your Vercel environment variables, campaigns run in <strong>"simulated"</strong> mode — all email logs are still recorded in the database but no real emails are sent. This is useful for testing.
+    </div>
+
+    <div class="warning-box">
+      <strong>⚠️ Anti-Spam Best Practice:</strong> Do not send to more than 50–100 cold leads per day per sending domain. Warm up your sending IP/domain before large-scale campaigns. Use a dedicated subdomain like <code>outreach@mail.instantseoscan.com</code>.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">7</span>
+      <h2>Automation Rules</h2>
+    </div>
+    <p>The Automation engine runs the Growth Engine modules on a schedule. Each module can be independently enabled/disabled and given its own schedule interval.</p>
+
+    <table>
+      <tr><th>Module</th><th>What It Does</th></tr>
+      <tr><td><strong>Auto Lead Discovery</strong></td><td>Runs the scraper with saved keyword/location presets to discover new leads automatically</td></tr>
+      <tr><td><strong>Auto SEO Scanning</strong></td><td>Runs SEO audits on newly discovered leads and scores them 0–100</td></tr>
+      <tr><td><strong>Auto Lead Enrichment</strong></td><td>Scrapes contact pages of each lead to extract email addresses and phone numbers</td></tr>
+      <tr><td><strong>Auto Email Outreach</strong></td><td>Sends outreach emails to qualified leads (SEO score &lt; 65) using active campaigns</td></tr>
+    </table>
+
+    <div class="sub">
+      <h3>⚙️ Enabling a Module</h3>
+      <ol class="steps">
+        <li>Click <strong>"Automation"</strong> in the sidebar</li>
+        <li>Find the module you want to enable</li>
+        <li>Set the schedule: <strong>Hourly</strong>, <strong>Daily</strong>, or <strong>Weekly</strong></li>
+        <li>Click <strong>"Enable"</strong> — the module turns active (green)</li>
+        <li>To pause, click <strong>"Disable"</strong></li>
+      </ol>
+    </div>
+
+    <div class="info-box">
+      <strong>📌 Cron Job Integration:</strong> Automation status is stored in the database. To actually execute the modules on schedule, set up a cron job (via Vercel Cron Jobs, n8n, or GitHub Actions) that calls <code>POST /api/admin/growth/automation/run</code> with a valid admin token. See Section 9 for example cron configuration.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">8</span>
+      <h2>Email Delivery Setup (Resend API)</h2>
+    </div>
+    <p>InstantSEOScan uses <strong>Resend</strong> as the email delivery provider. Resend is the recommended provider for Vercel deployments due to its edge-compatible API.</p>
+
+    <div class="sub">
+      <h3>🔑 Getting Your Resend API Key</h3>
+      <ol class="steps">
+        <li>Go to <a href="https://resend.com" target="_blank">resend.com</a> and create a free account</li>
+        <li>Add and verify your sending domain (e.g. <code>mail.instantseoscan.com</code>)</li>
+        <li>Go to API Keys → Create API Key → copy the key</li>
+        <li>Add it to Vercel: Dashboard → Your Project → Settings → Environment Variables</li>
+        <li>Add two variables: <code>EMAIL_API_KEY</code> = your Resend key, and <code>EMAIL_FROM</code> = <code>admin@instantseoscan.com</code></li>
+        <li>Redeploy from Vercel dashboard</li>
+      </ol>
+    </div>
+
+    <div class="sub">
+      <h3>🧪 Testing Email Delivery</h3>
+      <ol class="steps">
+        <li>Create a test lead via the Leads CRM with your own email address</li>
+        <li>Create a template and a campaign</li>
+        <li>Click "Send Now" — check your inbox for the personalized email</li>
+      </ol>
+    </div>
+
+    <div class="tip-box">
+      <strong>💡 Free Tier:</strong> Resend Free plan allows 100 emails/day and 3,000/month. For scale, upgrade to their Pro plan ($20/mo for 50,000 emails).
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">9</span>
+      <h2>Environment Variables Reference</h2>
+    </div>
+    <p>Add these variables in <strong>Vercel Dashboard → Project → Settings → Environment Variables</strong>:</p>
+    <table>
+      <tr><th>Variable</th><th>Required</th><th>Description</th></tr>
+      <tr><td><code>EMAIL_API_KEY</code></td><td>For live email</td><td>Resend API key (starts with "re_")</td></tr>
+      <tr><td><code>EMAIL_FROM</code></td><td>For live email</td><td>Verified sender address, e.g. <code>admin@instantseoscan.com</code></td></tr>
+      <tr><td><code>JWT_SECRET</code></td><td>✅ Required</td><td>Random secret for JWT signing (min 32 chars)</td></tr>
+      <tr><td><code>DATABASE_URL</code></td><td>✅ Required</td><td>PostgreSQL connection string (Neon / Supabase)</td></tr>
+      <tr><td><code>ADMIN_EMAIL</code></td><td>Recommended</td><td>Email address that auto-gets admin role on registration</td></tr>
+      <tr><td><code>SERP_API_KEY</code></td><td>For real scraping</td><td>SerpAPI key for Google/Bing real results</td></tr>
+    </table>
+
+    <div class="sub">
+      <h3>🕐 Cron Job Example (n8n / GitHub Actions)</h3>
+      <pre># GitHub Actions: .github/workflows/growth-cron.yml
+name: Growth Engine Cron
+on:
+  schedule:
+    - cron: '0 8 * * *'  # Daily at 8am UTC
+jobs:
+  run-automation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Automation
+        run: |
+          curl -X POST https://instantseoscan.com/api/admin/growth/scraper \
+            -H "Authorization: Bearer ${{ secrets.ADMIN_JWT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"keyword":"dentist","location":"New York","maxLeads":50}'</pre>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <h2>Database Schema</h2>
+    </div>
+    <p>The Growth Engine uses the following Prisma models in your PostgreSQL database:</p>
+    <table>
+      <tr><th>Model</th><th>Purpose</th><th>Key Fields</th></tr>
+      <tr><td><code>Lead</code></td><td>Stores discovered businesses</td><td>website, email, seoScore, status, tags, leadSource</td></tr>
+      <tr><td><code>SEOReport</code></td><td>SEO audit results per lead</td><td>leadId, score, issues, aiSummary, pdfUrl</td></tr>
+      <tr><td><code>EmailTemplate</code></td><td>Reusable email templates</td><td>name, subject, body</td></tr>
+      <tr><td><code>EmailCampaign</code></td><td>Campaign definitions</td><td>name, templateId, status</td></tr>
+      <tr><td><code>EmailLog</code></td><td>Individual email send records</td><td>campaignId, leadId, status, openedAt, clickedAt</td></tr>
+      <tr><td><code>AutomationSetting</code></td><td>Module enable/schedule config</td><td>module, enabled, scheduleInterval</td></tr>
+    </table>
+  </div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">11</span>
+      <h2>Security &amp; Access Control</h2>
+    </div>
+    <p>The Growth Engine is protected at <strong>three layers</strong>:</p>
+    <ol class="steps">
+      <li><strong>Frontend Route Guard:</strong> <code>/admin</code> checks <code>user?.role === "admin"</code> — non-admin users are redirected to home</li>
+      <li><strong>API Auth Middleware:</strong> All <code>/api/admin/growth/*</code> endpoints verify the JWT via <code>withAuth()</code> middleware</li>
+      <li><strong>Role Check:</strong> After token verification, each endpoint checks <code>user.role !== "admin"</code> and returns <code>403 Forbidden</code> if not admin</li>
+    </ol>
+    <div class="warning-box">
+      <strong>⚠️ Token Security:</strong> Never share your admin JWT token. Tokens expire after 7 days. If compromised, update <code>JWT_SECRET</code> in Vercel env vars — this invalidates all existing tokens.
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">12</span>
+      <h2>Troubleshooting</h2>
+    </div>
+    <table>
+      <tr><th>Issue</th><th>Solution</th></tr>
+      <tr><td>Scraper returns 0 leads</td><td>Check if the keyword is too specific. Try broader terms like "dentist" instead of "family dentist New York city downtown".</td></tr>
+      <tr><td>Emails show as "simulated"</td><td>Set <code>EMAIL_API_KEY</code> in Vercel env vars and redeploy. The Resend API key must be valid.</td></tr>
+      <tr><td>Campaign says "No leads with email"</td><td>Leads need email addresses. Add them manually or run Auto Lead Enrichment to extract emails from websites.</td></tr>
+      <tr><td>403 on API calls</td><td>Your session token may have expired. Log out and log back in as admin.</td></tr>
+      <tr><td>Template variables not replaced</td><td>Use exact variable syntax: <code>{"{{companyName}}"}</code> — double curly braces, camelCase, no spaces.</td></tr>
+      <tr><td>Automation modules don't run</td><td>Enabling a module only flags it in the DB. You need a cron job to call the API on schedule. See Section 9.</td></tr>
+      <tr><td>Database errors on save</td><td>Check <code>DATABASE_URL</code> in Vercel env vars. Run <code>npx prisma migrate deploy</code> if tables are missing.</td></tr>
+    </table>
+  </div>
+
+  <!-- ─────────────────────────────────────── -->
+  <div class="footer">
+    <p><strong>InstantSEOScan — AI Growth Engine User Guide</strong></p>
+    <p>© 2026 InstantSEOScan · instantseoscan.com · Admin Confidential — Do Not Distribute</p>
+    <br />
+    <p>To save as PDF: Click "Print / Save PDF" button above → choose "Save as PDF" in your browser print dialog</p>
+  </div>
+
+</div>
+</body>
+</html>
