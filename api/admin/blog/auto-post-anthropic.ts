@@ -72,26 +72,22 @@ const getAnthropicApiKey = async () => {
   return key || null;
 };
 
-const keywordToImagePath = (keyword: string) =>
-  String(keyword || "blog")
+// Returns a unique Picsum image URL per call — no two posts ever share the same image.
+const resolveKeywordImage = (keyword: string, width = 1200, height = 630): string => {
+  const kw = String(keyword || "blog")
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ",")
-    .replace(/^,+|,+$/g, "")
-    .slice(0, 80) || "blog";
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40) || "blog";
+  // Combine keyword + timestamp + random number → guaranteed unique seed per call
+  const uniqueSeed = `${kw}-${Date.now()}-${Math.floor(Math.random() * 999999)}`;
+  return `https://picsum.photos/seed/${encodeURIComponent(uniqueSeed)}/${width}/${height}`;
+};
 
-const resolveKeywordImage = (keyword: string, width = 1200, height = 630): string =>
-  `https://loremflickr.com/${width}/${height}/${keywordToImagePath(keyword)}`;
-
-const resolveStableKeywordImage = async (keyword: string, width = 1200, height = 630) => {
-  const sourceUrl = resolveKeywordImage(keyword, width, height);
-  try {
-    const response = await fetch(sourceUrl, { method: "HEAD", redirect: "follow" });
-    if (response.url && response.url !== sourceUrl) {
-      return response.url;
-    }
-  } catch { }
-  return sourceUrl;
+// Kept async for compatibility; no redirect-following needed with picsum seeds
+const resolveStableKeywordImage = async (keyword: string, width = 1200, height = 630): Promise<string> => {
+  return resolveKeywordImage(keyword, width, height);
 };
 
 

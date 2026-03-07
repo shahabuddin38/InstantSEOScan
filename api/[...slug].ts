@@ -2370,6 +2370,73 @@ Return STRICT JSON with keys: channelPlan (array), contentFormats (array), posti
     return authed(req as any, res as any);
   }
 
+  // GET /api/admin/growth/inbox - View all email logs (inbox)
+  // POST /api/admin/growth/inbox - Record an incoming reply from a lead
+  if (path === "/api/admin/growth/inbox") {
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
+
+      if (reqAny.method === "GET") {
+        const statusFilter = url.searchParams.get("status");
+        const logs = await prisma.emailLog.findMany({
+          where: statusFilter ? { status: statusFilter } : undefined,
+          include: {
+            lead: { select: { companyName: true, website: true, email: true } },
+            campaign: { select: { name: true } },
+          },
+          orderBy: { sentAt: "desc" },
+          take: 300,
+        });
+        const counts = await prisma.emailLog.groupBy({
+          by: ["status"],
+          _count: { id: true },
+        });
+        const statusCounts = counts.reduce((acc: any, c: any) => { acc[c.status] = c._count.id; return acc; }, {});
+        return resAny.json({ logs, total: logs.length, statusCounts });
+      }
+
+      if (reqAny.method === "POST") {
+        const { leadId, subject, body } = reqAny.body || {};
+        if (!leadId || !subject || !body)
+          return resAny.status(400).json({ error: "leadId, subject, body required" });
+        // Update the lead status to replied
+        await prisma.lead.update({ where: { id: leadId }, data: { status: "replied" } }).catch(() => {});
+        const log = await prisma.emailLog.create({
+          data: { leadId, subject: `[Reply] ${subject}`, body, status: "replied" },
+        });
+        return resAny.status(201).json(log);
+      }
+
+      return resAny.status(405).end();
+    });
+    return authed(req as any, res as any);
+  }
+
+  // PATCH /api/admin/growth/inbox/:id - Update email log status (mark replied, opened, etc.)
+  if (path.startsWith("/api/admin/growth/inbox/")) {
+    const authed = withAuth(async (reqAny: any, resAny: VercelResponse) => {
+      if (reqAny.user.role !== "admin") return resAny.status(403).json({ error: "Admin only" });
+      if (reqAny.method !== "PATCH") return resAny.status(405).end();
+      const logId = path.replace("/api/admin/growth/inbox/", "");
+      const { status } = reqAny.body || {};
+      if (!status) return resAny.status(400).json({ error: "status required" });
+      const updated = await prisma.emailLog.update({
+        where: { id: logId },
+        data: {
+          status,
+          ...(status === "opened" ? { openedAt: new Date() } : {}),
+          ...(status === "clicked" ? { clickedAt: new Date() } : {}),
+        },
+      });
+      // If marking as replied, also update lead status
+      if (status === "replied" && updated.leadId) {
+        await prisma.lead.update({ where: { id: updated.leadId }, data: { status: "replied" } }).catch(() => {});
+      }
+      return resAny.json(updated);
+    });
+    return authed(req as any, res as any);
+  }
+
   // Fallback
   return res.status(404).json({ error: "Not found" });
 }

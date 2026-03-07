@@ -47,6 +47,7 @@ import {
   ToggleRight,
   Cpu,
   ChevronDown,
+  Inbox,
 } from "lucide-react";
 import { apiRequest } from "../services/apiClient";
 import { cn } from "../lib/utils";
@@ -196,7 +197,7 @@ const SEOProgress = ({ score = 80 }: { score?: number }) => {
 
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "crm" | "cms" | "settings" | "aiwriter" | "autopost" | "leads" | "campaigns" | "templates" | "automation" | "scraper">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "crm" | "cms" | "settings" | "aiwriter" | "autopost" | "leads" | "campaigns" | "templates" | "automation" | "scraper" | "inbox">("dashboard");
   const [stats, setStats] = useState<AdminStats>({});
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [crm, setCrm] = useState<CRMResponse>({});
@@ -254,6 +255,17 @@ export default function Admin() {
   const [scraperForm, setScraperForm] = useState({ keyword: "", location: "", source: "google", maxLeads: "10" });
   const [scraping, setScraping] = useState(false);
   const [scrapeResult, setScrapeResult] = useState<any>(null);
+
+  // ── Inbox State ──────────────────────────────
+  type InboxLog = {
+    id: string; subject: string; body: string; status: string; sentAt: string;
+    lead?: { companyName?: string; website: string; email?: string };
+    campaign?: { name: string };
+  };
+  const [inboxLogs, setInboxLogs] = useState<InboxLog[]>([]);
+  const [loadingInbox, setLoadingInbox] = useState(false);
+  const [inboxFilter, setInboxFilter] = useState("all");
+  const [inboxCounts, setInboxCounts] = useState<Record<string, number>>({});
 
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -373,6 +385,30 @@ export default function Admin() {
     const r = await apiRequest<any[]>("/api/admin/growth/automation", { headers: tokenHeaders() });
     if (r.ok && r.data) setAutoModules(r.data);
     setLoadingAuto(false);
+  };
+
+  const fetchInbox = async (statusFilter?: string) => {
+    setLoadingInbox(true);
+    const qs = statusFilter ? `?status=${statusFilter}` : "";
+    const r = await apiRequest<any>(`/api/admin/growth/inbox${qs}`, { headers: tokenHeaders() });
+    if (r.ok && r.data) {
+      setInboxLogs(r.data.logs || []);
+      setInboxCounts(r.data.statusCounts || {});
+    }
+    setLoadingInbox(false);
+  };
+
+  const handleMarkInboxStatus = async (logId: string, newStatus: string) => {
+    const r = await apiRequest<any>(`/api/admin/growth/inbox/${logId}`, {
+      method: "PATCH",
+      headers: { ...tokenHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (r.ok) {
+      setInboxLogs((prev) => prev.map((l) => l.id === logId ? { ...l, status: newStatus } : l));
+    } else {
+      alert(r.error || "Failed to update status");
+    }
   };
 
   const handleScrape = async () => {
@@ -531,6 +567,7 @@ export default function Admin() {
     if (activeTab === "templates") fetchGrowthTemplates();
     if (activeTab === "campaigns") { fetchGrowthCampaigns(); fetchGrowthTemplates(); }
     if (activeTab === "automation") fetchAutoModules();
+    if (activeTab === "inbox") fetchInbox();
   }, [activeTab]);
 
   const handleApprove = async (userId: string) => {
@@ -998,6 +1035,7 @@ export default function Admin() {
               <SidebarItem icon={Mail} label="Campaigns" active={activeTab === "campaigns"} onClick={() => setActiveTab("campaigns")} />
               <SidebarItem icon={FileEdit} label="Email Templates" active={activeTab === "templates"} onClick={() => setActiveTab("templates")} />
               <SidebarItem icon={Bot} label="Automation" active={activeTab === "automation"} onClick={() => setActiveTab("automation")} />
+              <SidebarItem icon={Inbox} label="Inbox" active={activeTab === "inbox"} onClick={() => setActiveTab("inbox")} />
             </nav>
           </div>
 
@@ -1044,6 +1082,7 @@ export default function Admin() {
               {activeTab === "campaigns" && "Email Campaigns"}
               {activeTab === "templates" && "Email Templates"}
               {activeTab === "automation" && "Automation Rules"}
+              {activeTab === "inbox" && (<>Email <span className="text-indigo-600">Inbox</span></>)}
             </h1>
             <p className="text-slate-500 font-medium">
               {activeTab === "dashboard" ? "System statistics and recent activity." :
@@ -1056,7 +1095,8 @@ export default function Admin() {
                             activeTab === "leads" ? "Manage and track scraped leads, SEO opportunities, and outreach status." :
                               activeTab === "campaigns" ? "Create and send personalized AI-powered email campaigns to leads." :
                                 activeTab === "templates" ? "Build reusable outreach templates with dynamic personalization variables." :
-                                  "Enable automated lead discovery, SEO scanning, and email outreach workflows."}
+                                  activeTab === "inbox" ? "View all sent emails and incoming replies, track open rates and update lead statuses." :
+                                    "Enable automated lead discovery, SEO scanning, and email outreach workflows."}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -1083,7 +1123,7 @@ export default function Admin() {
                 <Plus size={20} /> New Campaign
               </button>
             )}
-            {(activeTab === "scraper" || activeTab === "leads" || activeTab === "campaigns" || activeTab === "templates" || activeTab === "automation") && (
+            {(activeTab === "scraper" || activeTab === "leads" || activeTab === "campaigns" || activeTab === "templates" || activeTab === "automation" || activeTab === "inbox") && (
               <a href="/growth-engine-guide.html" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2.5 bg-white border border-indigo-200 rounded-xl text-indigo-700 text-sm font-bold hover:bg-indigo-50 transition-colors">
                 📘 User Guide
@@ -2319,6 +2359,146 @@ export default function Admin() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Inbox Tab */}
+        {activeTab === "inbox" && (
+          <div className="space-y-6">
+            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 text-sm text-indigo-800 flex items-start gap-3">
+              <Inbox size={18} className="text-indigo-600 mt-0.5 shrink-0" />
+              <div>
+                <strong>Email Inbox</strong> — All sent campaigns and incoming replies in one place.
+                Filter by status or mark emails as replied to update lead statuses automatically.
+              </div>
+            </div>
+
+            {/* Status Filter Tabs */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {(["all", "sent", "opened", "clicked", "replied", "bounced"] as const).map((f) => {
+                const count = f === "all"
+                  ? Object.values(inboxCounts).reduce((a, b) => (a as number) + (b as number), 0) as number
+                  : (inboxCounts[f] || 0);
+                return (
+                  <button key={f} onClick={() => { setInboxFilter(f); fetchInbox(f === "all" ? undefined : f); }}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold capitalize transition-colors ${
+                      inboxFilter === f
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "bg-white border border-neutral-200 text-neutral-600 hover:border-indigo-400 hover:text-indigo-600"
+                    }`}>
+                    {f === "all" ? "All" : f} <span className="ml-1 opacity-70">({count})</span>
+                  </button>
+                );
+              })}
+              <button onClick={() => fetchInbox(inboxFilter === "all" ? undefined : inboxFilter)}
+                className="ml-auto p-2 bg-white border border-neutral-200 rounded-xl text-neutral-500 hover:text-indigo-600 transition-colors" title="Refresh">
+                <RefreshCw size={15} />
+              </button>
+            </div>
+
+            {loadingInbox ? (
+              <div className="text-center py-16 text-neutral-400">
+                <Loader2 size={28} className="animate-spin mx-auto mb-3" />
+                <p className="text-sm">Loading emails...</p>
+              </div>
+            ) : inboxLogs.length === 0 ? (
+              <div className="text-center py-20">
+                <Inbox size={44} className="text-neutral-200 mx-auto mb-3" />
+                <p className="font-bold text-neutral-600 text-lg">No emails found</p>
+                <p className="text-sm text-neutral-400 mt-1">Run a campaign to start sending emails and tracking replies.</p>
+              </div>
+            ) : (
+              <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-6 py-3 bg-neutral-50 border-b border-neutral-100 flex items-center justify-between">
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">{inboxLogs.length} emails</span>
+                  <span className="text-xs text-neutral-400">
+                    {inboxCounts["replied"] || 0} replied · {inboxCounts["opened"] || 0} opened · {inboxCounts["bounced"] || 0} bounced
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-neutral-100">
+                        <th className="px-5 py-3 text-left text-xs font-bold text-neutral-400 uppercase tracking-wider">Recipient</th>
+                        <th className="px-5 py-3 text-left text-xs font-bold text-neutral-400 uppercase tracking-wider">Subject</th>
+                        <th className="px-5 py-3 text-left text-xs font-bold text-neutral-400 uppercase tracking-wider">Campaign</th>
+                        <th className="px-5 py-3 text-left text-xs font-bold text-neutral-400 uppercase tracking-wider">Date</th>
+                        <th className="px-5 py-3 text-left text-xs font-bold text-neutral-400 uppercase tracking-wider">Status</th>
+                        <th className="px-5 py-3 text-left text-xs font-bold text-neutral-400 uppercase tracking-wider">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-50">
+                      {inboxLogs.map((log) => {
+                        const statusStyles: Record<string, string> = {
+                          sent: "bg-blue-50 text-blue-700",
+                          delivered: "bg-indigo-50 text-indigo-700",
+                          opened: "bg-amber-50 text-amber-700",
+                          clicked: "bg-orange-50 text-orange-700",
+                          replied: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+                          bounced: "bg-red-50 text-red-700",
+                        };
+                        return (
+                          <tr key={log.id} className="hover:bg-neutral-50 transition-colors group">
+                            <td className="px-5 py-4">
+                              <div className="font-semibold text-neutral-800 text-sm">
+                                {log.lead?.companyName || log.lead?.website || "—"}
+                              </div>
+                              <div className="text-xs text-neutral-400 mt-0.5">{log.lead?.email || <span className="italic">no email</span>}</div>
+                            </td>
+                            <td className="px-5 py-4 max-w-xs">
+                              <div className="text-neutral-700 truncate text-sm">{log.subject}</div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className="text-xs text-neutral-500 bg-neutral-100 px-2 py-1 rounded-lg">
+                                {log.campaign?.name || "—"}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-xs text-neutral-400 whitespace-nowrap">
+                              {new Date(log.sentAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                              <div className="text-neutral-300 mt-0.5">
+                                {new Date(log.sentAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold capitalize ${
+                                statusStyles[log.status] || "bg-neutral-100 text-neutral-600"
+                              }`}>
+                                {log.status}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-2">
+                                {log.status === "sent" && (
+                                  <>
+                                    <button onClick={() => handleMarkInboxStatus(log.id, "opened")}
+                                      className="text-xs text-amber-600 font-semibold hover:underline">Mark Opened</button>
+                                    <span className="text-neutral-300">·</span>
+                                    <button onClick={() => handleMarkInboxStatus(log.id, "replied")}
+                                      className="text-xs text-emerald-600 font-semibold hover:underline">Mark Replied</button>
+                                  </>
+                                )}
+                                {log.status === "opened" && (
+                                  <button onClick={() => handleMarkInboxStatus(log.id, "replied")}
+                                    className="text-xs text-emerald-600 font-semibold hover:underline">Mark Replied</button>
+                                )}
+                                {log.status === "replied" && (
+                                  <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
+                                    <CheckCircle2 size={12} /> Replied
+                                  </span>
+                                )}
+                                {log.status === "bounced" && (
+                                  <span className="text-xs text-red-500">Delivery failed</span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
