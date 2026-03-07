@@ -232,28 +232,13 @@ const keywordToImagePath = (keyword: string) =>
     .replace(/^,+|,+$/g, "")
     .slice(0, 80) || "blog";
 
-const resolveKeywordImage = (keyword: string, width = 1200, height = 630) =>
-  `https://loremflickr.com/${width}/${height}/${keywordToImagePath(keyword)}`;
+const resolveKeywordImage = (keyword: string, width = 1200, height = 630) => {
+  const cacheBuster = Math.floor(Math.random() * 1000000);
+  return `https://loremflickr.com/${width}/${height}/${keywordToImagePath(keyword)}?lock=${cacheBuster}`;
+};
 
 const resolveStableKeywordImage = async (keyword: string, width = 1200, height = 630) => {
-  const sourceUrl = resolveKeywordImage(keyword, width, height);
-
-  try {
-    // Use HEAD + redirect:follow so Node.js follows the loremflickr→Flickr CDN
-    // redirect chain and response.url holds the final, stable direct-image URL.
-    const response = await fetch(sourceUrl, {
-      method: "HEAD",
-      redirect: "follow",
-    });
-
-    if (response.url && response.url !== sourceUrl) {
-      return response.url;
-    }
-  } catch {
-    // Fall back to the source URL if the fetch fails.
-  }
-
-  return sourceUrl;
+  return resolveKeywordImage(keyword, width, height);
 };
 
 const stripHtml = (value: string) =>

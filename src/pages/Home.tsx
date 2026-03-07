@@ -280,10 +280,10 @@ export default function Home() {
       {/* SEO Content Section (1500+ Words Summary) */}
       <section className="py-24 bg-neutral-50 border-y border-neutral-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 prose prose-neutral prose-emerald lg:prose-lg">
-          <h2 className="text-4xl font-black mb-12 text-center">The Ultimate Guide to AI SEO Auditing in 2024</h2>
+          <h2 className="text-4xl font-black mb-12 text-center">The Ultimate Guide to AI SEO Auditing in 2026</h2>
 
           <p>
-            Search Engine Optimization (SEO) has evolved far beyond simple keyword stuffing. In 2024, search engines like Google use complex AI models (like RankBrain and SGE) to understand user intent, topical authority, and technical performance. To rank today, you need a tool that speaks the same language as the search engines.
+            Search Engine Optimization (SEO) has evolved far beyond simple keyword stuffing. In 2026, search engines like Google use complex AI models (like RankBrain and SGE) to understand user intent, topical authority, and technical performance. To rank today, you need a tool that speaks the same language as the search engines.
           </p>
 
           <h3 className="text-2xl font-bold mt-12 mb-6">Why Technical SEO is Your Foundation</h3>
